@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check } from 'lucide-react';
+import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone } from 'lucide-react';
 import { TeacherInfo, GenerationType, SubjectInfo, Exercise } from '../types';
 import { soundManager } from '../audio';
 import html2pdf from 'html2pdf.js';
@@ -724,6 +724,41 @@ export default function GeneratorPage() {
       {/* Light Strip Animation at the top */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-70 z-50 overflow-hidden no-print">
         <div className="w-full h-full bg-white/50 animate-light-strip"></div>
+      </div>
+
+      {/* Top Activation & Contact Bar */}
+      <div className="bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 border-b border-amber-500/40 text-amber-200 py-2 px-3 no-print relative z-50 shadow-md">
+        <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs md:text-sm font-bold">
+          <div className="flex items-center gap-2 text-amber-300">
+            <Sparkles size={16} className="text-amber-400 animate-pulse shrink-0" />
+            <span className="text-amber-100">لتفعيل الاشتراك والتواصل المباشر مع الأستاذ دالي نجيب:</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            {/* Facebook Link */}
+            <a 
+              href="https://www.facebook.com/dali.nadjib.14" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg shadow-md transition-all hover:scale-105 active:scale-95 text-xs font-bold"
+            >
+              <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+              <span>فايسبوك Facebook</span>
+            </a>
+
+            {/* WhatsApp Link */}
+            <a 
+              href="https://wa.me/213673831994" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg shadow-md transition-all hover:scale-105 active:scale-95 text-xs font-bold"
+            >
+              <Phone size={14} className="shrink-0" />
+              <span>واتساب (0673831994)</span>
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* Top Banner (Dhikr) */}
