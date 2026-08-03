@@ -94,8 +94,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Try to load from cache
       const cached = localStorage.getItem(`userData_${uid}`);
       if (cached) {
-        setUserData(JSON.parse(cached));
-        return;
+        try {
+          const parsed = JSON.parse(cached);
+          if (!parsed.uid) parsed.uid = uid;
+          setUserData(parsed);
+          return;
+        } catch (e) {
+          console.warn('Invalid cached userData:', e);
+        }
       }
       // Gracefully handle offline errors by allowing a fallback or just empty data if we can't fetch it.
       if (error?.message?.includes('offline') || error?.code === 'unavailable' || String(error).includes('offline')) {

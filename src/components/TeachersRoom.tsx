@@ -37,7 +37,7 @@ interface ChatSession {
 }
 
 export const TeachersRoom: React.FC = () => {
-  const { userData } = useAuth();
+  const { user, userData } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
@@ -57,7 +57,7 @@ export const TeachersRoom: React.FC = () => {
 
   // Helper to get consistent chat ID
   const getChatId = (uid1: string, uid2: string) => {
-    return [uid1, uid2].sort().join('_');
+    return [uid1, uid2].filter(Boolean).sort().join('_');
   };
 
   // Fetch banner
@@ -88,8 +88,8 @@ export const TeachersRoom: React.FC = () => {
 
   // Fetch teachers list and chat sessions
   useEffect(() => {
-    const currentUid = userData?.uid;
-    if (!isOpen || !currentUid) return;
+    const currentUid = userData?.uid || user?.uid;
+    if (!isOpen || !currentUid || typeof currentUid !== 'string' || !currentUid.trim()) return;
 
     // Fetch Users
     const qUsers = query(collection(db, 'users'));
@@ -133,19 +133,28 @@ export const TeachersRoom: React.FC = () => {
       console.warn('Chat sessions listener error (ignored):', error);
     };
 
-    // Fetch Sessions (both where user is user1 or user2)
-    const qSessions1 = query(collection(db, 'chat_sessions'), where('user1Id', '==', currentUid));
-    const unsubSessions1 = onSnapshot(qSessions1, handleSessionsSnapshot, handleSnapshotError);
-    const qSessions2 = query(collection(db, 'chat_sessions'), where('user2Id', '==', currentUid));
-    const unsubSessions2 = onSnapshot(qSessions2, handleSessionsSnapshot, handleSnapshotError);
+    // Fetch Sessions safely (both where user is user1 or user2)
+    let unsubSessions1 = () => {};
+    let unsubSessions2 = () => {};
+    
+    try {
+      if (currentUid && typeof currentUid === 'string' && currentUid.trim()) {
+        const qSessions1 = query(collection(db, 'chat_sessions'), where('user1Id', '==', currentUid));
+        unsubSessions1 = onSnapshot(qSessions1, handleSessionsSnapshot, handleSnapshotError);
+        const qSessions2 = query(collection(db, 'chat_sessions'), where('user2Id', '==', currentUid));
+        unsubSessions2 = onSnapshot(qSessions2, handleSessionsSnapshot, handleSnapshotError);
+      }
+    } catch (err) {
+      console.warn('Error setting up chat sessions listener:', err);
+    }
 
     return () => { unsubUsers(); unsubSessions1(); unsubSessions2(); };
-  }, [isOpen, userData]);
+  }, [isOpen, userData, user]);
 
   // Fetch messages for active chat
   useEffect(() => {
-    const currentUid = userData?.uid;
-    if (!activeChat || !currentUid || !activeChat.uid) {
+    const currentUid = userData?.uid || user?.uid;
+    if (!activeChat || !currentUid || typeof currentUid !== 'string' || !activeChat.uid) {
       setMessages([]);
       return;
     }
@@ -167,13 +176,14 @@ export const TeachersRoom: React.FC = () => {
   }, [activeChat, userData]);
 
   const sendFriendRequest = async (teacherUid: string) => {
-    if (!userData) return;
-    const chatId = getChatId(userData.uid, teacherUid);
+    const currentUid = userData?.uid || user?.uid;
+    if (!currentUid) return;
+    const chatId = getChatId(currentUid, teacherUid);
     await setDoc(doc(db, 'chat_sessions', chatId), {
-      user1Id: userData.uid,
+      user1Id: currentUid,
       user2Id: teacherUid,
       status: 'pending',
-      initiatorId: userData.uid,
+      initiatorId: currentUid,
       updatedAt: serverTimestamp()
     });
   };
@@ -193,21 +203,23 @@ export const TeachersRoom: React.FC = () => {
   };
 
   const getSessionForTeacher = (teacherUid: string) => {
-    if (!userData) return null;
-    const chatId = getChatId(userData.uid, teacherUid);
+    const currentUid = userData?.uid || user?.uid;
+    if (!currentUid) return null;
+    const chatId = getChatId(currentUid, teacherUid);
     return chatSessions.find(s => s.id === chatId);
   };
 
   const sendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!newMessage.trim() || !activeChat || !userData) return;
+    const currentUid = userData?.uid || user?.uid;
+    if (!newMessage.trim() || !activeChat || !currentUid) return;
 
     const msgText = newMessage;
     setNewMessage('');
     
-    const chatId = getChatId(userData.uid, activeChat.uid);
+    const chatId = getChatId(currentUid, activeChat.uid);
     await addDoc(collection(db, 'chat_sessions', chatId, 'messages'), {
-      senderId: userData.uid,
+      senderId: currentUid,
       text: msgText,
       createdAt: serverTimestamp()
     });
