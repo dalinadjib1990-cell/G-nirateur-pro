@@ -12,9 +12,13 @@ export const CompleteProfileModal: React.FC<{ isOpen: boolean; onClose: () => vo
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'admin'>('profile');
   
   // Profile state
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [school, setSchool] = useState('');
   const [stateName, setStateName] = useState('');
   const [phase, setPhase] = useState('');
   const [subject, setSubject] = useState('');
+  const [level, setLevel] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Security state
@@ -30,9 +34,13 @@ export const CompleteProfileModal: React.FC<{ isOpen: boolean; onClose: () => vo
 
   useEffect(() => {
     if (userData && isOpen) {
+      setFirstName(userData.firstName || '');
+      setLastName(userData.lastName || '');
+      setSchool(userData.school || '');
       setStateName(userData.state || (userData as any).wilaya || '');
       setPhase(userData.phase || '');
       setSubject((userData as any).subject || '');
+      setLevel((userData as any).level || '');
       // Reset other states
       setNewPassword('');
       setConfirmPassword('');
@@ -48,10 +56,14 @@ export const CompleteProfileModal: React.FC<{ isOpen: boolean; onClose: () => vo
     setLoading(true);
     try {
       await updateDoc(doc(db, 'users', userData.uid), {
+        firstName,
+        lastName,
+        school,
         state: stateName,
         wilaya: stateName, // keep backwards compatibility
         phase,
-        subject
+        subject,
+        level
       });
       await refreshUserData();
       onClose();
@@ -182,6 +194,22 @@ export const CompleteProfileModal: React.FC<{ isOpen: boolean; onClose: () => vo
 
             {activeTab === 'profile' && (
               <form onSubmit={handleSubmitProfile} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">الاسم</label>
+                    <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="الاسم" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">اللقب</label>
+                    <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="اللقب" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">المؤسسة التعليمية</label>
+                  <input type="text" value={school} onChange={e => setSchool(e.target.value)} className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="اسم المدرسة أو المؤسسة" />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">الولاية</label>
                   <select value={stateName} onChange={e => setStateName(e.target.value)} className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none">

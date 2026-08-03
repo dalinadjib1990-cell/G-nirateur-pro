@@ -184,12 +184,14 @@ export default function GeneratorPage() {
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
 
+  const activeUid = user?.uid || 'guest';
+
   useEffect(() => {
-    const savedBgImage = localStorage.getItem('appBgImage');
-    const savedBgColor = localStorage.getItem('appBgColor');
+    const savedBgImage = localStorage.getItem(`appBgImage_${activeUid}`);
+    const savedBgColor = localStorage.getItem(`appBgColor_${activeUid}`);
     if (savedBgImage) setAppBgImage(savedBgImage);
     if (savedBgColor) setAppBgColor(savedBgColor);
-  }, []);
+  }, [activeUid]);
 
   const handleAppBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -198,7 +200,7 @@ export default function GeneratorPage() {
       reader.onloadend = () => {
         const result = reader.result as string;
         setAppBgImage(result);
-        localStorage.setItem('appBgImage', result);
+        localStorage.setItem(`appBgImage_${activeUid}`, result);
       };
       reader.readAsDataURL(file);
     }
@@ -207,38 +209,54 @@ export default function GeneratorPage() {
   const handleAppBgColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const color = e.target.value;
     setAppBgColor(color);
-    localStorage.setItem('appBgColor', color);
+    localStorage.setItem(`appBgColor_${activeUid}`, color);
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem('generateProData');
+    const userStorageKey = `generateProData_${activeUid}`;
+    const saved = localStorage.getItem(userStorageKey);
+    let parsed: any = {};
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        if (parsed.teacherInfo) setTeacherInfo(parsed.teacherInfo);
-        if (parsed.memoSection) setMemoSection(parsed.memoSection);
-        if (parsed.memoDomain) setMemoDomain(parsed.memoDomain);
-        if (parsed.memoContent) setMemoContent(parsed.memoContent);
-        if (parsed.documentLanguage) setDocumentLanguage(parsed.documentLanguage);
-        if (parsed.includeWatermark !== undefined) setIncludeWatermark(parsed.includeWatermark);
-        if (parsed.hasIntegration !== undefined) setHasIntegration(parsed.hasIntegration);
-        if (parsed.contentStyle) setContentStyle(parsed.contentStyle);
-        if (parsed.designStyle) setDesignStyle(parsed.designStyle);
-        if (parsed.pageFrame) setPageFrame(parsed.pageFrame);
-        if (parsed.examType) setExamType(parsed.examType);
-        if (parsed.examTerm) setExamTerm(parsed.examTerm);
-        if (parsed.examDuration) setExamDuration(parsed.examDuration);
+        parsed = JSON.parse(saved);
       } catch (e) {
-        console.error("Could not parse saved data", e);
+        console.error("Could not parse saved user data", e);
       }
     }
-  }, []);
+
+    const savedTeacher = parsed.teacherInfo || {};
+    setTeacherInfo({
+      firstName: userData?.firstName !== undefined ? userData.firstName : (savedTeacher.firstName || ''),
+      lastName: userData?.lastName !== undefined ? userData.lastName : (savedTeacher.lastName || ''),
+      school: userData?.school !== undefined ? userData.school : (savedTeacher.school || ''),
+      phase: userData?.phase !== undefined ? userData.phase : (savedTeacher.phase || ''),
+      subject: userData?.subject !== undefined ? userData.subject : (savedTeacher.subject || ''),
+      level: userData?.level !== undefined ? userData.level : (savedTeacher.level || ''),
+    });
+
+    setMemoSection(parsed.memoSection || '');
+    setMemoDomain(parsed.memoDomain || '');
+    setMemoContent(parsed.memoContent || '');
+
+    if (parsed.documentLanguage) setDocumentLanguage(parsed.documentLanguage);
+    if (parsed.includeWatermark !== undefined) setIncludeWatermark(parsed.includeWatermark);
+    if (parsed.hasIntegration !== undefined) setHasIntegration(parsed.hasIntegration);
+    if (parsed.contentStyle) setContentStyle(parsed.contentStyle);
+    if (parsed.designStyle) setDesignStyle(parsed.designStyle);
+    if (parsed.pageFrame) setPageFrame(parsed.pageFrame);
+    if (parsed.examType) setExamType(parsed.examType);
+    if (parsed.examTerm) setExamTerm(parsed.examTerm);
+    if (parsed.examDuration) setExamDuration(parsed.examDuration);
+
+    setGeneratedHtml('');
+  }, [activeUid, userData]);
 
   const [lessonSaveMessage, setLessonSaveMessage] = useState<string | null>(null);
 
   const saveCurrentPreferences = (overrides?: Record<string, any>) => {
     try {
-      const currentData = JSON.parse(localStorage.getItem('generateProData') || '{}');
+      const userStorageKey = `generateProData_${user?.uid || 'guest'}`;
+      const currentData = JSON.parse(localStorage.getItem(userStorageKey) || '{}');
       const newData = {
         ...currentData,
         teacherInfo,
@@ -256,7 +274,7 @@ export default function GeneratorPage() {
         examDuration,
         ...overrides
       };
-      localStorage.setItem('generateProData', JSON.stringify(newData));
+      localStorage.setItem(userStorageKey, JSON.stringify(newData));
     } catch (e) {
       console.error("Could not auto-save preferences", e);
     }
@@ -267,7 +285,9 @@ export default function GeneratorPage() {
       alert('يرجى كتابة المقطع أو الميدان أو المورد المعرفي قبل الحفظ.');
       return;
     }
-    const subjectKey = `lesson_elements_${teacherInfo.subject || 'default'}`;
+    const uid = user?.uid || 'guest';
+    const subjectKey = `lesson_elements_${uid}_${teacherInfo.subject || 'default'}`;
+    const lastKey = `lesson_elements_${uid}_last`;
     const dataToSave = {
       memoSection,
       memoDomain,
@@ -276,36 +296,53 @@ export default function GeneratorPage() {
       updatedAt: new Date().toISOString()
     };
     localStorage.setItem(subjectKey, JSON.stringify(dataToSave));
-    localStorage.setItem('lesson_elements_last', JSON.stringify(dataToSave));
+    localStorage.setItem(lastKey, JSON.stringify(dataToSave));
     saveCurrentPreferences();
 
     if (soundEnabled) soundManager.playGenerateComplete();
-    setLessonSaveMessage('تم حفظ المقطع والميدان والمورد بنجاح! سينتذكرها النظام تلقائياً.');
+    setLessonSaveMessage('تم حفظ المقطع والميدان والمورد لدروسك الخاصة بنجاح!');
     setTimeout(() => setLessonSaveMessage(null), 3500);
   };
 
   const handleLoadLessonElements = () => {
-    const subjectKey = `lesson_elements_${teacherInfo.subject || 'default'}`;
-    const savedSubjectData = localStorage.getItem(subjectKey) || localStorage.getItem('lesson_elements_last');
+    const uid = user?.uid || 'guest';
+    const subjectKey = `lesson_elements_${uid}_${teacherInfo.subject || 'default'}`;
+    const lastKey = `lesson_elements_${uid}_last`;
+    const savedSubjectData = localStorage.getItem(subjectKey) || localStorage.getItem(lastKey);
     if (savedSubjectData) {
       try {
         const parsed = JSON.parse(savedSubjectData);
         if (parsed.memoSection) setMemoSection(parsed.memoSection);
         if (parsed.memoDomain) setMemoDomain(parsed.memoDomain);
         if (parsed.memoContent) setMemoContent(parsed.memoContent);
-        setLessonSaveMessage('تم استرجاع عناصر الدرس المحفوظة للمادة بنجاح!');
+        setLessonSaveMessage('تم استرجاع عناصر دروسك المحفوظة بنجاح!');
         setTimeout(() => setLessonSaveMessage(null), 3500);
       } catch (e) {
         console.error(e);
       }
     } else {
-      alert('لا توجد عناصر درس محفوظة لهذه المادة حتى الآن. أدخل البيانات واضغط على "تذكر عناصر الدرس".');
+      alert('لا توجد عناصر درس محفوظة لهذه المادة في حسابك الشخصي حتى الآن. أدخل البيانات واضغط على "تذكر عناصر الدرس".');
     }
   };
 
-  const handleSaveTeacher = () => {
+  const handleSaveTeacher = async () => {
     saveCurrentPreferences();
-    alert('تم حفظ معلومات الأستاذ والوثيقة بنجاح!');
+    if (userData?.uid) {
+      try {
+        await updateDoc(doc(db, 'users', userData.uid), {
+          firstName: teacherInfo.firstName,
+          lastName: teacherInfo.lastName,
+          school: teacherInfo.school,
+          phase: teacherInfo.phase,
+          subject: teacherInfo.subject,
+          level: teacherInfo.level
+        });
+        await refreshUserData();
+      } catch (e) {
+        console.error("Failed to update user profile in Firestore", e);
+      }
+    }
+    alert('تم حفظ معلوماتك الشخصية وإعداداتك في حسابك بنجاح!');
   };
 
   const isFreeMode = !isProUser;
@@ -652,11 +689,75 @@ export default function GeneratorPage() {
 
   const exportToWord = async () => {
     if (!generatedHtml) return;
-    const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML To Doc</title></head><body>";
-    const footer = "</body></html>";
-    const sourceHTML = header + `<div dir="rtl" style="font-family: Arial, sans-serif;">` + generatedHtml + `</div>` + footer;
-    
-    const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/msword' });
+
+    // Replace CSS variables with explicit hex colors for Word compatibility
+    const currentColor = docColor || '#1e40af';
+    let htmlForWord = generatedHtml
+      .replace(/var\(--doc-color,\s*([^)]+)\)/gi, currentColor)
+      .replace(/var\(--doc-color\)/gi, currentColor);
+
+    // Convert CSS gradients to solid background colors so MS Word renders backgrounds properly
+    htmlForWord = htmlForWord.replace(/background:\s*linear-gradient\([^;)]+\)/gi, `background-color: ${currentColor}`);
+
+    const wordHtml = `<!DOCTYPE html>
+<html xmlns:v="urn:schemas-microsoft-com:vml"
+xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
+xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>وثيقة Word</title>
+<!--[if gte mso 9]>
+<xml>
+ <w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>100</w:Zoom>
+  <w:DoNotOptimizeForBrowser/>
+ </w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+  @page WordSection1 {
+    size: 210mm 297mm;
+    margin: 1.5cm 1.5cm 1.5cm 1.5cm;
+    mso-header-margin: 36.0pt;
+    mso-footer-margin: 36.0pt;
+    mso-paper-source: 0;
+  }
+  div.WordSection1 { page: WordSection1; }
+  body {
+    font-family: 'Arial', 'Traditional Arabic', sans-serif;
+    direction: rtl;
+    text-align: right;
+    font-size: 13pt;
+    line-height: 1.5;
+    color: #000000;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 15px;
+    mso-table-lspace: 0pt;
+    mso-table-rspace: 0pt;
+  }
+  td, th {
+    padding: 6px 10px;
+    vertical-align: top;
+  }
+  .watermark-bg {
+    display: none;
+  }
+</style>
+</head>
+<body lang="AR-DZ" dir="rtl" style="text-align: right;">
+<div class="WordSection1" dir="rtl" style="direction: rtl; text-align: right; font-family: 'Arial', sans-serif;">
+${htmlForWord}
+</div>
+</body>
+</html>`;
+
+    const blob = new Blob(['\ufeff', wordHtml], { type: 'application/msword;charset=utf-8' });
     
     let title = 'مستند';
     if (generationType === 'memo') title = 'مذكرة درس';
