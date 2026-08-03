@@ -17,7 +17,22 @@ const db = getFirestore(app);
 
 export const maxDuration = 60; // Set max duration to 60 seconds (Vercel Hobby limit)
 
+let cachedKeys: string[] = [];
+let lastKeysFetch = 0;
+const badKeysMap = new Map<string, number>(); // key -> timestamp when it failed
+
 const getApiKeys = async () => {
+  const now = Date.now();
+  // Clear bad keys older than 10 minutes (600,000 ms)
+  for (const [k, time] of badKeysMap.entries()) {
+    if (now - time > 600000) badKeysMap.delete(k);
+  }
+
+  // Use cached keys if fresh (within 2 minutes)
+  if (cachedKeys.length > 0 && now - lastKeysFetch < 120000) {
+    return cachedKeys.filter(k => !badKeysMap.has(k));
+  }
+
   const keys: string[] = [];
   if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
   
@@ -40,7 +55,9 @@ const getApiKeys = async () => {
     console.error("Error fetching keys from Firestore:", error);
   }
   
-  return [...new Set(keys)];
+  cachedKeys = [...new Set(keys)];
+  lastKeysFetch = now;
+  return cachedKeys.filter(k => !badKeysMap.has(k));
 };
 
 const markKeyError = async (key: string, errorMsg: string) => {
@@ -178,17 +195,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     `;
 
     let response;
-    let retries = Math.max(3, apiKeys.length);
+    let retries = Math.min(10, apiKeys.length);
     let attempts = 0;
     let lastError;
-    let failedKey = '';
+    // Load balance across keys by picking a random start offset
+    let keyIdx = Math.floor(Math.random() * apiKeys.length);
 
     while (attempts < retries) {
+      const apiKey = apiKeys[keyIdx % apiKeys.length];
+      keyIdx++;
+      
       try {
-        const apiKey = apiKeys[currentKeyIndex % apiKeys.length];
-        failedKey = apiKey; // temporarily store it in case it fails
-        currentKeyIndex++;
-
         const ai = new GoogleGenAI({
           apiKey,
           httpOptions: {
@@ -211,30 +228,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         lastError = error;
         attempts++;
         
-        // Log the full error to help with debugging
         const errString = typeof error === 'object' ? JSON.stringify(error) : String(error);
         const errMsg = error?.message || errString;
-        console.error(`Attempt ${attempts} failed with key index ${(currentKeyIndex - 1) % apiKeys.length}:`, errMsg);
+        console.error(`Attempt ${attempts} failed for key ending in ...${apiKey.slice(-6)}:`, errMsg);
         
         const isRateLimit = error?.status === 429 || error?.code === 429 || errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('RESOURCE_EXHAUSTED');
-        const isUnavailable = error?.status === 503 || error?.code === 503 || errMsg.includes('503');
         const isAuthError = error?.status === 400 || error?.status === 403 || errMsg.includes('API_KEY_INVALID');
 
         if (isRateLimit || isAuthError) {
-          // Mark the key in Firestore
-          await markKeyError(failedKey, errMsg.substring(0, 100));
+          badKeysMap.set(apiKey, Date.now());
+          // Mark key error asynchronously in background without delaying response
+          markKeyError(apiKey, errMsg.substring(0, 100)).catch(() => {});
         }
 
-        if (isRateLimit) {
-          if (attempts >= apiKeys.length) {
-            break; // Stop retrying if we exhausted all available keys
-          }
+        if (isRateLimit || isAuthError) {
+          continue; // Try next key immediately
+        } else {
+          // Brief pause for transient errors
+          await new Promise(resolve => setTimeout(resolve, 300));
           continue;
-        } else if (isUnavailable) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          continue;
-        } else if (attempts >= retries) {
-          throw error;
         }
       }
     }

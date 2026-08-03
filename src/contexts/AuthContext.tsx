@@ -63,12 +63,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (docSnap.exists()) {
         const data = docSnap.data() as UserData;
+        const fullUserData: UserData = {
+          ...data,
+          uid: docSnap.id || uid,
+        };
         
         // Cache user data locally
-        localStorage.setItem(`userData_${uid}`, JSON.stringify(data));
+        localStorage.setItem(`userData_${uid}`, JSON.stringify(fullUserData));
         
         // Set userData first so they can log in even if the update fails
-        setUserData(data);
+        setUserData(fullUserData);
 
         // Automatically make admins
         const isAdminUser = data.email?.includes('0771167330') || data.phone?.includes('0771167330') || data.email === 'dalinadjib1990@gmail.com' || auth.currentUser?.email === 'dalinadjib1990@gmail.com';
@@ -76,10 +80,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isAdminUser && data.role !== 'admin') {
           try {
             await setDoc(docRef, { role: 'admin', generationsRemaining: 9999 }, { merge: true });
-            setUserData({ ...data, role: 'admin', generationsRemaining: 9999 });
+            setUserData({ ...fullUserData, role: 'admin', generationsRemaining: 9999 });
           } catch (e) {
             console.error('Failed to update admin role automatically:', e);
-            setUserData({ ...data, role: 'admin', generationsRemaining: 9999 });
+            setUserData({ ...fullUserData, role: 'admin', generationsRemaining: 9999 });
           }
         }
       } else {

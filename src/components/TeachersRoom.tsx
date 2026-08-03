@@ -88,14 +88,15 @@ export const TeachersRoom: React.FC = () => {
 
   // Fetch teachers list and chat sessions
   useEffect(() => {
-    if (!isOpen || !userData) return;
+    const currentUid = userData?.uid;
+    if (!isOpen || !currentUid) return;
 
     // Fetch Users
     const qUsers = query(collection(db, 'users'));
     const unsubUsers = onSnapshot(qUsers, (querySnapshot) => {
       const fetchedTeachers: Teacher[] = [];
       querySnapshot.forEach((docSnap) => {
-        if (docSnap.id !== userData.uid) {
+        if (docSnap.id !== currentUid) {
           fetchedTeachers.push({ uid: docSnap.id, ...docSnap.data() } as Teacher);
         }
       });
@@ -120,13 +121,6 @@ export const TeachersRoom: React.FC = () => {
       console.error('Error fetching users in TeachersRoom:', error);
     });
 
-    // Fetch Sessions (both where user is user1 or user2)
-    // Firestore OR queries are possible but we can just subscribe to all sessions involving user
-    const qSessions1 = query(collection(db, 'chat_sessions'), where('user1Id', '==', userData.uid));
-    const unsubSessions1 = onSnapshot(qSessions1, handleSessionsSnapshot);
-    const qSessions2 = query(collection(db, 'chat_sessions'), where('user2Id', '==', userData.uid));
-    const unsubSessions2 = onSnapshot(qSessions2, handleSessionsSnapshot);
-
     const activeSessions: Record<string, ChatSession> = {};
     function handleSessionsSnapshot(snapshot: any) {
       snapshot.forEach((docSnap: any) => {
@@ -135,17 +129,28 @@ export const TeachersRoom: React.FC = () => {
       setChatSessions(Object.values(activeSessions));
     }
 
+    const handleSnapshotError = (error: any) => {
+      console.warn('Chat sessions listener error (ignored):', error);
+    };
+
+    // Fetch Sessions (both where user is user1 or user2)
+    const qSessions1 = query(collection(db, 'chat_sessions'), where('user1Id', '==', currentUid));
+    const unsubSessions1 = onSnapshot(qSessions1, handleSessionsSnapshot, handleSnapshotError);
+    const qSessions2 = query(collection(db, 'chat_sessions'), where('user2Id', '==', currentUid));
+    const unsubSessions2 = onSnapshot(qSessions2, handleSessionsSnapshot, handleSnapshotError);
+
     return () => { unsubUsers(); unsubSessions1(); unsubSessions2(); };
   }, [isOpen, userData]);
 
   // Fetch messages for active chat
   useEffect(() => {
-    if (!activeChat || !userData) {
+    const currentUid = userData?.uid;
+    if (!activeChat || !currentUid || !activeChat.uid) {
       setMessages([]);
       return;
     }
 
-    const chatId = getChatId(userData.uid, activeChat.uid);
+    const chatId = getChatId(currentUid, activeChat.uid);
     const messagesRef = collection(db, 'chat_sessions', chatId, 'messages');
     const qMsg = query(messagesRef, orderBy('createdAt', 'asc'));
     
@@ -154,6 +159,8 @@ export const TeachersRoom: React.FC = () => {
       snapshot.forEach(docSnap => msgs.push({ id: docSnap.id, ...docSnap.data() } as Message));
       setMessages(msgs);
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    }, (error) => {
+      console.warn("Messages listener error:", error);
     });
     
     return () => unsubMessages();

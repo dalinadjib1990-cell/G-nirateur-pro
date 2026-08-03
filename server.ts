@@ -146,15 +146,15 @@ async function startServer() {
       `;
 
       let response;
-      let retries = 3;
+      let retries = Math.min(10, apiKeys.length);
       let attempts = 0;
       let lastError;
+      let keyIdx = Math.floor(Math.random() * apiKeys.length);
 
       while (attempts < retries) {
         try {
-          // Pick current key and increment
-          const apiKey = apiKeys[currentKeyIndex % apiKeys.length];
-          currentKeyIndex++;
+          const apiKey = apiKeys[keyIdx % apiKeys.length];
+          keyIdx++;
 
           const ai = new GoogleGenAI({
             apiKey,
@@ -177,14 +177,12 @@ async function startServer() {
         } catch (error: any) {
           lastError = error;
           attempts++;
-          console.error(`Attempt ${attempts} failed with key index ${(currentKeyIndex - 1) % apiKeys.length}:`, error.message);
+          console.error(`Attempt ${attempts} failed:`, error.message);
           
           if (error.status === 429) {
-            // Quota exceeded, retry immediately with next key
             continue;
           } else if (error.status === 503) {
-            // Service unavailable, wait and retry
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 300));
             continue;
           } else if (attempts >= retries) {
             throw error;
