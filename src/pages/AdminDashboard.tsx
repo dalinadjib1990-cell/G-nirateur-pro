@@ -138,7 +138,8 @@ export default function AdminDashboard() {
     try {
       await updateDoc(doc(db, 'users', uid), {
         isActive: true,
-        isPro: true
+        isPro: true,
+        generationsRemaining: 9999
       });
       fetchUsers();
     } catch (error) {
@@ -151,7 +152,8 @@ export default function AdminDashboard() {
     try {
       await updateDoc(doc(db, 'users', uid), {
         isActive: false,
-        isPro: false
+        isPro: false,
+        generationsRemaining: 0
       });
       fetchUsers();
     } catch (error) {

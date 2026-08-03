@@ -462,7 +462,7 @@ export default function GeneratorPage() {
       return;
     }
 
-    if (userData.role !== 'admin' && userData.generationsRemaining <= 0) {
+    if (!isProUser && userData.role !== 'admin' && (userData.generationsRemaining === undefined || userData.generationsRemaining <= 0)) {
       alert('عذراً، لقد استنفدت عدد التوليدات المتاحة لك. الرجاء التواصل مع الإدارة لتجديد الاشتراك.');
       return;
     }
@@ -544,7 +544,7 @@ export default function GeneratorPage() {
       setGeneratedHtml(safeHtml);
       
       // Update generation quota in Firestore
-      if (userData.role !== 'admin') {
+      if (!isProUser && userData.role !== 'admin') {
         try {
           const { doc, updateDoc, increment } = await import('firebase/firestore');
           const { db } = await import('../lib/firebase');
@@ -556,6 +556,18 @@ export default function GeneratorPage() {
           refreshUserData();
         } catch (err) {
           console.error('Error updating quota:', err);
+        }
+      } else if (userData) {
+        try {
+          const { doc, updateDoc, increment } = await import('firebase/firestore');
+          const { db } = await import('../lib/firebase');
+          const userRef = doc(db, 'users', userData.uid);
+          await updateDoc(userRef, {
+            totalGenerations: increment(1)
+          });
+          refreshUserData();
+        } catch (err) {
+          console.error('Error updating total generations:', err);
         }
       }
 
