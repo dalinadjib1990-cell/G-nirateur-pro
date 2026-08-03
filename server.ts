@@ -237,11 +237,22 @@ async function startServer() {
       let attempts = 0;
       let lastError;
 
-      // Transform messages into Gemini format
-      const geminiMessages = messages.map((m: any) => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.content }]
-      }));
+      // Transform messages into Gemini format & clean up order
+      let sanitizedMessages = messages
+        .filter((m: any) => m && m.content && String(m.content).trim() !== '')
+        .map((m: any) => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          parts: [{ text: String(m.content) }]
+        }));
+
+      // Gemini API REQUIRES the conversation to start with 'user' role
+      const firstUserIndex = sanitizedMessages.findIndex((m: any) => m.role === 'user');
+      if (firstUserIndex === -1) {
+        return res.status(400).json({ error: "At least one user message is required" });
+      }
+      if (firstUserIndex > 0) {
+        sanitizedMessages = sanitizedMessages.slice(firstUserIndex);
+      }
 
       while (attempts < retries) {
         try {
@@ -252,7 +263,7 @@ async function startServer() {
 
           response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: geminiMessages,
+            contents: sanitizedMessages,
             config: {
               systemInstruction,
               temperature: 0.7,
@@ -262,7 +273,7 @@ async function startServer() {
         } catch (error: any) {
           lastError = error;
           attempts++;
-          console.error(`Expert API Attempt ${attempts} failed:`, error.message);
+          console.error(`Expert API Attempt ${attempts} failed:`, error.message || error);
           
           if (error.status === 429) {
             continue;

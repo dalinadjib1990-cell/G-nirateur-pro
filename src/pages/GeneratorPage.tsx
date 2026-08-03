@@ -876,16 +876,21 @@ export default function GeneratorPage() {
                 </button>
               </div>
 
-              <div className="hidden sm:flex items-center justify-center bg-[#1a1a1a] rounded-lg border border-amber-900/30 w-9 h-9 md:w-10 md:h-10">
+              <div className="flex items-center justify-center bg-[#1a1a1a] rounded-lg border border-amber-900/30 px-2 py-1 gap-1 text-amber-400">
+                <Languages size={16} className="shrink-0 text-amber-400" />
                 <select 
                   value={documentLanguage} 
-                  onChange={(e) => setDocumentLanguage(e.target.value)}
-                  className="bg-transparent border-none text-xs font-bold text-amber-100 outline-none w-full h-full text-center cursor-pointer appearance-none px-1"
-                  title="تغيير اللغة"
+                  onChange={(e) => {
+                    const newLang = e.target.value;
+                    setDocumentLanguage(newLang);
+                    saveCurrentPreferences({ documentLanguage: newLang });
+                  }}
+                  className="bg-transparent border-none text-xs font-extrabold text-amber-100 outline-none cursor-pointer text-center appearance-none px-1"
+                  title="تغيير لغة الوثيقة والمنصة (العربية / الفرنسية / الإنجليزية)"
                 >
-                  <option value="ar">AR</option>
-                  <option value="fr">FR</option>
-                  <option value="en">EN</option>
+                  <option value="ar" className="bg-slate-900 text-white">🇩🇿 AR</option>
+                  <option value="fr" className="bg-slate-900 text-white">🇫🇷 FR</option>
+                  <option value="en" className="bg-slate-900 text-white">🇬🇧 EN</option>
                 </select>
               </div>
             </div>
@@ -1250,6 +1255,39 @@ export default function GeneratorPage() {
 
             {/* Universal Styling Options for all generation types */}
             <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 space-y-6">
+              
+              {/* Document Language Selection */}
+              <div>
+                <label className="block text-xs font-bold mb-3 text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                  <Languages size={16} className="text-amber-500" />
+                  لغة الوثيقة (Document Language)
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'ar', flag: '🇩🇿', label: 'العربية' },
+                    { id: 'fr', flag: '🇫🇷', label: 'Français' },
+                    { id: 'en', flag: '🇬🇧', label: 'English' },
+                  ].map(lang => (
+                    <button
+                      key={lang.id}
+                      type="button"
+                      onClick={() => {
+                        if (soundEnabled) soundManager.playTabClick();
+                        setDocumentLanguage(lang.id);
+                        saveCurrentPreferences({ documentLanguage: lang.id });
+                      }}
+                      className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all border ${
+                        documentLanguage === lang.id
+                          ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-white border-transparent shadow-md scale-[1.02]'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <span className="text-sm">{lang.flag}</span>
+                      <span>{lang.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               
               {/* Content Style */}
               <div>

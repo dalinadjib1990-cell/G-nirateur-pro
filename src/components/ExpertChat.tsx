@@ -87,8 +87,10 @@ export const ExpertChat: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
     setIsLoading(true);
 
     try {
-      // Exclude greeting id and map to what API expects
-      const apiMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
+      // Exclude initial model greeting so messages start with role 'user'
+      const apiMessages = newMessages
+        .filter(m => m.id !== 'greeting')
+        .map(m => ({ role: m.role, content: m.content }));
       
       const response = await fetch('/api/expert', {
         method: 'POST',
