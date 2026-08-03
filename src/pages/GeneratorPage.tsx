@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone } from 'lucide-react';
+import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone, CheckCircle2, Lock } from 'lucide-react';
 import { TeacherInfo, GenerationType, SubjectInfo, Exercise } from '../types';
 import { soundManager } from '../audio';
 import html2pdf from 'html2pdf.js';
@@ -40,6 +40,14 @@ export default function GeneratorPage() {
                   userData?.phone?.includes('0771167330') || 
                   user?.phone?.includes('0771167330') ||
                   userData?.email?.includes('0771167330');
+
+  const isProUser = Boolean(
+    isAdmin || 
+    userData?.isPro === true || 
+    userData?.isActive === true || 
+    userData?.role === 'pro' || 
+    (userData?.generationsRemaining !== undefined && userData.generationsRemaining > 30)
+  );
 
   const [darkMode, setDarkMode] = useState(false);
   const [appBgImage, setAppBgImage] = useState<string | null>(null);
@@ -300,7 +308,7 @@ export default function GeneratorPage() {
     alert('تم حفظ معلومات الأستاذ والوثيقة بنجاح!');
   };
 
-  const isFreeMode = userData && userData.role !== 'admin' && userData.email !== 'dalinadjib1990@gmail.com' && user?.email !== 'dalinadjib1990@gmail.com' && !userData.isPro;
+  const isFreeMode = !isProUser;
 
   let designStyles = [
     { id: 'style1', label: 'كلاسيكي', icon: BookOpen, color: '#1e40af', twColor: 'text-blue-600', twBg: 'bg-blue-100', twBorder: 'border-blue-200' },
@@ -815,15 +823,27 @@ export default function GeneratorPage() {
           {/* Actions Section */}
           <div className="flex items-center gap-2 md:gap-4 shrink-0 py-1">
             
-            {/* Profile Picture */}
+            {/* Profile Picture & PRO status */}
             <div className="flex items-center gap-1.5 md:gap-2">
-              <span className="hidden sm:block text-[11px] md:text-xs font-semibold text-amber-100 truncate max-w-[80px]">
-                {userData?.firstName || "مستخدم"}
-              </span>
+              <div className="flex flex-col items-end">
+                <span className="hidden sm:block text-[11px] md:text-xs font-bold text-amber-100 truncate max-w-[90px]">
+                  {userData?.firstName || "مستخدم"}
+                </span>
+                {isProUser ? (
+                  <span className="hidden sm:flex items-center gap-1 bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse">
+                    <CheckCircle2 size={10} className="text-emerald-400 shrink-0" />
+                    <span>الوضع الاحترافي PRO 🟢</span>
+                  </span>
+                ) : (
+                  <span className="hidden sm:flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                    <span>وضع عادي</span>
+                  </span>
+                )}
+              </div>
               <input type="file" ref={profileInputRef} onChange={handleProfileImageSelect} className="hidden" accept="image/*" />
               <button 
                 onClick={() => profileInputRef.current?.click()}
-                className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden shrink-0 ring-2 ring-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] relative group"
+                className={`w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden shrink-0 ring-2 ${isProUser ? 'ring-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.8)]' : 'ring-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]'} relative group`}
                 title="تغيير الصورة الشخصية"
               >
                 {(profileImagePreview || userData?.profilePic) ? (
@@ -1000,50 +1020,121 @@ export default function GeneratorPage() {
               </div>
             </div>
 
-            {/* Quota Progress Bar & Quick Admin Buttons */}
-            {isAdmin ? (
-              <div className="mb-5 bg-gradient-to-br from-slate-900 to-indigo-950 p-4 rounded-xl border border-indigo-500/40 text-center text-white shadow-md">
-                <h3 className="text-sm font-extrabold text-amber-300 flex items-center justify-center gap-1.5 mb-3">
-                  <Shield size={18} className="text-amber-400 animate-pulse" />
-                  حساب مسؤول - رصيد غير محدود
-                </h3>
+            {/* Account Status Card - PRO Mode Banner */}
+            {isProUser ? (
+              <div className="mb-5 bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 p-4 rounded-xl border-2 border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.3)] text-white relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-green-400 animate-pulse"></div>
+                
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={20} className="text-emerald-400 shrink-0 animate-bounce" />
+                    <h3 className="text-sm font-black bg-gradient-to-r from-emerald-300 via-teal-200 to-green-300 bg-clip-text text-transparent">
+                      {isAdmin ? 'حساب مسؤول - الوضع الاحترافي' : 'حساب مفعل - الوضع الاحترافي (PRO)'}
+                    </h3>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 text-[10px] font-black tracking-wide flex items-center gap-1 shadow-sm">
+                    <Zap size={11} className="text-amber-300 fill-amber-300" />
+                    مفعل 🟢
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-emerald-200/90 font-medium mb-3 leading-relaxed">
+                  تهانينا يا أستاذ! تم ترقية حسابك بنجاح للوضع الاحترافي وتفعيل جميع الميزات المتقدمة.
+                </p>
+
+                {/* Features Checklist */}
+                <div className="grid grid-cols-1 gap-1.5 text-xs text-emerald-100 bg-emerald-950/70 p-2.5 rounded-lg border border-emerald-500/30 mb-3 text-right">
+                  <div className="flex items-center gap-2">
+                    <Check size={14} className="text-emerald-400 font-extrabold shrink-0" />
+                    <span>توليد غير محدود للمواضيع والاختبارات والمذكرات</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check size={14} className="text-emerald-400 font-extrabold shrink-0" />
+                    <span>جميع التصاميم، الإطارات، والخلفيات الحصرية مفتوحة</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check size={14} className="text-emerald-400 font-extrabold shrink-0" />
+                    <span>استجابة فائقة السرعة مع خبير الذكاء الاصطناعي</span>
+                  </div>
+                </div>
+
+                {/* Green Activation Progress Bar */}
+                <div className="space-y-1 mb-3">
+                  <div className="flex justify-between text-[10px] font-bold text-emerald-300">
+                    <span>حالة الرصيد والتفعيل</span>
+                    <span>100% غير محدود ⚡</span>
+                  </div>
+                  <div className="w-full bg-emerald-950 rounded-full h-2.5 border border-emerald-500/40 overflow-hidden">
+                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-400 shadow-[0_0_12px_rgba(16,185,129,0.8)] animate-pulse" style={{ width: '100%' }}></div>
+                  </div>
+                </div>
+
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/admin')}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-gradient-to-r from-amber-500 via-indigo-600 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-extrabold text-xs shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
-                  >
-                    <Shield size={16} />
-                    <span>دخول لوحة التحكم</span>
-                  </button>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => navigate('/admin')}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-gradient-to-r from-amber-500 via-indigo-600 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-extrabold text-xs shadow-md transition-all"
+                    >
+                      <Shield size={15} />
+                      <span>دخول لوحة التحكم</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => { signOut(); navigate('/login'); }}
-                    className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/40 font-bold text-xs transition-all"
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/40 font-bold text-xs transition-all"
                   >
-                    <LogOut size={15} />
-                    <span>خروج</span>
+                    <LogOut size={14} />
+                    <span>تسجيل الخروج</span>
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="mb-5 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="mb-5 bg-gradient-to-br from-slate-900 to-red-950 p-4 rounded-xl border border-red-500/40 text-white shadow-md">
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-xs font-bold text-red-600 dark:text-red-400">
-                    لترقية حسابك اتصل بالمطور
+                  <h3 className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <Lock size={14} className="text-amber-400" />
+                    حساب عادي - لترقية حسابك اتصل بالمطور
                   </h3>
                   <button
                     type="button"
                     onClick={() => { signOut(); navigate('/login'); }}
-                    className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 font-bold underline"
+                    className="flex items-center gap-1 text-xs text-red-300 hover:text-white font-bold underline"
                   >
                     <LogOut size={13} />
-                    <span>تسجيل الخروج</span>
+                    <span>خروج</span>
                   </button>
                 </div>
-                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+
+                <p className="text-[11px] text-slate-300 mb-3 leading-relaxed">
+                  احصل على الوضع الاحترافي لتوليد غير محدود لجميع المواضيع والمذكرات وتصميم خلفيات خاصة.
+                </p>
+
+                {/* Direct Contact Buttons */}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <a
+                    href="https://wa.me/213673831994"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs transition-all shadow-md"
+                  >
+                    <Phone size={13} />
+                    <span>واتساب (0673831994)</span>
+                  </a>
+                  <a
+                    href="https://facebook.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs transition-all shadow-md"
+                  >
+                    <span>فايسبوك Facebook</span>
+                  </a>
+                </div>
+
+                <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
                   <div 
-                    className="h-2.5 rounded-full bg-red-500 transition-all duration-500"
+                    className="h-2 rounded-full bg-amber-500 transition-all duration-500"
                     style={{ width: `${Math.min(100, ((userData?.generationsRemaining || 0) / Math.max(1, (userData?.generationsRemaining || 0) + (userData?.totalGenerations || 0))) * 100)}%` }}
                   ></div>
                 </div>
