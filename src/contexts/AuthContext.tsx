@@ -85,6 +85,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('Failed to update admin role automatically:', e);
             setUserData({ ...fullUserData, role: 'admin', generationsRemaining: 9999 });
           }
+        } else if ((data.isActive || data.isPro) && !isAdminUser && (data.generationsRemaining === undefined || data.generationsRemaining <= 0)) {
+          // Auto-repair active Pro accounts that have invalid generations remaining
+          try {
+            await setDoc(docRef, { generationsRemaining: 300, isPro: true, isActive: true }, { merge: true });
+            setUserData({ ...fullUserData, generationsRemaining: 300, isPro: true, isActive: true });
+          } catch (e) {
+            console.error('Failed to auto-repair generationsRemaining:', e);
+            setUserData({ ...fullUserData, generationsRemaining: 300, isPro: true, isActive: true });
+          }
         }
       } else {
         setUserData(null);

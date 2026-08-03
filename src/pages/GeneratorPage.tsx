@@ -45,8 +45,7 @@ export default function GeneratorPage() {
     isAdmin || 
     userData?.isPro === true || 
     userData?.isActive === true || 
-    userData?.role === 'pro' || 
-    (userData?.generationsRemaining !== undefined && userData.generationsRemaining > 30)
+    userData?.role === 'pro'
   );
 
   const [darkMode, setDarkMode] = useState(false);
@@ -462,7 +461,7 @@ export default function GeneratorPage() {
       return;
     }
 
-    if (!isProUser && userData.role !== 'admin' && (userData.generationsRemaining === undefined || userData.generationsRemaining <= 0)) {
+    if (!isAdmin && userData.role !== 'admin' && (userData.generationsRemaining === undefined || userData.generationsRemaining <= 0)) {
       alert('عذراً، لقد استنفدت عدد التوليدات المتاحة لك. الرجاء التواصل مع الإدارة لتجديد الاشتراك.');
       return;
     }
@@ -544,7 +543,7 @@ export default function GeneratorPage() {
       setGeneratedHtml(safeHtml);
       
       // Update generation quota in Firestore
-      if (!isProUser && userData.role !== 'admin') {
+      if (!isAdmin && userData.role !== 'admin') {
         try {
           const { doc, updateDoc, increment } = await import('firebase/firestore');
           const { db } = await import('../lib/firebase');
@@ -1175,10 +1174,13 @@ ${htmlForWord}
                 <div className="space-y-1 mb-3">
                   <div className="flex justify-between text-[10px] font-bold text-emerald-300">
                     <span>حالة الرصيد والتفعيل</span>
-                    <span>100% غير محدود ⚡</span>
+                    <span>وضع مفعّل ⚡</span>
                   </div>
                   <div className="w-full bg-emerald-950 rounded-full h-2.5 border border-emerald-500/40 overflow-hidden">
-                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-400 shadow-[0_0_12px_rgba(16,185,129,0.8)] animate-pulse" style={{ width: '100%' }}></div>
+                    <div 
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-400 shadow-[0_0_12px_rgba(16,185,129,0.8)] transition-all duration-500" 
+                      style={{ width: `${isAdmin ? 100 : Math.min(100, Math.max(0, ((userData?.generationsRemaining ?? 300) / 300) * 100))}%` }}
+                    ></div>
                   </div>
                 </div>
 
@@ -1245,11 +1247,17 @@ ${htmlForWord}
                   </a>
                 </div>
 
-                <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
-                  <div 
-                    className="h-2 rounded-full bg-amber-500 transition-all duration-500"
-                    style={{ width: `${Math.min(100, ((userData?.generationsRemaining || 0) / Math.max(1, (userData?.generationsRemaining || 0) + (userData?.totalGenerations || 0))) * 100)}%` }}
-                  ></div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-bold text-amber-300">
+                    <span>رصيد التوليد المتاح</span>
+                    <span>حساب عادي 🔒</span>
+                  </div>
+                  <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+                    <div 
+                      className="h-2 rounded-full bg-amber-500 transition-all duration-500"
+                      style={{ width: `${Math.min(100, Math.max(0, ((userData?.generationsRemaining ?? 0) / 30) * 100))}%` }}
+                    ></div>
+                  </div>
                 </div>
               </div>
             )}

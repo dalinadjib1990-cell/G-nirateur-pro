@@ -139,7 +139,7 @@ export default function AdminDashboard() {
       await updateDoc(doc(db, 'users', uid), {
         isActive: true,
         isPro: true,
-        generationsRemaining: 9999
+        generationsRemaining: 300
       });
       fetchUsers();
     } catch (error) {
