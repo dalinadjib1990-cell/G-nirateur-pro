@@ -73,7 +73,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.Re
     return <Navigate to="/login" />;
   }
 
-  if (requireAdmin && userData.role !== 'admin' && userData.email !== 'dalinadjib1990@gmail.com' && user?.email !== 'dalinadjib1990@gmail.com') {
+  if (requireAdmin && userData.role !== 'admin' && userData.email !== 'dalinadjib1990@gmail.com' && user?.email !== 'dalinadjib1990@gmail.com' && !userData?.phone?.includes('0771167330') && !user?.phone?.includes('0771167330')) {
     return <Navigate to="/" />;
   }
 

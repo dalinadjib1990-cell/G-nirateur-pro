@@ -34,6 +34,13 @@ export default function GeneratorPage() {
   const { addFile, unreadCount } = useDownloads();
   const [isDownloadsModalOpen, setIsDownloadsModalOpen] = useState(false);
 
+  const isAdmin = userData?.role === 'admin' || 
+                  userData?.email === 'dalinadjib1990@gmail.com' || 
+                  user?.email === 'dalinadjib1990@gmail.com' || 
+                  userData?.phone?.includes('0771167330') || 
+                  user?.phone?.includes('0771167330') ||
+                  userData?.email?.includes('0771167330');
+
   const [darkMode, setDarkMode] = useState(false);
   const [appBgImage, setAppBgImage] = useState<string | null>(null);
   const [appBgColor, setAppBgColor] = useState<string>('');
@@ -935,16 +942,16 @@ export default function GeneratorPage() {
             {/* Admin controls */}
             <div className="flex items-center gap-1.5 md:gap-2">
               <div className="flex flex-col gap-1">
-                <button onClick={() => profileModalEmitter.dispatchEvent(new Event('open'))} className="p-1 md:p-1.5 text-blue-400 hover:bg-blue-900/30 rounded-lg transition-colors border border-transparent hover:border-blue-500/30 flex items-center justify-center w-7 h-7 md:w-8 md:h-8" title="تحديث الملف الشخصي">
-                  <Settings size={14} />
+                <button onClick={() => profileModalEmitter.dispatchEvent(new Event('open'))} className="p-1 md:p-1.5 text-blue-400 hover:bg-blue-900/30 bg-slate-900/50 rounded-lg transition-colors border border-blue-500/20 flex items-center justify-center w-8 h-8 md:w-9 md:h-9" title="تحديث الملف الشخصي">
+                  <Settings size={16} />
                 </button>
-                {(userData?.role === 'admin' || userData?.email === 'dalinadjib1990@gmail.com' || user?.email === 'dalinadjib1990@gmail.com') && (
-                  <button onClick={() => navigate('/admin')} className="p-1 md:p-1.5 text-indigo-400 hover:bg-indigo-900/30 rounded-lg transition-colors border border-transparent hover:border-indigo-500/30 flex items-center justify-center w-7 h-7 md:w-8 md:h-8" title="لوحة التحكم">
-                    <Shield size={14} />
+                {isAdmin && (
+                  <button onClick={() => navigate('/admin')} className="p-1 md:p-1.5 text-amber-300 hover:bg-amber-900/40 bg-gradient-to-r from-amber-600 to-indigo-600 rounded-lg transition-all border border-amber-400/40 flex items-center justify-center w-8 h-8 md:w-9 md:h-9 shadow-md" title="لوحة التحكم">
+                    <Shield size={16} className="animate-pulse" />
                   </button>
                 )}
-                <button onClick={() => { signOut(); navigate('/login'); }} className="p-1 md:p-1.5 text-red-400 hover:bg-red-900/30 rounded-lg transition-colors border border-transparent hover:border-red-500/30 flex items-center justify-center w-7 h-7 md:w-8 md:h-8" title="تسجيل الخروج">
-                  <LogOut size={14} />
+                <button onClick={() => { signOut(); navigate('/login'); }} className="p-1 md:p-1.5 text-red-400 hover:bg-red-900/30 bg-slate-900/50 rounded-lg transition-colors border border-red-500/20 flex items-center justify-center w-8 h-8 md:w-9 md:h-9" title="تسجيل الخروج">
+                  <LogOut size={16} />
                 </button>
               </div>
             </div>
@@ -993,19 +1000,46 @@ export default function GeneratorPage() {
               </div>
             </div>
 
-            {/* Quota Progress Bar */}
-            {userData?.role === 'admin' ? (
-              <div className="mb-6 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
-                <h3 className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
+            {/* Quota Progress Bar & Quick Admin Buttons */}
+            {isAdmin ? (
+              <div className="mb-5 bg-gradient-to-br from-slate-900 to-indigo-950 p-4 rounded-xl border border-indigo-500/40 text-center text-white shadow-md">
+                <h3 className="text-sm font-extrabold text-amber-300 flex items-center justify-center gap-1.5 mb-3">
+                  <Shield size={18} className="text-amber-400 animate-pulse" />
                   حساب مسؤول - رصيد غير محدود
                 </h3>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin')}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-gradient-to-r from-amber-500 via-indigo-600 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-extrabold text-xs shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
+                  >
+                    <Shield size={16} />
+                    <span>دخول لوحة التحكم</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { signOut(); navigate('/login'); }}
+                    className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/40 font-bold text-xs transition-all"
+                  >
+                    <LogOut size={15} />
+                    <span>خروج</span>
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="mb-6 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                <div className="flex justify-center items-center mb-2">
-                  <h3 className="text-sm font-bold text-red-600 dark:text-red-400">
+              <div className="mb-5 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-xs font-bold text-red-600 dark:text-red-400">
                     لترقية حسابك اتصل بالمطور
                   </h3>
+                  <button
+                    type="button"
+                    onClick={() => { signOut(); navigate('/login'); }}
+                    className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 font-bold underline"
+                  >
+                    <LogOut size={13} />
+                    <span>تسجيل الخروج</span>
+                  </button>
                 </div>
                 <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
                   <div 
@@ -1013,7 +1047,7 @@ export default function GeneratorPage() {
                     style={{ width: `${Math.min(100, ((userData?.generationsRemaining || 0) / Math.max(1, (userData?.generationsRemaining || 0) + (userData?.totalGenerations || 0))) * 100)}%` }}
                   ></div>
                 </div>
-            </div>
+              </div>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
