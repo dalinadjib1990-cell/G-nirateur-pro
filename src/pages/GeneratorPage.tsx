@@ -911,8 +911,7 @@ ${htmlForWord}
             <div className="absolute inset-0 animate-shine-sweep mix-blend-overlay opacity-80 z-20"></div>
             <div className="relative w-10 h-10 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-amber-300 via-amber-500 to-yellow-700 p-0.5 shadow-lg shadow-amber-500/20 shrink-0 overflow-hidden group">
               <div className="w-full h-full bg-[#0a0a0a] rounded-[10px] flex items-center justify-center overflow-hidden border border-amber-500/30">
-                 <img src="/icon.png" alt="Logo" className="w-full h-full object-cover rounded-[10px] hidden group-hover:block" onError={(e) => e.currentTarget.style.display = 'none'} />
-                 <span className="text-xl md:text-2xl font-bold bg-gradient-to-br from-amber-200 to-amber-600 bg-clip-text text-transparent group-hover:hidden">AI</span>
+                 <img src="/icon.svg" alt="Logo" className="w-full h-full object-cover rounded-[10px]" />
               </div>
             </div>
             <div className="flex flex-col shrink-0 truncate justify-center">

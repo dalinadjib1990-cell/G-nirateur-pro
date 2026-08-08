@@ -1,78 +1,254 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X } from 'lucide-react';
+import { Download, X, Smartphone, CheckCircle, Share, PlusSquare, Sparkles } from 'lucide-react';
 
 export function InstallPWA() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showIosGuide, setShowIosGuide] = useState(false);
+  const [showChromeGuide, setShowChromeGuide] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
-      // Stash the event so it can be triggered later.
-      setDeferredPrompt(e);
-      // Update UI notify the user they can install the PWA
-      setShowInstallBanner(true);
+    // Check if running as PWA (Standalone mode or Android App wrapper)
+    const checkStandalone = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      const isIosStandalone = (window.navigator as any).standalone === true;
+      const isAndroidApp = document.referrer.includes('android-app://');
+      const alreadyInstalled = localStorage.getItem('pwa_installed') === 'true';
+      return isStandalone || isIosStandalone || isAndroidApp || alreadyInstalled;
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
+    if (checkStandalone()) {
+      setIsInstalled(true);
+      return;
+    }
+
+    // Detect iOS
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const iosDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(iosDevice);
+
+    // Auto-open install banner on first visit if not installed
+    const hasSeenModal = sessionStorage.getItem('pwa_banner_seen');
+    if (!hasSeenModal) {
+      const timer = setTimeout(() => {
+        setShowInstallBanner(true);
+        sessionStorage.setItem('pwa_banner_seen', 'true');
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      // Automatically pop modal if not yet installed
+      if (!checkStandalone()) {
+        setShowInstallBanner(true);
+      }
+    };
+
+    const handleAppInstalled = () => {
+      console.log('PWA installed successfully');
+      localStorage.setItem('pwa_installed', 'true');
+      setIsInstalled(true);
+      setShowInstallBanner(false);
+      setShowIosGuide(false);
+      setShowChromeGuide(false);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      return;
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          localStorage.setItem('pwa_installed', 'true');
+          setIsInstalled(true);
+          setShowInstallBanner(false);
+        }
+        setDeferredPrompt(null);
+      } catch (err) {
+        console.error('PWA install prompt error:', err);
+      }
+    } else {
+      // Fallback if prompt event not fired yet or on iOS
+      if (isIOS) {
+        setShowIosGuide(true);
+      } else {
+        setShowChromeGuide(true);
+      }
     }
-    // Show the install prompt
-    deferredPrompt.prompt();
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to the install prompt: ${outcome}`);
-    // We've used the prompt, and can't use it again, throw it away
-    setDeferredPrompt(null);
-    setShowInstallBanner(false);
   };
 
-  if (!showInstallBanner) {
+  // Do not render anything if already installed
+  if (isInstalled) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-      <div className="bg-[#111] border border-amber-500/30 w-full max-w-sm rounded-3xl shadow-2xl shadow-amber-500/20 overflow-hidden relative flex flex-col items-center p-8">
-        <button
-          onClick={() => setShowInstallBanner(false)}
-          className="absolute top-4 left-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors"
-        >
-          <X size={20} />
-        </button>
-        
-        <div className="w-32 h-32 mb-6 rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-amber-300 via-amber-500 to-yellow-700 p-1 relative">
-          <div className="w-full h-full bg-[#0a0a0a] rounded-[22px] flex items-center justify-center overflow-hidden">
-             <img src="/icon.png" alt="App Icon" className="w-full h-full object-cover rounded-[22px]" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-             <span className="text-4xl font-extrabold bg-gradient-to-br from-amber-200 to-amber-600 bg-clip-text text-transparent absolute">AI</span>
+    <>
+      {/* Top Floating Quick Install Header Button */}
+      {!showInstallBanner && !showIosGuide && !showChromeGuide && (
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[90] animate-bounce">
+          <button
+            onClick={() => setShowInstallBanner(true)}
+            className="bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black px-4 py-2 rounded-full text-xs sm:text-sm flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.6)] border border-amber-300/50 transition-all transform active:scale-95"
+          >
+            <Smartphone size={16} className="animate-pulse" />
+            <span>تثبيت التطبيق على الهاتف 📲</span>
+          </button>
+        </div>
+      )}
+
+      {/* Main PWA Install Popup Modal */}
+      {showInstallBanner && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-[#0f0f11] border-2 border-amber-500/40 w-full max-w-sm rounded-3xl shadow-[0_0_50px_rgba(245,158,11,0.25)] overflow-hidden relative flex flex-col items-center p-6 sm:p-8 text-white">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowInstallBanner(false)}
+              className="absolute top-4 left-4 p-2 bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white rounded-full transition-colors z-10"
+              title="إغلاق"
+            >
+              <X size={18} />
+            </button>
+
+            {/* App Icon Container */}
+            <div className="relative w-28 h-28 mb-4 rounded-3xl p-1 bg-gradient-to-tr from-amber-500 via-yellow-300 to-amber-700 shadow-[0_0_25px_rgba(245,158,11,0.5)]">
+              <div className="w-full h-full bg-slate-950 rounded-[22px] flex items-center justify-center overflow-hidden">
+                <img
+                  src="/icon.svg"
+                  alt="Pro Générateur Icon"
+                  className="w-full h-full object-cover rounded-[22px]"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+              <span className="absolute -bottom-2 -right-2 bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full border-2 border-slate-950 flex items-center gap-1 shadow-lg">
+                <Sparkles size={10} /> PWA
+              </span>
+            </div>
+
+            <h2 className="text-xl sm:text-2xl font-black bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent mb-1 text-center">
+              PRO GÉNÉRATEUR AI
+            </h2>
+            <p className="text-xs text-amber-300/80 font-bold mb-3">مولد المذكرات والدروس الاحترافي</p>
+
+            <div className="w-full bg-slate-900/90 rounded-2xl p-3.5 mb-5 border border-slate-800 text-xs text-slate-300 space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle size={14} className="text-amber-400 shrink-0" />
+                <span>تثبيت مباشر كـ تطبيق أندرويد أصلـي</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle size={14} className="text-amber-400 shrink-0" />
+                <span>دخول سريع بأيقونة فاخرة من شاشتك</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle size={14} className="text-amber-400 shrink-0" />
+                <span>شاشة كاملة وتجربة فائقة السرعة بدون شريط المتصفح</span>
+              </div>
+            </div>
+
+            {/* Install Action Button */}
+            <button
+              onClick={handleInstallClick}
+              className="w-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-[0_0_25px_rgba(245,158,11,0.5)] transition-all transform hover:scale-[1.02] active:scale-98 text-base mb-3"
+            >
+              <Download size={20} className="animate-bounce" />
+              <span>تثبيت التطبيق الآن 📱</span>
+            </button>
+
+            <button
+              onClick={() => setShowInstallBanner(false)}
+              className="text-xs text-slate-400 hover:text-slate-200 transition-colors py-1"
+            >
+              متابعة التصفح عبر الويب
+            </button>
           </div>
         </div>
+      )}
 
-        <h2 className="text-2xl font-black bg-gradient-to-r from-amber-200 via-amber-400 to-amber-600 bg-clip-text text-transparent mb-2 text-center">
-          PRO GÉNÉRATEUR AI
-        </h2>
-        
-        <p className="text-slate-300 text-center mb-8 text-sm leading-relaxed">
-          قم بتثبيت التطبيق على هاتفك لتجربة أسرع وأفضل (PWA)، تماماً مثل تطبيقات أندرويد الرسمية.
-        </p>
+      {/* iOS Instructions Guide Modal */}
+      {showIosGuide && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-[#0f0f11] border border-amber-500/40 w-full max-w-sm rounded-3xl p-6 text-white text-right relative">
+            <button
+              onClick={() => setShowIosGuide(false)}
+              className="absolute top-4 left-4 p-1.5 bg-white/10 text-slate-300 rounded-full"
+            >
+              <X size={18} />
+            </button>
 
-        <button
-          onClick={handleInstallClick}
-          className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-[#0a0a0a] font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all transform hover:scale-105 active:scale-95"
-        >
-          <Download size={24} />
-          <span className="text-lg">تثبيت التطبيق الآن</span>
-        </button>
-      </div>
-    </div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
+                <Share size={20} />
+              </div>
+              <h3 className="font-bold text-lg text-amber-300">تثبيت التطبيق على آيفون (iOS)</h3>
+            </div>
+
+            <ol className="text-xs text-slate-300 space-y-3 mb-6 list-decimal list-inside leading-relaxed bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+              <li>اضغط على زر <strong className="text-amber-400">المشاركة (Share <Share size={12} className="inline mx-0.5" />)</strong> في أسفل شاشة المتصفح (Safari).</li>
+              <li>انزل للأسفل واختر <strong className="text-amber-400">"إضافة إلى الشاشة الرئيسية" (Add to Home Screen <PlusSquare size={12} className="inline mx-0.5" />)</strong>.</li>
+              <li>اضغط على <strong className="text-amber-400">"إضافة" (Add)</strong> في أعلى الزاوية.</li>
+            </ol>
+
+            <button
+              onClick={() => setShowIosGuide(false)}
+              className="w-full bg-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-xs"
+            >
+              تم، فهمت ذلك
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Chrome / Android Helper Guide Modal */}
+      {showChromeGuide && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-[#0f0f11] border border-amber-500/40 w-full max-w-sm rounded-3xl p-6 text-white text-right relative">
+            <button
+              onClick={() => setShowChromeGuide(false)}
+              className="absolute top-4 left-4 p-1.5 bg-white/10 text-slate-300 rounded-full"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
+                <Smartphone size={20} />
+              </div>
+              <h3 className="font-bold text-lg text-amber-300">طريقة التثبيت على أندرويد</h3>
+            </div>
+
+            <div className="text-xs text-slate-300 space-y-3 mb-6 leading-relaxed bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+              <p>إذا لم تظهر نافذة التثبيت التلقائية، يمكنك التثبيت بثوانٍ:</p>
+              <ol className="list-decimal list-inside space-y-2">
+                <li>اضغط على النقاط الثلاث <strong className="text-amber-400">(⋮)</strong> أعلى متصفحك.</li>
+                <li>اختر <strong className="text-amber-400">"تثبيت التطبيق"</strong> أو <strong className="text-amber-400">"الإضافة إلى الشاشة الرئيسية"</strong>.</li>
+                <li>تأكيد التثبيت ليظهر التطبيق كـ أندرويد مستقل.</li>
+              </ol>
+            </div>
+
+            <button
+              onClick={() => setShowChromeGuide(false)}
+              className="w-full bg-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-xs"
+            >
+              تم، حسناً
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
