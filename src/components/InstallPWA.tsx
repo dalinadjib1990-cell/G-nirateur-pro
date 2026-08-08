@@ -166,7 +166,7 @@ export function InstallPWA() {
               className="w-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-[0_0_25px_rgba(245,158,11,0.5)] transition-all transform hover:scale-[1.02] active:scale-98 text-base mb-3"
             >
               <Download size={20} className="animate-bounce" />
-              <span>تثبيت التطبيق الآن 📱</span>
+              <span>{deferredPrompt ? 'تثبيت التطبيق الآن (مباشر) 📱' : 'إضافة إلى الشاشة الرئيسية 📱'}</span>
             </button>
 
             <button

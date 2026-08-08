@@ -1,4 +1,5 @@
 {
+  "id": "pro-generateur-ai-app",
   "name": "PRO GÉNÉRATEUR AI | مولد المذكرات الاحترافي",
   "short_name": "ProGénérateur",
   "description": "المساعد الذكي للأستاذ لتوليد المذكرات والاختبارات والمواضيع بكفاءة عالية",
@@ -13,13 +14,19 @@
       "src": "/icon.svg",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     },
     {
       "src": "/icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
