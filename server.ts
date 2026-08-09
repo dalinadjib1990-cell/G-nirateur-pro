@@ -86,7 +86,7 @@ async function startServer() {
       1. لا تستخدم أكواد LaTeX للمعادلات الرياضية أبدأ (مثل رموز $ أو \\lim). استخدم دائماً نصوص عادية Unicode ورموز HTML كـ <sup> و <sub> و كسور CSS أو الجداول لعرض الرياضيات بشكل جميل.
       2. لا تقم بإنشاء إطار (border) حول الصفحة بالكامل، نظامنا سيقوم بإضافة الإطار المناسب بناءً على اختيار المستخدم. ركز فقط على تنسيق المحتوى الداخلي والعناوين.
       3. استخدم كلاس "avoid-break" (class="avoid-break") لأي بطاقة صغيرة (div)، تمرين قصير، أو أي جزء مترابط لا تريد أن ينقسم بين صفحتين عند الطباعة. لا تستخدم هذا الكلاس مع الأقسام الطويلة جداً لكي لا تترك مساحات بيضاء كبيرة.
-      4. 🚨 **أمر صارم يمنع ترك أي هوامش جانبية فارغة (FULL 100% WIDTH)** 🚨: يجب أن تكون جميع البطاقات والترويسات والجداول بعرض كامل (width: 100% !important; box-sizing: border-box;). يُمنع منعاً باتاً حصر المحتوى بالمنتصف أو ترك مسافات فارغة على الجانبين الأيمن والأيسر.
+      4. لا تضف أي هوامش جانبية ضخمة (margins/padding) للحاويات الرئيسية، اجعل العرض 100% لتستغل عرض الورقة.
       5. ممنوع قطعياً استخدام وسم <style>. جميع التنسيقات يجب أن تكون inline CSS (أي style="...").
       6. ممنوع استخدام خصائص position: fixed أو position: absolute إلا في العلامة المائية فقط لتجنب تخريب واجهة التطبيق.
       7. **قواعد الجيل الثاني الصارمة للرموز الرياضية والفيزيائية (مناهج الجيل الثاني - الجزائر 2nd Generation)**:
@@ -237,13 +237,8 @@ async function startServer() {
       📌 **شروط صياغة الوضعية الإدماجية المركبة**:
       يجب تخصيص الجزء الثاني من الفرض/الاختبار لوضعية إدماجية مركبة ومستقلة (تخصص لها 08 نقاط من 20 نقطة) تحتوي على:
       • **السياق والسندات**: نص مشكلة واقعي ومحفز مع سندات توضيحية أو جدول معطيات.
-      ${(subjectInfo?.integrationModules && Array.isArray(subjectInfo.integrationModules) && subjectInfo.integrationModules.length > 0) ? `
-      • **المقاطع والكفاءات المستهدفة بالوضعية الإدماجية**:
-${subjectInfo.integrationModules.map((m: any, idx: number) => `  - المقطع ${idx + 1}: ${m.title || 'مقطع بدون عنوان'}${m.competencies && m.competencies.filter(Boolean).length > 0 ? ` (الكفاءات المستهدفة: ${m.competencies.filter(Boolean).join('، ')})` : ''}`).join('\n')}
-      ` : `
       ${subjectInfo?.integrationSections ? `• **المقاطع المستهدفة بالإدماج**: ${subjectInfo.integrationSections}` : ''}
       ${subjectInfo?.integrationCompetencies ? `• **الكفاءات والقدرات المستهدفة**: ${subjectInfo.integrationCompetencies}` : ''}
-      `}
       ${subjectInfo?.integrationPrompt ? `• **توجيه خاص بسياق الوضعية والإدماج**: ${subjectInfo.integrationPrompt}` : ''}
       • **التعليمات**: أسئلة متدرجة ومترابطة تحث المتعلم على استثمار الموارد المدمجة.
       ` : ''}
