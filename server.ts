@@ -237,8 +237,13 @@ async function startServer() {
       📌 **شروط صياغة الوضعية الإدماجية المركبة**:
       يجب تخصيص الجزء الثاني من الفرض/الاختبار لوضعية إدماجية مركبة ومستقلة (تخصص لها 08 نقاط من 20 نقطة) تحتوي على:
       • **السياق والسندات**: نص مشكلة واقعي ومحفز مع سندات توضيحية أو جدول معطيات.
+      ${(subjectInfo?.integrationModules && Array.isArray(subjectInfo.integrationModules) && subjectInfo.integrationModules.length > 0) ? `
+      • **المقاطع والكفاءات المستهدفة بالوضعية الإدماجية**:
+${subjectInfo.integrationModules.map((m: any, idx: number) => `  - المقطع ${idx + 1}: ${m.title || 'مقطع بدون عنوان'}${m.competencies && m.competencies.filter(Boolean).length > 0 ? ` (الكفاءات المستهدفة: ${m.competencies.filter(Boolean).join('، ')})` : ''}`).join('\n')}
+      ` : `
       ${subjectInfo?.integrationSections ? `• **المقاطع المستهدفة بالإدماج**: ${subjectInfo.integrationSections}` : ''}
       ${subjectInfo?.integrationCompetencies ? `• **الكفاءات والقدرات المستهدفة**: ${subjectInfo.integrationCompetencies}` : ''}
+      `}
       ${subjectInfo?.integrationPrompt ? `• **توجيه خاص بسياق الوضعية والإدماج**: ${subjectInfo.integrationPrompt}` : ''}
       • **التعليمات**: أسئلة متدرجة ومترابطة تحث المتعلم على استثمار الموارد المدمجة.
       ` : ''}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone, CheckCircle2, Lock, Shapes } from 'lucide-react';
-import { TeacherInfo, GenerationType, SubjectInfo, Exercise } from '../types';
+import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone, CheckCircle2, Lock, Shapes, Plus, Trash2 } from 'lucide-react';
+import { TeacherInfo, GenerationType, SubjectInfo, Exercise, IntegrationModule } from '../types';
 import { soundManager } from '../audio';
 import html2pdf from 'html2pdf.js';
 import { useAuth } from '../contexts/AuthContext';
@@ -104,11 +104,56 @@ export default function GeneratorPage() {
   const [integrationSections, setIntegrationSections] = useState('');
   const [integrationCompetencies, setIntegrationCompetencies] = useState('');
   const [integrationPrompt, setIntegrationPrompt] = useState('');
+  const [integrationModules, setIntegrationModules] = useState<IntegrationModule[]>([
+    { id: generateId(), title: '', competencies: [''] }
+  ]);
   const [includeSolution, setIncludeSolution] = useState(false);
   const [examType, setExamType] = useState('فرض 1');
   const [examTerm, setExamTerm] = useState('الفصل الأول');
   const [examDuration, setExamDuration] = useState('ساعة واحدة');
   
+  // Document and preview styling state
+  const [previewFontSize, setPreviewFontSize] = useState(16);
+  const [docColor, setDocColor] = useState('#1e40af');
+  const [documentLanguage, setDocumentLanguage] = useState('ar');
+  const [includeWatermark, setIncludeWatermark] = useState(false);
+
+  // Scaling logic state
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [autoScale, setAutoScale] = useState(1);
+  const [manualScale, setManualScale] = useState(1);
+  const effectiveScale = autoScale * manualScale;
+
+  // Profile image state
+  const [selectedProfileImage, setSelectedProfileImage] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [isUploadingProfile, setIsUploadingProfile] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Generation output state
+  const [generatedHtml, setGeneratedHtml] = useState(() => {
+    try {
+      return sessionStorage.getItem('currentGeneratedHtml') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const updateGeneratedHtml = (html: string) => {
+    setGeneratedHtml(html);
+    try {
+      if (html) {
+        sessionStorage.setItem('currentGeneratedHtml', html);
+      } else {
+        sessionStorage.removeItem('currentGeneratedHtml');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  const [isGenerating, setIsGenerating] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const [generatingDhikr, setGeneratingDhikr] = useState('');
+
   // Canvas Shapes State
   const [canvasShapes, setCanvasShapes] = useState<CanvasShape[]>([]);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
@@ -214,36 +259,6 @@ export default function GeneratorPage() {
     };
   };
 
-  const [selectedProfileImage, setSelectedProfileImage] = useState<File | null>(null);
-  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
-  const [isUploadingProfile, setIsUploadingProfile] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  
-  const [generatedHtml, setGeneratedHtml] = useState(() => {
-    try {
-      return sessionStorage.getItem('currentGeneratedHtml') || '';
-    } catch (e) {
-      return '';
-    }
-  });
-
-  const updateGeneratedHtml = (html: string) => {
-    setGeneratedHtml(html);
-    try {
-      if (html) {
-        sessionStorage.setItem('currentGeneratedHtml', html);
-      } else {
-        sessionStorage.removeItem('currentGeneratedHtml');
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const [generatingDhikr, setGeneratingDhikr] = useState('');
-
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isGenerating) {
@@ -261,12 +276,6 @@ export default function GeneratorPage() {
       setDesignStyle('style1');
     }
   }, [generationType, designStyle]);
-
-  // Scaling logic
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [autoScale, setAutoScale] = useState(1);
-  const [manualScale, setManualScale] = useState(1);
-  const effectiveScale = autoScale * manualScale;
 
   // Canvas shapes global movement and touch gestures
   useEffect(() => {
@@ -425,11 +434,6 @@ export default function GeneratorPage() {
     }
   };
 
-  const [previewFontSize, setPreviewFontSize] = useState(16);
-  const [docColor, setDocColor] = useState('#1e40af');
-  const [documentLanguage, setDocumentLanguage] = useState('ar');
-  const [includeWatermark, setIncludeWatermark] = useState(false);
-
   // Scaling logic
   useEffect(() => {
     let animationFrameId: number;
@@ -542,6 +546,17 @@ export default function GeneratorPage() {
     if (parsed.integrationSections !== undefined) setIntegrationSections(parsed.integrationSections);
     if (parsed.integrationCompetencies !== undefined) setIntegrationCompetencies(parsed.integrationCompetencies);
     if (parsed.integrationPrompt !== undefined) setIntegrationPrompt(parsed.integrationPrompt);
+    if (parsed.integrationModules && Array.isArray(parsed.integrationModules) && parsed.integrationModules.length > 0) {
+      setIntegrationModules(parsed.integrationModules);
+    } else if (parsed.integrationSections || parsed.integrationCompetencies) {
+      setIntegrationModules([
+        {
+          id: generateId(),
+          title: parsed.integrationSections || '',
+          competencies: parsed.integrationCompetencies ? [parsed.integrationCompetencies] : ['']
+        }
+      ]);
+    }
     if (parsed.includeSolution !== undefined) setIncludeSolution(parsed.includeSolution);
     if (parsed.contentStyle) setContentStyle(parsed.contentStyle);
     if (parsed.designStyle) setDesignStyle(parsed.designStyle);
@@ -569,6 +584,7 @@ export default function GeneratorPage() {
         integrationSections,
         integrationCompetencies,
         integrationPrompt,
+        integrationModules,
         includeSolution,
         contentStyle,
         designStyle,
@@ -585,7 +601,7 @@ export default function GeneratorPage() {
   };
 
   const handleSaveLessonElements = () => {
-    if (!memoSection && !memoDomain && !memoContent && !aiPrompt && exercises.every(e => !e.section) && !integrationSections && !integrationCompetencies && !integrationPrompt) {
+    if (!memoSection && !memoDomain && !memoContent && !aiPrompt && exercises.every(e => !e.section) && !integrationSections && !integrationCompetencies && !integrationPrompt && integrationModules.every(m => !m.title)) {
       alert('يرجى كتابة المقطع أو الميدان أو المورد المعرفي أو التوجيهات أو معطيات الوضعية الإدماجية قبل الحفظ.');
       return;
     }
@@ -601,6 +617,7 @@ export default function GeneratorPage() {
       integrationSections,
       integrationCompetencies,
       integrationPrompt,
+      integrationModules,
       subject: teacherInfo.subject,
       updatedAt: new Date().toISOString()
     };
@@ -629,6 +646,17 @@ export default function GeneratorPage() {
         if (parsed.integrationSections !== undefined) setIntegrationSections(parsed.integrationSections);
         if (parsed.integrationCompetencies !== undefined) setIntegrationCompetencies(parsed.integrationCompetencies);
         if (parsed.integrationPrompt !== undefined) setIntegrationPrompt(parsed.integrationPrompt);
+        if (parsed.integrationModules && Array.isArray(parsed.integrationModules) && parsed.integrationModules.length > 0) {
+          setIntegrationModules(parsed.integrationModules);
+        } else if (parsed.integrationSections || parsed.integrationCompetencies) {
+          setIntegrationModules([
+            {
+              id: generateId(),
+              title: parsed.integrationSections || '',
+              competencies: parsed.integrationCompetencies ? [parsed.integrationCompetencies] : ['']
+            }
+          ]);
+        }
         setLessonSaveMessage('تم استرجاع معلومات دروسك وكفاءاتك والوضعية الإدماجية بنجاح!');
         setTimeout(() => setLessonSaveMessage(null), 3500);
       } catch (e) {
@@ -648,6 +676,8 @@ export default function GeneratorPage() {
       setIntegrationSections('');
       setIntegrationCompetencies('');
       setIntegrationPrompt('');
+      const defaultModules = [{ id: generateId(), title: '', competencies: [''] }];
+      setIntegrationModules(defaultModules);
       setExercises([{ id: generateId(), section: '', competencies: [''] }]);
       saveCurrentPreferences({
         memoSection: '',
@@ -656,7 +686,8 @@ export default function GeneratorPage() {
         aiPrompt: '',
         integrationSections: '',
         integrationCompetencies: '',
-        integrationPrompt: ''
+        integrationPrompt: '',
+        integrationModules: defaultModules
       });
       if (soundEnabled) soundManager.playTabClick();
       setLessonSaveMessage('تم إعادة تعيين جميع الحقول بنجاح للكتابة مجدداً.');
@@ -848,6 +879,13 @@ export default function GeneratorPage() {
     setIsGenerating(true);
     updateGeneratedHtml('');
     
+    const summarySections = integrationModules.map((m, i) => {
+      const comps = m.competencies.filter(Boolean).join('، ');
+      return `${m.title || `المقطع ${i+1}`}${comps ? ` [الكفاءات: ${comps}]` : ''}`;
+    }).filter(Boolean).join(' + ');
+
+    const summaryCompetencies = integrationModules.flatMap(m => m.competencies.filter(Boolean)).join('، ');
+
     let subjectInfo: SubjectInfo = {};
     if (generationType === 'memo' || generationType === 'summary' || generationType === 'visual' || generationType.startsWith('cutout')) {
       subjectInfo = { section: memoSection, domain: memoDomain, content: memoContent };
@@ -855,18 +893,20 @@ export default function GeneratorPage() {
       subjectInfo = { 
         exercises, 
         hasIntegrationSituation: hasIntegration,
-        integrationSections: hasIntegration ? integrationSections : '',
-        integrationCompetencies: hasIntegration ? integrationCompetencies : '',
+        integrationSections: hasIntegration ? (summarySections || integrationSections) : '',
+        integrationCompetencies: hasIntegration ? (summaryCompetencies || integrationCompetencies) : '',
         integrationPrompt: hasIntegration ? integrationPrompt : '',
+        integrationModules: hasIntegration ? integrationModules : [],
         includeSolution,
         ...(generationType === 'test' ? {
           examType,
           term: examTerm,
           duration: examDuration,
           hasIntegrationSituation: hasIntegration,
-          integrationSections: hasIntegration ? integrationSections : '',
-          integrationCompetencies: hasIntegration ? integrationCompetencies : '',
+          integrationSections: hasIntegration ? (summarySections || integrationSections) : '',
+          integrationCompetencies: hasIntegration ? (summaryCompetencies || integrationCompetencies) : '',
           integrationPrompt: hasIntegration ? integrationPrompt : '',
+          integrationModules: hasIntegration ? integrationModules : [],
           includeSolution
         } : {})
       };
@@ -1217,6 +1257,46 @@ ${framedContent}
     setExercises(exercises.map(ex => {
       if (ex.id !== exId) return ex;
       return { ...ex, competencies: ex.competencies.filter((_, i) => i !== compIndex) };
+    }));
+  };
+
+  const addIntegrationModule = () => {
+    setIntegrationModules(prev => [
+      ...prev,
+      { id: generateId(), title: '', competencies: [''] }
+    ]);
+  };
+
+  const removeIntegrationModule = (id: string) => {
+    if (integrationModules.length > 1) {
+      setIntegrationModules(prev => prev.filter(m => m.id !== id));
+    }
+  };
+
+  const updateIntegrationModuleTitle = (id: string, title: string) => {
+    setIntegrationModules(prev => prev.map(m => m.id === id ? { ...m, title } : m));
+  };
+
+  const addIntegrationCompetency = (moduleId: string) => {
+    setIntegrationModules(prev => prev.map(m => {
+      if (m.id !== moduleId) return m;
+      return { ...m, competencies: [...m.competencies, ''] };
+    }));
+  };
+
+  const updateIntegrationCompetency = (moduleId: string, compIndex: number, value: string) => {
+    setIntegrationModules(prev => prev.map(m => {
+      if (m.id !== moduleId) return m;
+      const newComps = [...m.competencies];
+      newComps[compIndex] = value;
+      return { ...m, competencies: newComps };
+    }));
+  };
+
+  const removeIntegrationCompetency = (moduleId: string, compIndex: number) => {
+    setIntegrationModules(prev => prev.map(m => {
+      if (m.id !== moduleId) return m;
+      return { ...m, competencies: m.competencies.filter((_, i) => i !== compIndex) };
     }));
   };
 
@@ -1953,49 +2033,104 @@ ${framedContent}
                       </label>
 
                       {hasIntegration && (
-                        <div className="p-4 bg-indigo-50/80 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800/60 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
-                          <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200 font-bold text-xs border-b border-indigo-200/60 dark:border-indigo-800/60 pb-2">
-                            <Sparkles size={15} className="text-indigo-600 dark:text-indigo-400" />
-                            تخصيص وتوجيهات الوضعية الإدماجية المركبة
+                        <div className="p-4 bg-indigo-50/80 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800/60 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
+                          <div className="flex items-center justify-between text-indigo-900 dark:text-indigo-200 font-bold text-xs border-b border-indigo-200/60 dark:border-indigo-800/60 pb-2">
+                            <span className="flex items-center gap-2">
+                              <Sparkles size={15} className="text-indigo-600 dark:text-indigo-400" />
+                              تخصيص مقاطع وكفاءات الوضعية الإدماجية المركبة
+                            </span>
+                            <button
+                              type="button"
+                              onClick={addIntegrationModule}
+                              className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-xs transition"
+                            >
+                              <Plus size={13} /> إضافة مقطع للوضعية
+                            </button>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                المقاطع المراد إدماجها في الوضعية
-                              </label>
-                              <input
-                                type="text"
-                                value={integrationSections}
-                                onChange={e => {
-                                  setIntegrationSections(e.target.value);
-                                  saveCurrentPreferences({ integrationSections: e.target.value });
-                                }}
-                                placeholder="مثال: المقطع 1 (الحساب الحرفي) + المقطع 2 (الخاصيات الهندسية)..."
-                                className="w-full p-2.5 text-xs rounded-lg border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
-                              />
-                            </div>
+                          {/* List of integration modules */}
+                          <div className="space-y-3">
+                            {integrationModules.map((mod, modIdx) => (
+                              <div key={mod.id} className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-indigo-100 dark:border-indigo-800/50 shadow-2xs space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/40 px-2.5 py-1 rounded-md border border-indigo-200/50 dark:border-indigo-800/50">
+                                    المقطع {modIdx + 1}
+                                  </span>
+                                  {integrationModules.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => removeIntegrationModule(mod.id)}
+                                      className="text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 p-1 rounded-lg transition flex items-center gap-1 font-bold"
+                                      title="حذف هذا المقطع"
+                                    >
+                                      <Trash2 size={13} /> حذف المقطع
+                                    </button>
+                                  )}
+                                </div>
 
-                            <div>
-                              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                الكفاءات والقدرات المستهدفة بالوضعية
-                              </label>
-                              <input
-                                type="text"
-                                value={integrationCompetencies}
-                                onChange={e => {
-                                  setIntegrationCompetencies(e.target.value);
-                                  saveCurrentPreferences({ integrationCompetencies: e.target.value });
-                                }}
-                                placeholder="مثال: التريض، التفسير، استخدام العبارات الجبرية في حل مشكلة..."
-                                className="w-full p-2.5 text-xs rounded-lg border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
-                              />
-                            </div>
+                                <div>
+                                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                    اسم/عنوان المقطع المراد إدماجه
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={mod.title}
+                                    onChange={e => {
+                                      updateIntegrationModuleTitle(mod.id, e.target.value);
+                                      saveCurrentPreferences();
+                                    }}
+                                    placeholder="مثال: المقطع 1 (التغذية عند الإنسان) أو (الحساب الحرفي)..."
+                                    className="w-full p-2.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                </div>
+
+                                {/* Competencies under this module */}
+                                <div className="space-y-2.5 pr-2.5 border-r-2 border-indigo-300 dark:border-indigo-700/80">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                      الكفاءات والقدرات المستهدفة بهذا المقطع ({mod.competencies.length}):
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => addIntegrationCompetency(mod.id)}
+                                      className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-bold flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded transition"
+                                    >
+                                      <Plus size={12} /> إضافة كفاءة للمقطع
+                                    </button>
+                                  </div>
+
+                                  {mod.competencies.map((comp, compIdx) => (
+                                    <div key={compIdx} className="flex items-center gap-2">
+                                      <input
+                                        type="text"
+                                        value={comp}
+                                        onChange={e => {
+                                          updateIntegrationCompetency(mod.id, compIdx, e.target.value);
+                                          saveCurrentPreferences();
+                                        }}
+                                        placeholder={`الكفاءة ${compIdx + 1} (مثال: التريض، التفسير، التبرير، الحساب...)`}
+                                        className="w-full p-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                                      />
+                                      {mod.competencies.length > 1 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => removeIntegrationCompetency(mod.id, compIdx)}
+                                          className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 p-1.5 rounded-md shrink-0 transition"
+                                          title="حذف الكفاءة"
+                                        >
+                                          <X size={14} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
                           </div>
 
                           <div>
                             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                              توجيه الذكاء الاصطناعي عن موضوع وسياق الوضعية الإدماجية
+                              توجيه الذكاء الاصطناعي عن موضوع وسياق الوضعية الإدماجية (اختياري)
                             </label>
                             <textarea
                               rows={2}

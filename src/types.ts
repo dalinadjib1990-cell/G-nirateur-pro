@@ -15,12 +15,23 @@ export interface Exercise {
   competencies: string[];
 }
 
+export interface IntegrationModule {
+  id: string;
+  title: string;
+  competencies: string[];
+}
+
 export interface SubjectInfo {
   section?: string;
   domain?: string;
   content?: string;
   exercises?: Exercise[];
   hasIntegrationSituation?: boolean;
+  integrationSections?: string;
+  integrationCompetencies?: string;
+  integrationPrompt?: string;
+  integrationModules?: IntegrationModule[];
+  includeSolution?: boolean;
   examType?: string;
   term?: string;
   duration?: string;
