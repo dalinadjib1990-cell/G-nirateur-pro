@@ -87,6 +87,9 @@ export default function GeneratorPage() {
   // Test/Series specific state
   const [exercises, setExercises] = useState<Exercise[]>([{ id: generateId(), section: '', competencies: [''] }]);
   const [hasIntegration, setHasIntegration] = useState(false);
+  const [integrationSections, setIntegrationSections] = useState('');
+  const [integrationCompetencies, setIntegrationCompetencies] = useState('');
+  const [integrationPrompt, setIntegrationPrompt] = useState('');
   const [includeSolution, setIncludeSolution] = useState(false);
   const [examType, setExamType] = useState('فرض 1');
   const [examTerm, setExamTerm] = useState('الفصل الأول');
@@ -260,6 +263,9 @@ export default function GeneratorPage() {
     if (parsed.documentLanguage) setDocumentLanguage(parsed.documentLanguage);
     if (parsed.includeWatermark !== undefined) setIncludeWatermark(parsed.includeWatermark);
     if (parsed.hasIntegration !== undefined) setHasIntegration(parsed.hasIntegration);
+    if (parsed.integrationSections !== undefined) setIntegrationSections(parsed.integrationSections);
+    if (parsed.integrationCompetencies !== undefined) setIntegrationCompetencies(parsed.integrationCompetencies);
+    if (parsed.integrationPrompt !== undefined) setIntegrationPrompt(parsed.integrationPrompt);
     if (parsed.includeSolution !== undefined) setIncludeSolution(parsed.includeSolution);
     if (parsed.contentStyle) setContentStyle(parsed.contentStyle);
     if (parsed.designStyle) setDesignStyle(parsed.designStyle);
@@ -284,6 +290,9 @@ export default function GeneratorPage() {
         documentLanguage,
         includeWatermark,
         hasIntegration,
+        integrationSections,
+        integrationCompetencies,
+        integrationPrompt,
         includeSolution,
         contentStyle,
         designStyle,
@@ -300,8 +309,8 @@ export default function GeneratorPage() {
   };
 
   const handleSaveLessonElements = () => {
-    if (!memoSection && !memoDomain && !memoContent && !aiPrompt && exercises.every(e => !e.section)) {
-      alert('يرجى كتابة المقطع أو الميدان أو المورد المعرفي أو التوجيهات قبل الحفظ.');
+    if (!memoSection && !memoDomain && !memoContent && !aiPrompt && exercises.every(e => !e.section) && !integrationSections && !integrationCompetencies && !integrationPrompt) {
+      alert('يرجى كتابة المقطع أو الميدان أو المورد المعرفي أو التوجيهات أو معطيات الوضعية الإدماجية قبل الحفظ.');
       return;
     }
     const uid = user?.uid || 'guest';
@@ -313,6 +322,9 @@ export default function GeneratorPage() {
       memoContent,
       aiPrompt,
       exercises,
+      integrationSections,
+      integrationCompetencies,
+      integrationPrompt,
       subject: teacherInfo.subject,
       updatedAt: new Date().toISOString()
     };
@@ -321,7 +333,7 @@ export default function GeneratorPage() {
     saveCurrentPreferences();
 
     if (soundEnabled) soundManager.playGenerateComplete();
-    setLessonSaveMessage('تم حفظ معلومات المقطع والكفاءات والتوجيهات بنجاح!');
+    setLessonSaveMessage('تم حفظ معلومات المقطع والكفاءات والتوجيهات والوضعية الإدماجية بنجاح!');
     setTimeout(() => setLessonSaveMessage(null), 3500);
   };
 
@@ -338,13 +350,16 @@ export default function GeneratorPage() {
         if (parsed.memoContent !== undefined) setMemoContent(parsed.memoContent);
         if (parsed.aiPrompt !== undefined) setAiPrompt(parsed.aiPrompt);
         if (parsed.exercises && Array.isArray(parsed.exercises)) setExercises(parsed.exercises);
-        setLessonSaveMessage('تم استرجاع معلومات دروسك وكفاءاتك المحفوظة بنجاح!');
+        if (parsed.integrationSections !== undefined) setIntegrationSections(parsed.integrationSections);
+        if (parsed.integrationCompetencies !== undefined) setIntegrationCompetencies(parsed.integrationCompetencies);
+        if (parsed.integrationPrompt !== undefined) setIntegrationPrompt(parsed.integrationPrompt);
+        setLessonSaveMessage('تم استرجاع معلومات دروسك وكفاءاتك والوضعية الإدماجية بنجاح!');
         setTimeout(() => setLessonSaveMessage(null), 3500);
       } catch (e) {
         console.error(e);
       }
     } else {
-      alert('لا توجد معلومات محفوظة لهذه المادة في حسابك الشخصي حتى الآن. أدخل البيانات واضغط على "حفظ المعلومات والمعطيات".');
+      alert('لا توجد معلومات محفوظة لهذه المادة في حسابك الشخصي حتى الآن. أدخل البيانات واضغط على "حفظ المعطيات".');
     }
   };
 
@@ -354,12 +369,18 @@ export default function GeneratorPage() {
       setMemoDomain('');
       setMemoContent('');
       setAiPrompt('');
+      setIntegrationSections('');
+      setIntegrationCompetencies('');
+      setIntegrationPrompt('');
       setExercises([{ id: generateId(), section: '', competencies: [''] }]);
       saveCurrentPreferences({
         memoSection: '',
         memoDomain: '',
         memoContent: '',
-        aiPrompt: ''
+        aiPrompt: '',
+        integrationSections: '',
+        integrationCompetencies: '',
+        integrationPrompt: ''
       });
       if (soundEnabled) soundManager.playTabClick();
       setLessonSaveMessage('تم إعادة تعيين جميع الحقول بنجاح للكتابة مجدداً.');
@@ -558,11 +579,18 @@ export default function GeneratorPage() {
       subjectInfo = { 
         exercises, 
         hasIntegrationSituation: hasIntegration,
+        integrationSections: hasIntegration ? integrationSections : '',
+        integrationCompetencies: hasIntegration ? integrationCompetencies : '',
+        integrationPrompt: hasIntegration ? integrationPrompt : '',
         includeSolution,
         ...(generationType === 'test' ? {
           examType,
           term: examTerm,
           duration: examDuration,
+          hasIntegrationSituation: hasIntegration,
+          integrationSections: hasIntegration ? integrationSections : '',
+          integrationCompetencies: hasIntegration ? integrationCompetencies : '',
+          integrationPrompt: hasIntegration ? integrationPrompt : '',
           includeSolution
         } : {})
       };
@@ -1629,10 +1657,71 @@ ${framedContent}
                         </select>
                       </div>
                     </div>
-                    <label className="flex items-center gap-3 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-800/30 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40">
-                      <input type="checkbox" checked={hasIntegration} onChange={e => { setHasIntegration(e.target.checked); saveCurrentPreferences({ hasIntegration: e.target.checked }); }} className="rounded text-indigo-600 focus:ring-indigo-500 w-5 h-5 accent-indigo-600" />
-                      تضمين وضعية إدماجية
-                    </label>
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-3 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-800/30 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40">
+                        <input type="checkbox" checked={hasIntegration} onChange={e => { setHasIntegration(e.target.checked); saveCurrentPreferences({ hasIntegration: e.target.checked }); }} className="rounded text-indigo-600 focus:ring-indigo-500 w-5 h-5 accent-indigo-600" />
+                        تضمين وضعية إدماجية
+                      </label>
+
+                      {hasIntegration && (
+                        <div className="p-4 bg-indigo-50/80 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800/60 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
+                          <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200 font-bold text-xs border-b border-indigo-200/60 dark:border-indigo-800/60 pb-2">
+                            <Sparkles size={15} className="text-indigo-600 dark:text-indigo-400" />
+                            تخصيص وتوجيهات الوضعية الإدماجية المركبة
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                المقاطع المراد إدماجها في الوضعية
+                              </label>
+                              <input
+                                type="text"
+                                value={integrationSections}
+                                onChange={e => {
+                                  setIntegrationSections(e.target.value);
+                                  saveCurrentPreferences({ integrationSections: e.target.value });
+                                }}
+                                placeholder="مثال: المقطع 1 (الحساب الحرفي) + المقطع 2 (الخاصيات الهندسية)..."
+                                className="w-full p-2.5 text-xs rounded-lg border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                الكفاءات والقدرات المستهدفة بالوضعية
+                              </label>
+                              <input
+                                type="text"
+                                value={integrationCompetencies}
+                                onChange={e => {
+                                  setIntegrationCompetencies(e.target.value);
+                                  saveCurrentPreferences({ integrationCompetencies: e.target.value });
+                                }}
+                                placeholder="مثال: التريض، التفسير، استخدام العبارات الجبرية في حل مشكلة..."
+                                className="w-full p-2.5 text-xs rounded-lg border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                              توجيه الذكاء الاصطناعي عن موضوع وسياق الوضعية الإدماجية
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={integrationPrompt}
+                              onChange={e => {
+                                setIntegrationPrompt(e.target.value);
+                                saveCurrentPreferences({ integrationPrompt: e.target.value });
+                              }}
+                              placeholder="مثال: اكتب الوضعية حول تصميم وتسيير حديقة عامة أو تقسيم قطعة أرض للعائلة، مع إرفاق سندات ومسألة من جزءين..."
+                              className="w-full p-2.5 text-xs rounded-lg border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 custom-scrollbar"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
                     <label className="flex items-start gap-3 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold bg-amber-50 dark:bg-amber-950/30 p-3.5 rounded-xl border border-amber-200 dark:border-amber-800/40 transition-colors hover:bg-amber-100 dark:hover:bg-amber-900/40">
                       <input 

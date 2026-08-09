@@ -228,6 +228,16 @@ async function startServer() {
       
       ${generationType === 'test' ? `
       🚨 **أمر بيداغوجي صارم وإجباري لموضوع الفرض / الاختبار** 🚨:
+      ${(subjectInfo?.hasIntegrationSituation || req.body.hasIntegration) ? `
+      📌 **شروط صياغة الوضعية الإدماجية المركبة**:
+      يجب تخصيص الجزء الثاني من الفرض/الاختبار لوضعية إدماجية مركبة ومستقلة (تخصص لها 08 نقاط من 20 نقطة) تحتوي على:
+      • **السياق والسندات**: نص مشكلة واقعي ومحفز مع سندات توضيحية أو جدول معطيات.
+      ${subjectInfo?.integrationSections ? `• **المقاطع المستهدفة بالإدماج**: ${subjectInfo.integrationSections}` : ''}
+      ${subjectInfo?.integrationCompetencies ? `• **الكفاءات والقدرات المستهدفة**: ${subjectInfo.integrationCompetencies}` : ''}
+      ${subjectInfo?.integrationPrompt ? `• **توجيه خاص بسياق الوضعية والإدماج**: ${subjectInfo.integrationPrompt}` : ''}
+      • **التعليمات**: أسئلة متدرجة ومترابطة تحث المتعلم على استثمار الموارد المدمجة.
+      ` : ''}
+
       ${(subjectInfo?.includeSolution || req.body.includeSolution) ? `
       🔴 **المستخدم تفضل بطلب [تضمين الحل النموذجي]**:
       1️⃣ قم أولاً بصياغة موضوع الفرض/الاختبار كاملاً بالترويسة الرسمية والملاحظات والتمارين بأسئلتها المستقلة وسلالم التنقيط ([XX نقطة]) دون كتابة أي حل أو إجابات تحت الأسئلة إطلاقاً داخل موضوع الفرض.
