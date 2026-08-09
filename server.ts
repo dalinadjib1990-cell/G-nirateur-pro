@@ -109,114 +109,113 @@ async function startServer() {
 function getDesignStyleInstructions(designStyle: string): string {
   switch (designStyle) {
     case 'style1': // كلاسيكي
-      return `🎨 **توجيهات ستايل 1 (كلاسيكي - Classic Royal Blue)**:
-         - **الهوية البصرية**: كلاسيكي أنيق، منظم، رسمي ومباشر متوافق مع معايير المنظومة التربوية الرسمية.
-         - **اللون الرئيسي**: الأزرق الملكي (\`#1e40af\` / \`#1d4ed8\`).
-         - **الترويسة والبطاقات**: الترويسة العلوية بخلفية أزرق ملكي (\`background-color: #1e40af; color: #ffffff;\`). البطاقات مؤطرة بإطار \`border: 1.5px solid #1e40af; border-radius: 8px; padding: 12px; margin-bottom: 12px; background-color: #ffffff;\`.
-         - **شارات العناوين**: مستطيل أزرق ملكي \`background-color: #1e40af; color: #ffffff; padding: 6px 14px; font-weight: bold; border-radius: 6px; display: inline-block; font-size: 14px;\`.
-         - **صناديق الحوصلة والقواعد**: خلفية زرقاء فاتحة هادئة \`background-color: #eff6ff; border: 1.5px solid #93c5fd; border-right: 4px solid #1e40af; border-radius: 8px; padding: 10px 14px; margin: 10px 0;\`.
-         - **عناصر الإيضاح والتمارين**: استخدام جداول واضحة الحدود وبطاقات تمارين مع شارات النقط (06 نقاط) بأكياس زرقاء واضحة.`;
+      return `🎨 **توجيهات ستايل 1 (كلاسيكي - Classic Royal Blue Workbook)**:
+         - **الهوية البصرية**: كلاسيكي أنيق، منظم، رسم للدفاتر التربوية المعتمدة بلمسات زرقاء ملكية رصينة.
+         - **الألوان**: الأزرق الملكي (#1e40af)، الأزرق الفاتح (#eff6ff)، الحواف (#93c5fd).
+         - **الترويسة والبطاقات**: ترويسة علوية فاخرة بخلفية أزرق ملكي (background-color: #1e40af; color: #ffffff; padding: 16px; border-radius: 8px; margin-bottom: 16px;). البطاقات مؤطرة (border: 1.5px solid #1e40af; border-radius: 8px; padding: 14px; margin-bottom: 14px; background-color: #ffffff; box-shadow: 0 2px 4px rgba(30,64,175,0.06);).
+         - **شارات العناوين والأيقونات**: شارات زرقاء ملكية (background-color: #1e40af; color: #ffffff; padding: 6px 16px; font-weight: bold; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; margin-bottom: 10px;).
+         - **صناديق القواعد والحوصلة**: (background-color: #eff6ff; border: 1.5px solid #93c5fd; border-right: 5px solid #1e40af; border-radius: 8px; padding: 12px 16px; margin: 12px 0;). مع رمز 💡 للقوانين و🎯 للحوصلة.
+         - **التنسيق الجانبي والرسومات**: عند وجود شكل أو مخطط بصري، استخدم تنسيقاً مرناً يضع الشكل داخل بطاقة بجانب النص الشارح (display: flex; gap: 16px; align-items: center; flex-wrap: wrap;).`;
 
     case 'style5': // داكن
-      return `🎨 **توجيهات ستايل 5 (داكن رمادي - Slate Navy Executive)**:
-         - **الهوية البصرية**: عالي التباين، حاد، تنفيذي، شبيه بالطباعة الكحلي والفضية عالية الوضوح.
-         - **اللون الرئيسي**: الكحلي والرمادي الداكن (\`#1e293b\` / \`#334155\`).
-         - **الترويسة والبطاقات**: ترويسة كحلية داكنة (\`background-color: #1e293b; color: #ffffff;\`). بطاقات بإطار داكن متين \`border: 1.5px solid #334155; border-radius: 6px; padding: 12px; margin-bottom: 12px; background-color: #ffffff;\`.
-         - **شارات العناوين**: مستطيل داكن \`background-color: #1e293b; color: #ffffff; padding: 6px 12px; border-radius: 4px; font-weight: bold; display: inline-block;\`.
-         - **صناديق الحوصلة والقواعد**: \`background-color: #f8fafc; border: 1.5px solid #cbd5e1; border-right: 4px solid #1e293b; border-radius: 6px; padding: 10px 14px;\`.
-         - **التسلسل والرسومات**: تصميم جاد ومباشر للتمارين المتقدمة والأنشطة الأكاديمية.`;
+      return `🎨 **توجيهات ستايل 5 (داكن رمادي - Slate Navy Executive Workbook)**:
+         - **الهوية البصرية**: عالي التباين، حاد، تنفيذي، رسم للطباعة الكحلية والفضية عالية الوضوح بشخصية جادة.
+         - **الألوان**: الكحلي والرمادي الداكن (#1e293b / #334155)، الخلفية الشفافة (#f8fafc)، الحواف (#cbd5e1).
+         - **الترويسة والبطاقات**: ترويسة كحلية داكنة (background-color: #1e293b; color: #ffffff; padding: 16px; border-radius: 6px; margin-bottom: 16px;). بطاقات بإطار داكن متين (border: 1.5px solid #334155; border-radius: 6px; padding: 14px; margin-bottom: 14px; background-color: #ffffff;).
+         - **شارات العناوين والأيقونات**: شارات كحلية داكنة (background-color: #1e293b; color: #ffffff; padding: 6px 14px; border-radius: 4px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;).
+         - **صناديق القواعد والحوصلة**: (background-color: #f8fafc; border: 1.5px solid #cbd5e1; border-right: 5px solid #1e293b; border-radius: 6px; padding: 12px 16px; margin: 12px 0;). مع أيقونات بيداغوجية صريحة.
+         - **التنسيق الجانبي والرسومات**: إبراز المخططات والأشكال الرياضية بحدود كحلية دقيقة عالية التباين.`;
 
     case 'style2': // إبداعي
-      return `🎨 **توجيهات ستايل 2 (إبداعي بنفسجي - Creative Violet Gradient)**:
-         - **الهوية البصرية**: إبداعي، حافل بالحيوية، عصري وجذاب ببطاقات وشارات منحنية وتدرجات ناعمة.
-         - **اللون الرئيسي**: البنفسجي الملكي بتدرج ناعم (\`linear-gradient(135deg, #7e22ce, #4338ca)\`).
-         - **الترويسة والبطاقات**: ترويسة متدرجة بنفسجية. البطاقات بحواف منحنية جداً \`border: 1.5px solid #a855f7; border-radius: 12px; padding: 14px; margin-bottom: 14px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(168,85,247,0.08);\`.
-         - **شارات العناوين**: كبسولة دائرية \`background: linear-gradient(135deg, #7e22ce, #6366f1); color: #ffffff; padding: 6px 18px; border-radius: 20px; font-weight: bold;\`.
-         - **صناديق الحوصلة والقواعد**: خلفية بنفسجية خفيفة \`background-color: #faf5ff; border: 1.5px solid #d8b4fe; border-radius: 12px; padding: 12px 16px;\`.
-         - **عناصر الإيضاح**: إضافة رموز وإيضاحات بصرية دائرية مبتكرة للأفكار والتمارين.`;
+      return `🎨 **توجيهات ستايل 2 (إبداعي بنفسجي - Creative Violet Workbook)**:
+         - **الهوية البصرية**: إبداعي، حافل بالحيوية، عصري وجذاب ببطاقات وشارات منحنية وتدرجات بنفسجية ناعمة.
+         - **الألوان**: البنفسجي الملكي (linear-gradient(135deg, #7e22ce, #4338ca))، الخلفية الناعمة (#faf5ff)، الحواف (#d8b4fe).
+         - **الترويسة والبطاقات**: ترويسة متدرجة بنفسجية. بطاقات بحواف منحنية وجذابة (border: 1.5px solid #a855f7; border-radius: 12px; padding: 16px; margin-bottom: 16px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(168,85,247,0.08);).
+         - **شارات العناوين والأيقونات**: كبسولة دائرية (background: linear-gradient(135deg, #7e22ce, #6366f1); color: #ffffff; padding: 6px 18px; border-radius: 20px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;).
+         - **صناديق القواعد والحوصلة**: (background-color: #faf5ff; border: 1.5px solid #d8b4fe; border-radius: 12px; padding: 12px 16px; margin: 12px 0;). مع لمسات أيقونات مبتكرة 💡 📌 🎯 ✍️.
+         - **التنسيق الجانبي والرسومات**: تصميم بطاقات بصرية مزدوجة بجانب بعضها البعض مع إيضاحات SVG ملونة.`;
 
     case 'style3': // عصري
-      return `🎨 **توجيهات ستايل 3 (عصري زمردي - Modern Emerald Teal)**:
+      return `🎨 **توجيهات ستايل 3 (عصري زمردي - Modern Emerald Teal Workbook)**:
          - **الهوية البصرية**: حداثي، مريح للعين، منعش ومنظم بلمسات التيل والزمرد الطبيعي.
-         - **اللون الرئيسي**: الزمردي والتيل المشرق (\`linear-gradient(135deg, #059669, #0d9488)\`).
-         - **الترويسة والبطاقات**: ترويسة زمرّدية ناعمة. بطاقات بحواف ناعمة \`border: 1.5px solid #10b981; border-radius: 10px; padding: 12px; margin-bottom: 12px; background-color: #ffffff; box-shadow: 0 2px 8px rgba(16,185,129,0.08);\`.
-         - **شارات العناوين**: شارة كبسولية زمردية \`background-color: #059669; color: #ffffff; padding: 6px 16px; border-radius: 8px; font-weight: bold; display: inline-block;\`.
-         - **صناديق الحوصلة والقواعد**: \`background-color: #f0fdf4; border: 1.5px solid #a7f3d0; border-right: 4px solid #059669; border-radius: 10px; padding: 10px 14px;\`.
-         - **التسلسل البيداغوجي**: شريط متكامل يربط المراحل التعليمية بنسق عصري متطور.`;
+         - **الألوان**: الزمردي والتيل المشرق (linear-gradient(135deg, #059669, #0d9488))، الخلفية (#f0fdf4)، الحواف (#a7f3d0).
+         - **الترويسة والبطاقات**: ترويسة زمرّدية ناعمة. بطاقات (border: 1.5px solid #10b981; border-radius: 10px; padding: 14px; margin-bottom: 14px; background-color: #ffffff; box-shadow: 0 2px 8px rgba(16,185,129,0.08);).
+         - **شارات العناوين والأيقونات**: شارة كبسولية زمردية (background-color: #059669; color: #ffffff; padding: 6px 16px; border-radius: 8px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;).
+         - **صناديق القواعد والحوصلة**: (background-color: #f0fdf4; border: 1.5px solid #a7f3d0; border-right: 5px solid #059669; border-radius: 10px; padding: 12px 16px; margin: 12px 0;).
+         - **التنسيق الجانبي والرسومات**: ربط المفاهيم والرسومات الرياضية بشريط تسلسلي زمردي جذاب.`;
 
     case 'style6': // هندسي
-      return `🎨 **توجيهات ستايل 6 (تقني هندسي - Geometric Cyan Tech)**:
+      return `🎨 **توجيهات ستايل 6 (تقني هندسي - Geometric Cyan Tech Workbook)**:
          - **الهوية البصرية**: دقيق، رياضي، تقني بخطوط وتقسيمات هندسية واضحة جداً.
-         - **اللون الرئيسي**: الأزرق السماوي التقني (\`#0891b2\` / \`#0284c7\`).
-         - **الترويسة والبطاقات**: ترويسة أزرق سماوي تقنية. بطاقات \`border: 1.5px solid #0891b2; border-radius: 6px; padding: 12px; margin-bottom: 12px; background-color: #ffffff;\`.
-         - **شارات العناوين**: شريط هندسي بزوايا تقنية \`background-color: #0891b2; color: #ffffff; padding: 6px 14px; font-weight: bold; border-left: 4px solid #0e7490; border-radius: 4px;\`.
-         - **صناديق الحوصلة والقواعد**: \`background-color: #ecfeff; border: 1.5px solid #a5f3fc; border-right: 4px solid #0891b2; border-radius: 6px; padding: 10px 14px;\`.
-         - **الرسومات التوضيحية**: إدراج أشكال هندسية، شبكات بيانية، أو مربعات عملية بإنلاين SVG دقيق.`;
+         - **الألوان**: الأزرق السماوي التقني (#0891b2 / #0284c7)، الخلفية (#ecfeff)، الحواف (#a5f3fc).
+         - **الترويسة والبطاقات**: ترويسة أزرق سماوي تقنية. بطاقات (border: 1.5px solid #0891b2; border-radius: 6px; padding: 14px; margin-bottom: 14px; background-color: #ffffff;).
+         - **شارات العناوين والأيقونات**: شريط هندسي بزوايا تقنية (background-color: #0891b2; color: #ffffff; padding: 6px 16px; font-weight: bold; border-left: 4px solid #0e7490; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;).
+         - **صناديق القواعد والحوصلة**: (background-color: #ecfeff; border: 1.5px solid #a5f3fc; border-right: 5px solid #0891b2; border-radius: 6px; padding: 12px 16px; margin: 12px 0;).
+         - **الرسومات التوضيحية**: إدراج أشكال هندسية، شبكات بيانية، أو مخططات قسمة هندسية ودائرية بإنلاين SVG تقني متقن.`;
 
     case 'style7': // مرح
-      return `🎨 **توجيهات ستايل 7 (مرح مبهج - Playful Magenta Pink)**:
+      return `🎨 **توجيهات ستايل 7 (مرح مبهج - Playful Magenta Pink Workbook)**:
          - **الهوية البصرية**: مبهج، محفز، دافئ ومناسب للمراحل الأولى والتعليم الابتدائي بالتفاعلية.
-         - **اللون الرئيسي**: الوردي والماجندا الزاهي (\`linear-gradient(135deg, #db2777, #e11d48)\`).
-         - **الترويسة والبطاقات**: ترويسة وردية زاهية. بطاقات دائرية جداً \`border: 2px solid #f472b6; border-radius: 16px; padding: 14px; margin-bottom: 14px; background-color: #ffffff;\`.
-         - **شارات العناوين**: كبسولة دائرية مبهجة \`background-color: #db2777; color: #ffffff; padding: 6px 18px; border-radius: 25px; font-weight: bold;\`.
-         - **صناديق الحوصلة والقواعد**: \`background-color: #fdf2f8; border: 1.5px solid #fbcfe8; border-radius: 14px; padding: 12px 16px;\`.
-         - **اللمسات البصرية**: استخدام نجوم وأيقونات ودية تشجع الطالب.`;
+         - **الألوان**: الوردي والماجندا الزاهي (linear-gradient(135deg, #db2777, #e11d48))، الخلفية (#fdf2f8)، الحواف (#fbcfe8).
+         - **الترويسة والبطاقات**: ترويسة وردية زاهية. بطاقات دائرية الحواف (border: 2px solid #f472b6; border-radius: 16px; padding: 16px; margin-bottom: 16px; background-color: #ffffff;).
+         - **شارات العناوين والأيقونات**: كبسولة دائرية مبهجة (background-color: #db2777; color: #ffffff; padding: 6px 20px; border-radius: 25px; font-weight: bold; display: inline-flex; align-items: center; gap: 8px;).
+         - **صناديق القواعد والحوصلة**: (background-color: #fdf2f8; border: 1.5px solid #fbcfe8; border-radius: 14px; padding: 12px 16px; margin: 12px 0;). مع أيقونات نجوم ورموز مبهجة 🌟 💡 🎯.`;
 
     case 'style8': // أكاديمي
-      return `🎨 **توجيهات ستايل 8 (أكاديمي موجه - Formal Academic Indigo)**:
+      return `🎨 **توجيهات ستايل 8 (أكاديمي موجه - Formal Academic Indigo Workbook)**:
          - **الهوية البصرية**: فخم، رفيع المستوى، أكاديمي موجه للطور الثانوي والجامعي بشخصية متميزة.
-         - **اللون الرئيسي**: الأزرق النيلي العميق (\`#3730a3\` / \`#4f46e5\`).
-         - **الترويسة والبطاقات**: ترويسة نيلية عميقة بحافة سفيلية بنفسجية. بطاقات \`border: 1.5px solid #4f46e5; border-radius: 8px; padding: 12px; margin-bottom: 12px; background-color: #ffffff;\`.
-         - **شارات العناوين**: \`background-color: #3730a3; color: #ffffff; padding: 6px 16px; font-weight: bold; border-bottom: 2px solid #a855f7; border-radius: 4px;\`.
-         - **صناديق الحوصلة والقواعد**: \`background-color: #eef2ff; border: 1.5px solid #c7d2fe; border-right: 4px solid #3730a3; border-radius: 8px; padding: 10px 14px;\`.`;
+         - **الألوان**: الأزرق النيلي العميق (#3730a3 / #4f46e5)، الخلفية (#eef2ff)، الحواف (#c7d2fe).
+         - **الترويسة والبطاقات**: ترويسة نيلية عميقة بحافة سفيلية بنفسجية. بطاقات (border: 1.5px solid #4f46e5; border-radius: 8px; padding: 14px; margin-bottom: 14px; background-color: #ffffff;).
+         - **شارات العناوين والأيقونات**: (background-color: #3730a3; color: #ffffff; padding: 6px 16px; font-weight: bold; border-bottom: 3px solid #a855f7; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;).
+         - **صناديق القواعد والحوصلة**: (background-color: #eef2ff; border: 1.5px solid #c7d2fe; border-right: 5px solid #3730a3; border-radius: 8px; padding: 12px 16px; margin: 12px 0;).`;
 
     case 'style9': // ناعم
-      return `🎨 **توجيهات ستايل 9 (ناعم مرجاني - Soft Rose Coral)**:
+      return `🎨 **توجيهات ستايل 9 (ناعم مرجاني - Soft Rose Coral Workbook)**:
          - **الهوية البصرية**: ناعم، مريح جداً للعين، أنيق وجذاب بظلال خفيفة وخطوط ناعمة.
-         - **اللون الرئيسي**: الوردي المرجاني الناعم (\`#e11d48\` / \`#fb7185\`).
-         - **الترويسة والبطاقات**: ترويسة مرجانية ناعمة. بطاقات \`border: 1.5px solid #fda4af; border-radius: 12px; padding: 12px; margin-bottom: 12px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(225,29,72,0.05);\`.
-         - **شارات العناوين**: \`background-color: #e11d48; color: #ffffff; padding: 6px 16px; border-radius: 12px; font-weight: bold;\`.
-         - **صناديق الحوصلة والقواعد**: \`background-color: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 10px; padding: 10px 14px;\`.`;
+         - **الألوان**: الوردي المرجاني الناعم (#e11d48 / #fb7185)، الخلفية (#fff1f2)، الحواف (#fecdd3).
+         - **الترويسة والبطاقات**: ترويسة مرجانية ناعمة. بطاقات (border: 1.5px solid #fda4af; border-radius: 12px; padding: 14px; margin-bottom: 14px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(225,29,72,0.05);).
+         - **شارات العناوين والأيقونات**: (background-color: #e11d48; color: #ffffff; padding: 6px 18px; border-radius: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;).
+         - **صناديق القواعد والحوصلة**: (background-color: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 10px; padding: 12px 16px; margin: 12px 0;).`;
 
     case 'style10': // بني / عتيق
-      return `🎨 **توجيهات ستايل 10 (بني تراثي - Vintage Amber Coffee)**:
+      return `🎨 **توجيهات ستايل 10 (بني تراثي - Vintage Amber Coffee Workbook)**:
          - **الهوية البصرية**: دافئ، تراثي، أصيل ومناسب جداً لمواد اللغة العربية والتاريخ والشريعة.
-         - **اللون الرئيسي**: بني القهوة الدافئ (\`#78350f\` / \`#92400e\`).
-         - **الترويسة والبطاقات**: ترويسة بني دافئة. بطاقات بخلفية دافئة خفيفة \`border: 1.5px solid #b45309; border-radius: 8px; padding: 12px; margin-bottom: 12px; background-color: #fffbf0;\`.
-         - **شارات العناوين**: شريطة بني تراثية \`background-color: #78350f; color: #ffffff; padding: 6px 14px; font-weight: bold; border-radius: 6px;\`.
-         - **صناديق الحوصلة والقواعد**: \`background-color: #fef3c7; border: 1.5px solid #fde68a; border-right: 4px solid #92400e; border-radius: 8px; padding: 10px 14px;\`.`;
+         - **الألوان**: بني القهوة الدافئ (#78350f / #92400e)، الخلفية الدافئة (#fffbf0 / #fef3c7)، الحواف (#fde68a).
+         - **الترويسة والبطاقات**: ترويسة بني دافئة. بطاقات (border: 1.5px solid #b45309; border-radius: 8px; padding: 14px; margin-bottom: 14px; background-color: #fffbf0;).
+         - **شارات العناوين والأيقونات**: شريطة بني تراثية (background-color: #78350f; color: #ffffff; padding: 6px 16px; font-weight: bold; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;).
+         - **صناديق القواعد والحوصلة**: (background-color: #fef3c7; border: 1.5px solid #fde68a; border-right: 5px solid #92400e; border-radius: 8px; padding: 12px 16px; margin: 12px 0;). مع أيقونات تراثية بيداغوجية 📜 💡 🎯.`;
 
     case 'style13': // خارق للعادة
-      return `🎨 **توجيهات ستايل 13 (ثلاثي الأبعاد بريميوم - 3D Ocean Sky)**:
+      return `🎨 **توجيهات ستايل 13 (ثلاثي الأبعاد بريميوم - 3D Ocean Sky Workbook)**:
          - **الهوية البصرية**: مجسم ثلاثي الأبعاد، بارز وعصري جداً بطبقات ظلال وظلال جانبية.
-         - **اللون الرئيسي**: الأزرق المحيطي البرّاق (\`linear-gradient(135deg, #0284c7, #2563eb)\`).
-         - **الترويسة والبطاقات**: بطاقات ثلاثية الأبعاد \`border: 2px solid #0284c7; border-radius: 12px; padding: 14px; margin-bottom: 14px; background-color: #ffffff; box-shadow: 0 5px 0 #0369a1, 0 8px 15px rgba(2,132,199,0.15);\`.
-         - **شارات العناوين**: شارة ثلاثية الأبعاد \`background-color: #0284c7; color: #ffffff; padding: 6px 16px; border-radius: 8px; font-weight: bold; box-shadow: 0 3px 0 #0369a1;\`.
-         - **صناديق الحوصلة والقواعد**: \`background-color: #f0f9ff; border: 1.5px solid #7dd3fc; border-radius: 10px; padding: 12px 16px; box-shadow: inset 0 2px 4px rgba(2,132,199,0.05);\`.`;
+         - **الألوان**: الأزرق المحيطي البرّاق (linear-gradient(135deg, #0284c7, #2563eb))، الخلفية (#f0f9ff)، الحواف (#7dd3fc).
+         - **الترويسة والبطاقات**: بطاقات ثلاثية الأبعاد (border: 2px solid #0284c7; border-radius: 12px; padding: 16px; margin-bottom: 16px; background-color: #ffffff; box-shadow: 0 5px 0 #0369a1, 0 8px 15px rgba(2,132,199,0.15);).
+         - **شارات العناوين والأيقونات**: شارة ثلاثية الأبعاد (background-color: #0284c7; color: #ffffff; padding: 6px 18px; border-radius: 8px; font-weight: bold; box-shadow: 0 3px 0 #0369a1; display: inline-flex; align-items: center; gap: 6px;).
+         - **صناديق القواعد والحوصلة**: (background-color: #f0f9ff; border: 1.5px solid #7dd3fc; border-radius: 10px; padding: 12px 16px; margin: 12px 0; box-shadow: inset 0 2px 4px rgba(2,132,199,0.05);).`;
 
     case 'style14': // طبيعي
-      return `🎨 **توجيهات ستايل 14 (طبيعي بيئي - Organic Nature Lime)**:
+      return `🎨 **توجيهات ستايل 14 (طبيعي بيئي - Organic Nature Lime Workbook)**:
          - **الهوية البصرية**: بيئي، طبيعي، حافل بالحيوية ومناسب لعلوم الطبيعة والحياة والجغرافيا.
-         - **اللون الرئيسي**: الأخضر الليموني البيئي (\`linear-gradient(135deg, #65a30d, #15803d)\`).
-         - **الترويسة والبطاقات**: \`border: 1.5px solid #84cc16; border-radius: 10px; padding: 12px; margin-bottom: 12px; background-color: #ffffff;\`.
-         - **شارات العناوين**: \`background-color: #65a30d; color: #ffffff; padding: 6px 16px; border-radius: 12px; font-weight: bold;\`.
-         - **صناديق الحوصلة والقواعد**: \`background-color: #f7fee7; border: 1.5px solid #d9f99d; border-right: 4px solid #65a30d; border-radius: 10px; padding: 10px 14px;\`.`;
+         - **الألوان**: الأخضر الليموني البيئي (linear-gradient(135deg, #65a30d, #15803d))، الخلفية (#f7fee7)، الحواف (#d9f99d).
+         - **الترويسة والبطاقات**: (border: 1.5px solid #84cc16; border-radius: 10px; padding: 14px; margin-bottom: 14px; background-color: #ffffff;).
+         - **شارات العناوين والأيقونات**: (background-color: #65a30d; color: #ffffff; padding: 6px 18px; border-radius: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;).
+         - **صناديق القواعد والحوصلة**: (background-color: #f7fee7; border: 1.5px solid #d9f99d; border-right: 5px solid #65a30d; border-radius: 10px; padding: 12px 16px; margin: 12px 0;). مع رموز بيئية وعلمية 🌱 💡 🎯.`;
 
     case 'style15': // ذهبي
-      return `🎨 **توجيهات ستايل 15 (ذهبي فاخر - Luxury Gold Award)**:
+      return `🎨 **توجيهات ستايل 15 (ذهبي فاخر - Luxury Gold Award Workbook)**:
          - **الهوية البصرية**: فاخر، متميز، يمنح طابع الامتياز والمستويات الرفيعة.
-         - **اللون الرئيسي**: الذهبي البراق (\`linear-gradient(135deg, #a16207, #ca8a04, #854d0e)\`).
-         - **الترويسة والبطاقات**: \`border: 1.5px solid #ca8a04; border-radius: 8px; padding: 12px; margin-bottom: 12px; background-color: #ffffff; box-shadow: 0 2px 8px rgba(202,138,4,0.1);\`.
-         - **شارات العناوين**: شريطة ذهبية فاخرة \`background: linear-gradient(135deg, #ca8a04, #a16207); color: #ffffff; padding: 6px 16px; border-radius: 6px; font-weight: bold;\`.
-         - **صناديق الحوصلة والقواعد**: \`background-color: #fefce8; border: 1.5px solid #fef08a; border-right: 4px solid #ca8a04; border-radius: 8px; padding: 10px 14px;\`.`;
+         - **الألوان**: الذهبي البراق (linear-gradient(135deg, #a16207, #ca8a04, #854d0e))، الخلفية (#fefce8)، الحواف (#fef08a).
+         - **الترويسة والبطاقات**: (border: 1.5px solid #ca8a04; border-radius: 8px; padding: 14px; margin-bottom: 14px; background-color: #ffffff; box-shadow: 0 2px 8px rgba(202,138,4,0.1);).
+         - **شارات العناوين والأيقونات**: شريطة ذهبية فاخرة (background: linear-gradient(135deg, #ca8a04, #a16207); color: #ffffff; padding: 6px 18px; border-radius: 6px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;).
+         - **صناديق القواعد والحوصلة**: (background-color: #fefce8; border: 1.5px solid #fef08a; border-right: 5px solid #ca8a04; border-radius: 8px; padding: 12px 16px; margin: 12px 0;). مع لمسات امتياز ⭐ 💡 🎯.`;
 
     default:
       if (designStyle && designStyle.startsWith('visual_')) {
-        return `🎨 **توجيهات ستايل تفاعلي بصري (Interactive Card Visual)**:
+        return `🎨 **توجيهات ستايل تفاعلي بصري (Interactive Card Visual Workbook)**:
          - **الهوية البصرية**: يعتمد على البطاقات التفاعلية مع خرائط الأفكار والرسومات التوضيحية لجميع المفاهيم.
-         - **البطاقات**: بطاقات واسعة ومؤطرة بإتقان.`;
+         - **البطاقات**: بطاقات واسعة ومؤطرة بإتقان مع إيقونات تعليمية ورسومات توضيحية جانبية لكل قسم.`;
       }
-      return `🎨 **توجيهات ستايل مخصص أنيق**: استخدم بطاقات مؤطرة ونظيفة تتطابق مع لون var(--doc-color) مع زوايا منحنية وشارات عناوين ملونة.`;
+      return `🎨 **توجيهات ستايل مخصص أنيق**: استخدم بطاقات مؤطرة ونظيفة تتطابق مع لون var(--doc-color) مع زوايا منحنية وشارات عناوين ملونة وأيقونات بيداغوجية.`;
   }
 }
 
