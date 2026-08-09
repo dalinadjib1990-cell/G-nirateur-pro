@@ -248,7 +248,7 @@ export default function GeneratorPage() {
     if (parsed.examDuration) setExamDuration(parsed.examDuration);
 
     setGeneratedHtml('');
-  }, [activeUid, userData]);
+  }, [activeUid]);
 
   const [lessonSaveMessage, setLessonSaveMessage] = useState<string | null>(null);
 
