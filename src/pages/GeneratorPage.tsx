@@ -262,6 +262,12 @@ export default function GeneratorPage() {
     }
   }, [generationType, designStyle]);
 
+  // Scaling logic
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [autoScale, setAutoScale] = useState(1);
+  const [manualScale, setManualScale] = useState(1);
+  const effectiveScale = autoScale * manualScale;
+
   // Canvas shapes global movement and touch gestures
   useEffect(() => {
     const handleMove = (clientX: number, clientY: number, touch2?: { clientX: number, clientY: number }) => {
@@ -425,10 +431,6 @@ export default function GeneratorPage() {
   const [includeWatermark, setIncludeWatermark] = useState(false);
 
   // Scaling logic
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [autoScale, setAutoScale] = useState(1);
-  const [manualScale, setManualScale] = useState(1);
-
   useEffect(() => {
     let animationFrameId: number;
     
@@ -474,8 +476,6 @@ export default function GeneratorPage() {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
-
-  const effectiveScale = autoScale * manualScale;
 
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add('dark');
@@ -967,31 +967,33 @@ export default function GeneratorPage() {
 
   const getFrameStyle = (frameId: string, color: string): React.CSSProperties => {
     switch (frameId) {
-      case 'simple': return { border: `2px solid ${color}`, margin: '4mm', padding: '5mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '4px' };
-      case 'double': return { border: `4px double ${color}`, margin: '4mm', padding: '5mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '4px' };
+      case 'simple': return { border: `2px solid ${color}`, margin: '2mm', padding: '3mm 2mm', minHeight: 'calc(297mm - 4mm)', boxSizing: 'border-box', borderRadius: '4px', width: 'calc(100% - 4mm)' };
+      case 'double': return { border: `4px double ${color}`, margin: '2mm', padding: '3mm 2mm', minHeight: 'calc(297mm - 4mm)', boxSizing: 'border-box', borderRadius: '4px', width: 'calc(100% - 4mm)' };
       case 'ornate': return { 
           border: `2px dashed ${color}`, 
           outline: `2px solid ${color}`, 
-          outlineOffset: '-5px',
-          margin: '5mm',
-          padding: '6mm',
-          minHeight: 'calc(297mm - 10mm)',
+          outlineOffset: '-4px',
+          margin: '3mm',
+          padding: '3mm 2mm',
+          minHeight: 'calc(297mm - 6mm)',
           boxSizing: 'border-box',
           backgroundColor: '#fff',
-          borderRadius: '4px'
+          borderRadius: '4px',
+          width: 'calc(100% - 6mm)'
       };
       case '3d': return { 
           borderTop: `3px solid ${color}`, 
           borderLeft: `3px solid ${color}`, 
-          borderBottom: `6px solid ${color}`, 
-          borderRight: `6px solid ${color}`, 
-          margin: '4mm',
-          padding: '5mm',
-          minHeight: 'calc(297mm - 8mm)',
+          borderBottom: `5px solid ${color}`, 
+          borderRight: `5px solid ${color}`, 
+          margin: '2mm',
+          padding: '3mm 2mm',
+          minHeight: 'calc(297mm - 4mm)',
           boxSizing: 'border-box',
-          borderRadius: '4px'
+          borderRadius: '4px',
+          width: 'calc(100% - 4mm)'
       };
-      default: return { padding: '6mm', minHeight: '297mm', boxSizing: 'border-box' };
+      default: return { padding: '3mm 2mm', minHeight: '297mm', boxSizing: 'border-box', width: '100%' };
     }
   };
 
