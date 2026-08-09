@@ -9,6 +9,7 @@ import { doc, updateDoc, collection, getDocs, query, where, increment } from 'fi
 import { useNavigate } from 'react-router-dom';
 import { useDownloads } from '../contexts/DownloadsContext';
 import DownloadsModal from '../components/DownloadsModal';
+import SymbolBar from '../components/SymbolBar';
 import { expertChatEmitter, profileModalEmitter } from '../App';
 import { uploadImage } from '../lib/cloudinary';
 
@@ -262,6 +263,12 @@ export default function GeneratorPage() {
     }
   }, [generationType, designStyle]);
 
+  // Scaling logic & states
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [autoScale, setAutoScale] = useState(1);
+  const [manualScale, setManualScale] = useState(1);
+  const effectiveScale = autoScale * manualScale;
+
   // Canvas shapes global movement and touch gestures
   useEffect(() => {
     const handleMove = (clientX: number, clientY: number, touch2?: { clientX: number, clientY: number }) => {
@@ -425,10 +432,6 @@ export default function GeneratorPage() {
   const [includeWatermark, setIncludeWatermark] = useState(false);
 
   // Scaling logic
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [autoScale, setAutoScale] = useState(1);
-  const [manualScale, setManualScale] = useState(1);
-
   useEffect(() => {
     let animationFrameId: number;
     
@@ -474,8 +477,6 @@ export default function GeneratorPage() {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
-
-  const effectiveScale = autoScale * manualScale;
 
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add('dark');
@@ -2426,61 +2427,58 @@ ${framedContent}
 
           {/* Shapes & Graphics Toolbar */}
           {generatedHtml && (
-            <div className="flex flex-wrap items-center gap-2 bg-slate-900/95 text-white p-2.5 rounded-xl border border-slate-700 shadow-lg w-full mb-3">
-              <span className="text-xs font-bold text-amber-300 flex items-center gap-1 shrink-0 px-1">
-                <Shapes size={16} /> إضافة أشكال ورسومات للمعاينة:
-              </span>
-              <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                <button onClick={() => addCanvasShape('rectangle')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="مستطيل / مربع">
-                  <span className="w-3.5 h-3.5 border-2 border-indigo-400 rounded-xs inline-block"></span> مستطيل
-                </button>
-                <button onClick={() => addCanvasShape('circle')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="دائرة / بيضوي">
-                  <span className="w-3.5 h-3.5 border-2 border-emerald-400 rounded-full inline-block"></span> دائرة
-                </button>
-                <button onClick={() => addCanvasShape('triangle')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="مثلث">
-                  <span className="text-amber-400 font-bold">▲</span> مثلث
-                </button>
+            <div className="flex flex-col gap-2 bg-slate-900/95 text-white p-2.5 rounded-xl border border-slate-700 shadow-lg w-full mb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                <span className="text-xs font-bold text-amber-300 flex items-center gap-1 shrink-0 px-1">
+                  <Shapes size={16} /> إضافة أشكال ورسومات للمعاينة:
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <button onClick={() => addCanvasShape('rectangle')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="مستطيل / مربع">
+                    <span className="w-3.5 h-3.5 border-2 border-indigo-400 rounded-xs inline-block"></span> مستطيل
+                  </button>
+                  <button onClick={() => addCanvasShape('circle')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="دائرة / بيضوي">
+                    <span className="w-3.5 h-3.5 border-2 border-emerald-400 rounded-full inline-block"></span> دائرة
+                  </button>
+                  <button onClick={() => addCanvasShape('triangle')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="مثلث">
+                    <span className="text-amber-400 font-bold">▲</span> مثلث
+                  </button>
 
-                <button onClick={() => addCanvasShape('arrow')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="سهم موجه">
-                  <span className="text-cyan-400 font-bold">➔</span> سهم
-                </button>
-                <button onClick={() => addCanvasShape('line')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="خط مستقيم">
-                  <span className="text-rose-400 font-bold">━</span> خط
-                </button>
-                <button onClick={() => addCanvasShape('grid')} className="px-2.5 py-1 bg-indigo-600/80 hover:bg-indigo-600 border border-indigo-400 rounded-lg flex items-center gap-1 font-semibold transition text-white shadow-xs" title="معلم متعامد ومتجانس (محاور)">
-                  <span className="font-bold">📈</span> معلم متعامد
-                </button>
-                <button onClick={() => addCanvasShape('drawing_box')} className="px-2.5 py-1 bg-teal-600/80 hover:bg-teal-600 border border-teal-400 rounded-lg flex items-center gap-1 font-semibold transition text-white shadow-xs" title="مساحة مخصصة للرسم">
-                  <span className="font-bold">🎨</span> مساحة رسم
-                </button>
-                
-                {/* Stamp / Emoji selector */}
-                <div className="flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
-                  <span className="text-[10px] text-slate-400 font-bold">رموز:</span>
-                  <button onClick={() => addCanvasShape('stamp', '⭐')} className="hover:scale-125 transition">⭐</button>
-                  <button onClick={() => addCanvasShape('stamp', '🧪')} className="hover:scale-125 transition">🧪</button>
-                  <button onClick={() => addCanvasShape('stamp', '📐')} className="hover:scale-125 transition">📐</button>
-                  <button onClick={() => addCanvasShape('stamp', '🧬')} className="hover:scale-125 transition">🧬</button>
-                  <button onClick={() => addCanvasShape('stamp', '⚡')} className="hover:scale-125 transition">⚡</button>
-                  <button onClick={() => addCanvasShape('stamp', '🌱')} className="hover:scale-125 transition">🌱</button>
+                  <button onClick={() => addCanvasShape('arrow')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="سهم موجه">
+                    <span className="text-cyan-400 font-bold">➔</span> سهم
+                  </button>
+                  <button onClick={() => addCanvasShape('line')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="خط مستقيم">
+                    <span className="text-rose-400 font-bold">━</span> خط
+                  </button>
+                  <button onClick={() => addCanvasShape('grid')} className="px-2.5 py-1 bg-indigo-600/80 hover:bg-indigo-600 border border-indigo-400 rounded-lg flex items-center gap-1 font-semibold transition text-white shadow-xs" title="معلم متعامد ومتجانس (محاور)">
+                    <span className="font-bold">📈</span> معلم متعامد
+                  </button>
+                  <button onClick={() => addCanvasShape('drawing_box')} className="px-2.5 py-1 bg-teal-600/80 hover:bg-teal-600 border border-teal-400 rounded-lg flex items-center gap-1 font-semibold transition text-white shadow-xs" title="مساحة مخصصة للرسم">
+                    <span className="font-bold">🎨</span> مساحة رسم
+                  </button>
+
+                  {/* Custom Image insertion */}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    ref={shapeImageInputRef} 
+                    onChange={handleInsertShapeImage} 
+                  />
+                  <button 
+                    onClick={() => shapeImageInputRef.current?.click()}
+                    className="px-2.5 py-1 bg-amber-600/80 hover:bg-amber-600 border border-amber-400 rounded-lg flex items-center gap-1 font-semibold transition text-white shadow-xs"
+                    title="إدراج صورة تفاعلية للتحكم بحدودها ومكانها"
+                  >
+                    <ImageIcon size={14} /> صورة متحرّكة
+                  </button>
                 </div>
-
-                {/* Custom Image insertion */}
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  ref={shapeImageInputRef} 
-                  onChange={handleInsertShapeImage} 
-                />
-                <button 
-                  onClick={() => shapeImageInputRef.current?.click()}
-                  className="px-2.5 py-1 bg-amber-600/80 hover:bg-amber-600 border border-amber-400 rounded-lg flex items-center gap-1 font-semibold transition text-white shadow-xs"
-                  title="إدراج صورة تفاعلية للتحكم بحدودها ومكانها"
-                >
-                  <ImageIcon size={14} /> صورة متحرّكة
-                </button>
               </div>
+
+              {/* Scrollable Symbol & Emoji Ribbon Bar */}
+              <SymbolBar 
+                onSelectSymbol={(sym) => addCanvasShape('stamp', sym)} 
+                soundEnabled={soundEnabled} 
+              />
             </div>
           )}
 
