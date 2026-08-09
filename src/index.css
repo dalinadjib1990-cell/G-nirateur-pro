@@ -132,10 +132,26 @@
 .a4-page {
   width: 210mm;
   min-height: 297mm;
-  background: white;
+  background: white !important;
+  color: #000000 !important;
+  color-scheme: light !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   padding: 0;
   transform-origin: top center;
+}
+
+/* Force pure dark black text on all exercise body elements inside paper */
+.a4-page p,
+.a4-page td,
+.a4-page li,
+.a4-page font,
+.a4-page b,
+.a4-page strong,
+.a4-page em,
+.a4-page i,
+.a4-page span:not([class*="text-white"]):not([style*="color: white"]):not([style*="color: #fff"]):not([style*="color:#fff"]),
+.a4-page div:not([style*="background-color"]):not([class*="bg-"]) {
+  color: #000000 !important;
 }
 
 .a4-page tr, .a4-page img, .a4-page .avoid-break {

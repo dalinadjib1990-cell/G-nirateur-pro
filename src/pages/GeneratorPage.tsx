@@ -1151,12 +1151,15 @@ export default function GeneratorPage() {
     // Clone the element to render off-screen without altering the UI
     const clone = originalElement.cloneNode(true) as HTMLElement;
     
-    // Create a temporary container off-screen
+    // Create a temporary container off-screen forced strictly in light mode
     const tempContainer = document.createElement('div');
+    tempContainer.className = 'light';
     tempContainer.style.position = 'absolute';
     tempContainer.style.left = '-9999px';
     tempContainer.style.top = '0';
     tempContainer.style.width = '794px';
+    tempContainer.style.color = '#000000';
+    tempContainer.style.backgroundColor = '#ffffff';
     tempContainer.appendChild(clone);
     document.body.appendChild(tempContainer);
 
@@ -1166,12 +1169,45 @@ export default function GeneratorPage() {
       clone.querySelectorAll(sel).forEach(el => el.remove());
     });
 
+    // Strip dark mode classes from clone and all descendants
+    clone.classList.remove('dark');
+    clone.querySelectorAll('.dark').forEach(el => el.classList.remove('dark'));
+
     // Substitute var(--doc-color, ...) CSS variables with concrete hex values for html2canvas reliability
     let htmlContent = clone.innerHTML;
     const docColorValue = docColor || '#1e40af';
     htmlContent = htmlContent.replace(/var\(--doc-color,\s*[^)]+\)/g, docColorValue);
     htmlContent = htmlContent.replace(/var\(--doc-color\)/g, docColorValue);
+
+    // Replace any leftover yellow/amber inline text color attributes with deep black
+    htmlContent = htmlContent.replace(/color:\s*(#f59e0b|#eab308|#fbbf24|#fde047|#facc15|#d97706|#b45309|yellow|amber)/gi, 'color: #000000');
+
     clone.innerHTML = htmlContent;
+
+    // Inject strict print stylesheet into clone to guarantee clear black text on white paper
+    const printOverrideStyle = document.createElement('style');
+    printOverrideStyle.textContent = `
+      * {
+        color-scheme: light !important;
+      }
+      .a4-page, .a4-page * {
+        color: #000000;
+      }
+      p, td, li, font, div, span, label, strong, b, em, i {
+        color: #000000 !important;
+      }
+      /* Preserve white text on dark header rows or colored badges */
+      [style*="background-color: ${docColorValue}"],
+      [style*="background-color:${docColorValue}"],
+      [style*="background:${docColorValue}"],
+      th, .bg-blue-600, .bg-indigo-600, .bg-slate-900, .bg-black {
+        color: #ffffff !important;
+      }
+      th *, .header-title * {
+        color: #ffffff !important;
+      }
+    `;
+    clone.insertBefore(printOverrideStyle, clone.firstChild);
 
     // Apply PDF-specific styles to the clone
     clone.style.transform = 'none';
@@ -1183,6 +1219,7 @@ export default function GeneratorPage() {
     clone.style.margin = '0';
     clone.style.boxShadow = 'none';
     clone.style.backgroundColor = '#ffffff';
+    clone.style.color = '#000000';
 
     const opt = {
       margin:       [0, 0] as [number, number], // 0 margin maps 1:1 to A4 dimensions (210mm x 297mm)
