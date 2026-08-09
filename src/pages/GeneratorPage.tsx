@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone, CheckCircle2, Lock } from 'lucide-react';
+import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone, CheckCircle2, Lock, Shapes } from 'lucide-react';
 import { TeacherInfo, GenerationType, SubjectInfo, Exercise } from '../types';
 import { soundManager } from '../audio';
 import html2pdf from 'html2pdf.js';
@@ -27,6 +27,20 @@ const ADHKAR_LIST = [
   "سبحان الله العظيم",
   "لا إله إلا أنت سبحانك إني كنت من الظالمين"
 ];
+
+export interface CanvasShape {
+  id: string;
+  type: 'rectangle' | 'circle' | 'triangle' | 'arrow' | 'line' | 'grid' | 'drawing_box' | 'stamp' | 'image';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  color: string;
+  strokeWidth: number;
+  fill?: string;
+  content?: string;
+}
 
 export default function GeneratorPage() {
   const { user, userData, signOut, refreshUserData } = useAuth();
@@ -95,6 +109,111 @@ export default function GeneratorPage() {
   const [examTerm, setExamTerm] = useState('الفصل الأول');
   const [examDuration, setExamDuration] = useState('ساعة واحدة');
   
+  // Canvas Shapes State
+  const [canvasShapes, setCanvasShapes] = useState<CanvasShape[]>([]);
+  const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
+  const shapeImageInputRef = useRef<HTMLInputElement>(null);
+
+  const activeInteractionRef = useRef<{
+    shapeId: string;
+    action: 'move' | 'resize' | 'rotate';
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+    initialWidth: number;
+    initialHeight: number;
+    initialRotation: number;
+    initialPinchDist?: number;
+  } | null>(null);
+
+  const addCanvasShape = (type: CanvasShape['type'], content?: string) => {
+    if (soundEnabled) soundManager.playTabClick();
+    const newShape: CanvasShape = {
+      id: generateId(),
+      type,
+      x: 200 + Math.random() * 40,
+      y: 180 + Math.random() * 40,
+      width: type === 'stamp' ? 80 : (type === 'grid' ? 220 : (type === 'line' || type === 'arrow' ? 180 : 150)),
+      height: type === 'stamp' ? 80 : (type === 'grid' ? 180 : (type === 'line' || type === 'arrow' ? 40 : 110)),
+      rotation: 0,
+      color: docColor || '#1e40af',
+      strokeWidth: 2,
+      content: content || '',
+      fill: type === 'rectangle' || type === 'circle' || type === 'triangle' ? 'transparent' : undefined
+    };
+    setCanvasShapes(prev => [...prev, newShape]);
+    setSelectedShapeId(newShape.id);
+  };
+
+  const updateShape = (id: string, partial: Partial<CanvasShape>) => {
+    setCanvasShapes(prev => prev.map(s => s.id === id ? { ...s, ...partial } : s));
+  };
+
+  const duplicateShape = (id: string) => {
+    const existing = canvasShapes.find(s => s.id === id);
+    if (!existing) return;
+    const copy: CanvasShape = {
+      ...existing,
+      id: generateId(),
+      x: existing.x + 20,
+      y: existing.y + 20
+    };
+    setCanvasShapes(prev => [...prev, copy]);
+    setSelectedShapeId(copy.id);
+  };
+
+  const deleteShape = (id: string) => {
+    setCanvasShapes(prev => prev.filter(s => s.id !== id));
+    if (selectedShapeId === id) setSelectedShapeId(null);
+  };
+
+  const handleInsertShapeImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        addCanvasShape('image', dataUrl);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const startInteraction = (
+    e: React.MouseEvent | React.TouchEvent,
+    shapeId: string,
+    action: 'move' | 'resize' | 'rotate'
+  ) => {
+    e.stopPropagation();
+    const isTouch = 'touches' in e;
+    const touch1 = isTouch ? (e as React.TouchEvent).touches[0] : null;
+    const touch2 = isTouch && (e as React.TouchEvent).touches.length > 1 ? (e as React.TouchEvent).touches[1] : null;
+
+    const clientX = isTouch ? touch1!.clientX : (e as React.MouseEvent).clientX;
+    const clientY = isTouch ? touch1!.clientY : (e as React.MouseEvent).clientY;
+
+    const shape = canvasShapes.find(s => s.id === shapeId);
+    if (!shape) return;
+
+    setSelectedShapeId(shapeId);
+
+    activeInteractionRef.current = {
+      shapeId,
+      action,
+      startX: clientX,
+      startY: clientY,
+      initialX: shape.x,
+      initialY: shape.y,
+      initialWidth: shape.width,
+      initialHeight: shape.height,
+      initialRotation: shape.rotation,
+      initialPinchDist: touch1 && touch2 ? Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY) : undefined
+    };
+  };
+
   const [selectedProfileImage, setSelectedProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
@@ -142,6 +261,163 @@ export default function GeneratorPage() {
       setDesignStyle('style1');
     }
   }, [generationType, designStyle]);
+
+  // Canvas shapes global movement and touch gestures
+  useEffect(() => {
+    const handleMove = (clientX: number, clientY: number, touch2?: { clientX: number, clientY: number }) => {
+      const interaction = activeInteractionRef.current;
+      if (!interaction) return;
+
+      const { shapeId, action, startX, startY, initialX, initialY, initialWidth, initialHeight, initialPinchDist } = interaction;
+      
+      const dx = (clientX - startX) / effectiveScale;
+      const dy = (clientY - startY) / effectiveScale;
+
+      if (action === 'move') {
+        updateShape(shapeId, {
+          x: Math.max(0, Math.min(720, initialX + dx)),
+          y: Math.max(0, Math.min(1050, initialY + dy))
+        });
+      } else if (action === 'resize') {
+        if (touch2 && initialPinchDist) {
+          const currentPinchDist = Math.hypot(clientX - touch2.clientX, clientY - touch2.clientY);
+          const scale = currentPinchDist / initialPinchDist;
+          updateShape(shapeId, {
+            width: Math.max(30, Math.round(initialWidth * scale)),
+            height: Math.max(30, Math.round(initialHeight * scale))
+          });
+        } else {
+          updateShape(shapeId, {
+            width: Math.max(30, Math.round(initialWidth + dx)),
+            height: Math.max(30, Math.round(initialHeight + dy))
+          });
+        }
+      } else if (action === 'rotate') {
+        const shape = canvasShapes.find(s => s.id === shapeId);
+        if (shape) {
+          const centerX = shape.x + shape.width / 2;
+          const centerY = shape.y + shape.height / 2;
+          const rad = Math.atan2(clientY - centerY, clientX - centerX);
+          let deg = Math.round(rad * (180 / Math.PI));
+          if (deg < 0) deg += 360;
+          updateShape(shapeId, { rotation: deg });
+        }
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (activeInteractionRef.current) {
+        e.preventDefault();
+        handleMove(e.clientX, e.clientY);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (activeInteractionRef.current && e.touches.length > 0) {
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        handleMove(touch1.clientX, touch1.clientY, touch2 ? { clientX: touch2.clientX, clientY: touch2.clientY } : undefined);
+      }
+    };
+
+    const handleEnd = () => {
+      activeInteractionRef.current = null;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [effectiveScale, canvasShapes]);
+
+  const renderShapeContent = (shape: CanvasShape) => {
+    switch (shape.type) {
+      case 'rectangle':
+        return (
+          <div 
+            className="w-full h-full rounded transition-colors" 
+            style={{ 
+              border: `${shape.strokeWidth}px solid ${shape.color}`, 
+              backgroundColor: shape.fill || 'transparent' 
+            }} 
+          />
+        );
+      case 'circle':
+        return (
+          <div 
+            className="w-full h-full rounded-full transition-colors" 
+            style={{ 
+              border: `${shape.strokeWidth}px solid ${shape.color}`, 
+              backgroundColor: shape.fill || 'transparent' 
+            }} 
+          />
+        );
+      case 'triangle':
+        return (
+          <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <polygon points="50,5 95,95 5,95" fill={shape.fill || 'none'} stroke={shape.color} strokeWidth={shape.strokeWidth * 2} />
+          </svg>
+        );
+      case 'line':
+        return (
+          <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <line x1="5" y1="50" x2="95" y2="50" stroke={shape.color} strokeWidth={shape.strokeWidth * 2} />
+          </svg>
+        );
+      case 'arrow':
+        return (
+          <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <defs>
+              <marker id={`arrowhead-${shape.id}`} markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill={shape.color} />
+              </marker>
+            </defs>
+            <line x1="5" y1="50" x2="88" y2="50" stroke={shape.color} strokeWidth={shape.strokeWidth * 2} markerEnd={`url(#arrowhead-${shape.id})`} />
+          </svg>
+        );
+      case 'grid':
+        return (
+          <div className="w-full h-full border rounded p-1 bg-white/80 dark:bg-slate-900/80 shadow-xs flex flex-col justify-between" style={{ borderColor: shape.color }}>
+            <svg className="w-full h-full" viewBox="0 0 200 160">
+              <path d="M 0 40 L 200 40 M 0 80 L 200 80 M 0 120 L 200 120 M 40 0 L 40 160 M 80 0 L 80 160 M 120 0 L 120 160 M 160 0 L 160 160" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3,3" />
+              <line x1="100" y1="5" x2="100" y2="155" stroke={shape.color} strokeWidth="2.5" />
+              <polygon points="100,0 95,10 105,10" fill={shape.color} />
+              <line x1="5" y1="80" x2="195" y2="80" stroke={shape.color} strokeWidth="2.5" />
+              <polygon points="200,80 190,75 190,85" fill={shape.color} />
+              <text x="108" y="15" fill={shape.color} fontSize="10" fontWeight="bold">y</text>
+              <text x="185" y="73" fill={shape.color} fontSize="10" fontWeight="bold">x</text>
+              <text x="92" y="92" fill={shape.color} fontSize="9" fontWeight="bold">O</text>
+            </svg>
+          </div>
+        );
+      case 'drawing_box':
+        return (
+          <div className="w-full h-full border-2 border-dashed rounded-lg bg-slate-50/70 dark:bg-slate-900/70 p-2 flex flex-col items-center justify-center text-center select-none" style={{ borderColor: shape.color }}>
+            <span className="text-xs font-bold" style={{ color: shape.color }}>[ مساحة مخصصة للرسم والتخطيط ]</span>
+            <span className="text-[10px] text-slate-400 mt-1">يمكنك الرسم أو كتابة الحلول هنا</span>
+          </div>
+        );
+      case 'stamp':
+        return (
+          <div className="w-full h-full flex items-center justify-center text-4xl select-none filter drop-shadow-md">
+            {shape.content}
+          </div>
+        );
+      case 'image':
+        return (
+          <img src={shape.content} alt="شكل مرفق" className="w-full h-full object-contain pointer-events-none rounded" />
+        );
+      default:
+        return null;
+    }
+  };
 
   const [previewFontSize, setPreviewFontSize] = useState(16);
   const [docColor, setDocColor] = useState('#1e40af');
@@ -1629,6 +1905,17 @@ ${framedContent}
 
                 {generationType === 'test' && (
                   <div className="space-y-4">
+                    {/* Informative Note for Teachers */}
+                    <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 rounded-xl border border-amber-200 dark:border-amber-800/50 shadow-xs flex items-start gap-3">
+                      <div className="p-2 bg-amber-500 text-white rounded-lg shrink-0 mt-0.5 shadow-xs">
+                        <Sparkles size={16} />
+                      </div>
+                      <div className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
+                        <span className="font-bold text-amber-950 dark:text-amber-100 block mb-0.5">💡 ملاحظة هامة للأستاذ الفاضل:</span>
+                        يمكنك التوليد المباشر باختيار <strong className="underline decoration-amber-400 font-extrabold">الفصل</strong> و<strong className="underline decoration-amber-400 font-extrabold">نوع الفرض أو الاختبار</strong> و<strong className="underline decoration-amber-400 font-extrabold">التوقيت</strong> فقط، وسيتكفل الذكاء الاصطناعي بتوليد موضوع كامل وشامل طبقاً للبرنامج الوزاري المعتمد! (كما يمكنك إضافة تمارين مخصصة أدناه حسب رغبتك).
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">نوع التقويم</label>
@@ -2137,6 +2424,66 @@ ${framedContent}
             </div>
           </div>
 
+          {/* Shapes & Graphics Toolbar */}
+          {generatedHtml && (
+            <div className="flex flex-wrap items-center gap-2 bg-slate-900/95 text-white p-2.5 rounded-xl border border-slate-700 shadow-lg w-full mb-3">
+              <span className="text-xs font-bold text-amber-300 flex items-center gap-1 shrink-0 px-1">
+                <Shapes size={16} /> إضافة أشكال ورسومات للمعاينة:
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <button onClick={() => addCanvasShape('rectangle')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="مستطيل / مربع">
+                  <span className="w-3.5 h-3.5 border-2 border-indigo-400 rounded-xs inline-block"></span> مستطيل
+                </button>
+                <button onClick={() => addCanvasShape('circle')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="دائرة / بيضوي">
+                  <span className="w-3.5 h-3.5 border-2 border-emerald-400 rounded-full inline-block"></span> دائرة
+                </button>
+                <button onClick={() => addCanvasShape('triangle')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="مثلث">
+                  <span className="text-amber-400 font-bold">▲</span> مثلث
+                </button>
+
+                <button onClick={() => addCanvasShape('arrow')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="سهم موجه">
+                  <span className="text-cyan-400 font-bold">➔</span> سهم
+                </button>
+                <button onClick={() => addCanvasShape('line')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="خط مستقيم">
+                  <span className="text-rose-400 font-bold">━</span> خط
+                </button>
+                <button onClick={() => addCanvasShape('grid')} className="px-2.5 py-1 bg-indigo-600/80 hover:bg-indigo-600 border border-indigo-400 rounded-lg flex items-center gap-1 font-semibold transition text-white shadow-xs" title="معلم متعامد ومتجانس (محاور)">
+                  <span className="font-bold">📈</span> معلم متعامد
+                </button>
+                <button onClick={() => addCanvasShape('drawing_box')} className="px-2.5 py-1 bg-teal-600/80 hover:bg-teal-600 border border-teal-400 rounded-lg flex items-center gap-1 font-semibold transition text-white shadow-xs" title="مساحة مخصصة للرسم">
+                  <span className="font-bold">🎨</span> مساحة رسم
+                </button>
+                
+                {/* Stamp / Emoji selector */}
+                <div className="flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
+                  <span className="text-[10px] text-slate-400 font-bold">رموز:</span>
+                  <button onClick={() => addCanvasShape('stamp', '⭐')} className="hover:scale-125 transition">⭐</button>
+                  <button onClick={() => addCanvasShape('stamp', '🧪')} className="hover:scale-125 transition">🧪</button>
+                  <button onClick={() => addCanvasShape('stamp', '📐')} className="hover:scale-125 transition">📐</button>
+                  <button onClick={() => addCanvasShape('stamp', '🧬')} className="hover:scale-125 transition">🧬</button>
+                  <button onClick={() => addCanvasShape('stamp', '⚡')} className="hover:scale-125 transition">⚡</button>
+                  <button onClick={() => addCanvasShape('stamp', '🌱')} className="hover:scale-125 transition">🌱</button>
+                </div>
+
+                {/* Custom Image insertion */}
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  ref={shapeImageInputRef} 
+                  onChange={handleInsertShapeImage} 
+                />
+                <button 
+                  onClick={() => shapeImageInputRef.current?.click()}
+                  className="px-2.5 py-1 bg-amber-600/80 hover:bg-amber-600 border border-amber-400 rounded-lg flex items-center gap-1 font-semibold transition text-white shadow-xs"
+                  title="إدراج صورة تفاعلية للتحكم بحدودها ومكانها"
+                >
+                  <ImageIcon size={14} /> صورة متحرّكة
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Scaled A4 Container */}
           <div ref={containerRef} className="a4-container rounded-xl shadow-inner relative flex-1 min-h-[600px] w-full overflow-auto bg-slate-100 dark:bg-slate-800/50" style={{ display: 'flex', justifyContent: 'center' }}>
             {generatedHtml ? (
@@ -2153,6 +2500,7 @@ ${framedContent}
                     minHeight: '297mm',
                     boxSizing: 'border-box',
                   } as React.CSSProperties}
+                  onClick={() => setSelectedShapeId(null)}
                 >
                   <div
                     contentEditable
@@ -2160,6 +2508,83 @@ ${framedContent}
                     style={getFrameStyle(pageFrame, docColor)}
                     className="w-full h-full min-h-[297mm]"
                   />
+
+                  {/* Floating Interactive Canvas Shapes Overlay */}
+                  {canvasShapes.map(shape => {
+                    const isSelected = selectedShapeId === shape.id;
+                    return (
+                      <div
+                        key={shape.id}
+                        onMouseDown={e => startInteraction(e, shape.id, 'move')}
+                        onTouchStart={e => startInteraction(e, shape.id, 'move')}
+                        onClick={e => { e.stopPropagation(); setSelectedShapeId(shape.id); }}
+                        className={`absolute group select-none transition-shadow ${
+                          isSelected ? 'ring-2 ring-indigo-500 ring-offset-1 z-30 shadow-lg' : 'hover:ring-1 hover:ring-indigo-300 z-20'
+                        }`}
+                        style={{
+                          left: `${shape.x}px`,
+                          top: `${shape.y}px`,
+                          width: `${shape.width}px`,
+                          height: `${shape.height}px`,
+                          transform: `rotate(${shape.rotation}deg)`,
+                          transformOrigin: 'center center',
+                          cursor: 'grab'
+                        }}
+                      >
+                        {renderShapeContent(shape)}
+
+                        {/* Selected Controls */}
+                        {isSelected && (
+                          <>
+                            {/* Top Controls Toolbar */}
+                            <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white rounded-md px-2 py-1 flex items-center gap-2 z-40 text-[10px] shadow-md border border-slate-700 pointer-events-auto shrink-0">
+                              <input 
+                                type="color" 
+                                value={shape.color} 
+                                onChange={e => updateShape(shape.id, { color: e.target.value })}
+                                className="w-4 h-4 rounded cursor-pointer border-0 p-0 bg-transparent"
+                                title="تغيير لون الشكل"
+                              />
+                              <button 
+                                onClick={e => { e.stopPropagation(); duplicateShape(shape.id); }}
+                                className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded font-bold text-amber-300 transition"
+                                title="نسخ الشكل"
+                              >
+                                تكرار
+                              </button>
+                              <button 
+                                onClick={e => { e.stopPropagation(); deleteShape(shape.id); }}
+                                className="px-1.5 py-0.5 bg-rose-900/80 hover:bg-rose-700 rounded font-bold text-rose-200 transition"
+                                title="حذف الشكل"
+                              >
+                                حذف
+                              </button>
+                            </div>
+
+                            {/* Resize Handle (Bottom-Right) */}
+                            <div
+                              onMouseDown={e => startInteraction(e, shape.id, 'resize')}
+                              onTouchStart={e => startInteraction(e, shape.id, 'resize')}
+                              className="absolute -bottom-2.5 -left-2.5 w-6 h-6 bg-indigo-600 border-2 border-white rounded-full shadow-md cursor-nwse-resize z-40 flex items-center justify-center text-[10px] text-white font-bold"
+                              title="سحب للتكبير أو التصغير (أو ضغط بأصبعين في الهاتف)"
+                            >
+                              ⤡
+                            </div>
+
+                            {/* Rotate Handle (Top-Center) */}
+                            <div
+                              onMouseDown={e => startInteraction(e, shape.id, 'rotate')}
+                              onTouchStart={e => startInteraction(e, shape.id, 'rotate')}
+                              className="absolute -top-3.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-amber-500 border-2 border-white rounded-full shadow-md cursor-grab z-40 flex items-center justify-center text-[11px] text-white font-bold"
+                              title="تدوير الشكل"
+                            >
+                              ↻
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : (
