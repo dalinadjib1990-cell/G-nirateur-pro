@@ -265,6 +265,8 @@ export default function GeneratorPage() {
 
   // Scaling logic & states
   const containerRef = useRef<HTMLDivElement>(null);
+  const a4PageRef = useRef<HTMLDivElement>(null);
+  const [a4PageHeightInPx, setA4PageHeightInPx] = useState(1122);
   const [autoScale, setAutoScale] = useState(1);
   const [manualScale, setManualScale] = useState(1);
   const effectiveScale = autoScale * manualScale;
@@ -477,6 +479,24 @@ export default function GeneratorPage() {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // Measure A4 page height dynamically for accurate multi-page preview and PDF layout
+  useEffect(() => {
+    if (!a4PageRef.current) return;
+
+    const updateA4Height = () => {
+      if (a4PageRef.current) {
+        const scrollH = a4PageRef.current.scrollHeight || 1122;
+        const roundedPages = Math.max(1, Math.ceil(scrollH / 1122));
+        setA4PageHeightInPx(roundedPages * 1122);
+      }
+    };
+
+    updateA4Height();
+    const observer = new ResizeObserver(updateA4Height);
+    observer.observe(a4PageRef.current);
+    return () => observer.disconnect();
+  }, [generatedHtml, pageFrame, previewFontSize, canvasShapes]);
 
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add('dark');
@@ -1006,11 +1026,16 @@ export default function GeneratorPage() {
   };
 
   const exportToPDF = async () => {
+    // 1. Deselect any active shape to hide selection border, handles & floating toolbars
+    setSelectedShapeId(null);
     
+    // Give React state a tick to clear selection overlay
+    await new Promise(resolve => setTimeout(resolve, 60));
+
     const originalElement = document.querySelector('.a4-page') as HTMLElement;
     if (!originalElement) return;
 
-    // Clone the element to avoid breaking the UI during generation
+    // Clone the element to render off-screen without altering the UI
     const clone = originalElement.cloneNode(true) as HTMLElement;
     
     // Create a temporary container off-screen
@@ -1022,32 +1047,57 @@ export default function GeneratorPage() {
     tempContainer.appendChild(clone);
     document.body.appendChild(tempContainer);
 
+    // Remove any leftover shape controls or interactive buttons from clone
+    const selectorsToRemove = ['.z-40', 'button', 'input[type="color"]'];
+    selectorsToRemove.forEach(sel => {
+      clone.querySelectorAll(sel).forEach(el => el.remove());
+    });
+
+    // Substitute var(--doc-color, ...) CSS variables with concrete hex values for html2canvas reliability
+    let htmlContent = clone.innerHTML;
+    const docColorValue = docColor || '#1e40af';
+    htmlContent = htmlContent.replace(/var\(--doc-color,\s*[^)]+\)/g, docColorValue);
+    htmlContent = htmlContent.replace(/var\(--doc-color\)/g, docColorValue);
+    clone.innerHTML = htmlContent;
+
     // Apply PDF-specific styles to the clone
     clone.style.transform = 'none';
     clone.style.position = 'relative';
     clone.style.overflow = 'visible';
-    clone.style.width = '100%';
+    clone.style.width = '794px';
+    clone.style.minHeight = '297mm';
+    clone.style.height = 'auto';
     clone.style.margin = '0';
     clone.style.boxShadow = 'none';
+    clone.style.backgroundColor = '#ffffff';
 
     const opt = {
-      margin:       [5, 0] as [number, number],
+      margin:       [0, 0] as [number, number], // 0 margin maps 1:1 to A4 dimensions (210mm x 297mm)
       filename:     'document.pdf',
       image:        { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, windowWidth: 794 },
+      html2canvas:  { 
+        scale: 2, 
+        useCORS: true, 
+        allowTaint: true,
+        letterRendering: true, 
+        windowWidth: 794,
+        logging: false,
+        scrollX: 0,
+        scrollY: 0
+      },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-      pagebreak:    { mode: ['css', 'legacy'] }
+      pagebreak:    { mode: ['css', 'legacy'], avoid: ['.avoid-break', 'tr', 'img', 'table'] }
     };
 
     try {
       const pdfBlob = await html2pdf().from(clone).set(opt).output('blob');
       
       let title = 'مستند';
-      if (generationType === 'memo') title = 'مذكرة درس';
-      else if (generationType === 'test') title = 'تقويم';
-      else if (generationType === 'series') title = 'سلسلة تمارين';
+      if (generationType === 'memo') title = 'مذكرة_درس';
+      else if (generationType === 'test') title = 'اختبار';
+      else if (generationType === 'series') title = 'سلسلة_تمارين';
       else if (generationType === 'summary') title = 'ملخص';
-      else if (generationType === 'visual') title = 'وثيقة تفاعلية';
+      else if (generationType === 'visual') title = 'وثيقة_تفاعلية';
       else if (generationType.startsWith('cutout')) title = 'قصاصات';
       
       const fileName = `${title}_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.pdf`;
@@ -1058,7 +1108,6 @@ export default function GeneratorPage() {
     } catch (error) {
       console.error("PDF generation failed:", error);
     } finally {
-      // Remove the temporary clone from DOM
       document.body.removeChild(tempContainer);
     }
   };
@@ -2485,9 +2534,10 @@ ${framedContent}
           {/* Scaled A4 Container */}
           <div ref={containerRef} className="a4-container rounded-xl shadow-inner relative flex-1 min-h-[600px] w-full overflow-auto bg-slate-100 dark:bg-slate-800/50" style={{ display: 'flex', justifyContent: 'center' }}>
             {generatedHtml ? (
-              <div style={{ width: 794 * effectiveScale, height: 1122 * effectiveScale, position: 'relative' }}>
+              <div style={{ width: 794 * effectiveScale, height: a4PageHeightInPx * effectiveScale, position: 'relative' }}>
                 <div 
-                  className="a4-page print-area bg-white text-black outline-none transition-transform duration-200 ease-out absolute top-0 left-0 overflow-hidden"
+                  ref={a4PageRef}
+                  className="a4-page print-area bg-white text-black outline-none transition-transform duration-200 ease-out absolute top-0 left-0 overflow-visible"
                   style={{
                     fontFamily: 'Arial, sans-serif',
                     fontSize: `${previewFontSize}px`,
@@ -2506,6 +2556,19 @@ ${framedContent}
                     style={getFrameStyle(pageFrame, docColor)}
                     className="w-full h-full min-h-[297mm]"
                   />
+
+                  {/* Visual Page Break Indicators for multi-page documents */}
+                  {Array.from({ length: Math.max(0, Math.floor(a4PageHeightInPx / 1122) - 1) }).map((_, idx) => (
+                    <div 
+                      key={idx} 
+                      className="absolute left-0 right-0 border-b-2 border-dashed border-rose-400/80 pointer-events-none z-30 flex justify-end pr-3"
+                      style={{ top: `${(idx + 1) * 1122}px` }}
+                    >
+                      <span className="bg-rose-500 text-white text-[11px] px-2 py-0.5 rounded-b font-bold shadow-md">
+                        نهاية الصفحة {idx + 1}
+                      </span>
+                    </div>
+                  ))}
 
                   {/* Floating Interactive Canvas Shapes Overlay */}
                   {canvasShapes.map(shape => {

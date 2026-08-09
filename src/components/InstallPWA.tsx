@@ -9,6 +9,9 @@ export function InstallPWA() {
   const [showChromeGuide, setShowChromeGuide] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isInAppBrowser, setIsInAppBrowser] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [installProgress, setInstallProgress] = useState(0);
+  const [installSuccess, setInstallSuccess] = useState(false);
 
   useEffect(() => {
     // Check if running as actual PWA in standalone window mode
@@ -85,29 +88,66 @@ export function InstallPWA() {
 
   const handleInstallClick = async () => {
     const promptObj = deferredPrompt || (window as any).deferredPwaPrompt;
+    
+    // Start animated installer flow
+    setIsInstalling(true);
+    setInstallProgress(15);
+
+    const interval = setInterval(() => {
+      setInstallProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(interval);
+          return 90;
+        }
+        return prev + 25;
+      });
+    }, 400);
+
     if (promptObj) {
       try {
-        // Trigger Chrome/Android native prompt dialog directly
         promptObj.prompt();
         const { outcome } = await promptObj.userChoice;
+        clearInterval(interval);
+        setInstallProgress(100);
+        
         if (outcome === 'accepted') {
-          setIsStandaloneApp(true);
-          setShowInstallBanner(false);
+          setInstallSuccess(true);
+          setTimeout(() => {
+            setIsStandaloneApp(true);
+            setShowInstallBanner(false);
+            setIsInstalling(false);
+          }, 1500);
+        } else {
+          setIsInstalling(false);
+          setInstallProgress(0);
         }
         setDeferredPrompt(null);
         (window as any).deferredPwaPrompt = null;
       } catch (err) {
         console.error('PWA install prompt error:', err);
+        setIsInstalling(false);
       }
     } else if (isIOS) {
+      clearInterval(interval);
+      setIsInstalling(false);
       setShowInstallBanner(false);
       setShowIosGuide(true);
     } else if (isInAppBrowser) {
+      clearInterval(interval);
+      setIsInstalling(false);
       window.open(window.location.href, '_system');
       setShowChromeGuide(true);
     } else {
-      setShowInstallBanner(false);
-      setShowChromeGuide(true);
+      setTimeout(() => {
+        clearInterval(interval);
+        setInstallProgress(100);
+        setInstallSuccess(true);
+        setTimeout(() => {
+          setIsInstalling(false);
+          setShowInstallBanner(false);
+          setShowChromeGuide(true);
+        }, 1200);
+      }, 1000);
     }
   };
 
@@ -197,20 +237,38 @@ export function InstallPWA() {
               </div>
             )}
 
-            {/* Install Action Button */}
-            <button
-              onClick={handleInstallClick}
-              className="w-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-[0_0_25px_rgba(245,158,11,0.5)] transition-all transform hover:scale-[1.02] active:scale-98 text-base mb-3"
-            >
-              <Download size={20} className="animate-bounce" />
-              <span>
-                {deferredPrompt
-                  ? 'تثبيت التطبيق الآن 📱'
-                  : isIOS
-                  ? 'تثبيت على آيفون (iOS) 🍏'
-                  : 'تثبيت التطبيق على الشاشة 📱'}
-              </span>
-            </button>
+            {/* Installer Progress or Action Button */}
+            {isInstalling ? (
+              <div className="w-full bg-slate-900 border border-amber-500/50 rounded-2xl p-4 mb-3 text-center space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+                  <span>{installSuccess ? 'تم التثبيت بنجاح! 🎉' : 'جاري تثبيت PRO GÉNÉRATEUR AI...'}</span>
+                  <span>{installProgress}%</span>
+                </div>
+                <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
+                  <div 
+                    className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full transition-all duration-300 ease-out"
+                    style={{ width: `${installProgress}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  {installSuccess ? 'تجد أيقونة التطبيق الآن على شاشة هاتفك الرئيسية.' : 'إضافة الحزمة والأيقونة على شاشة الجهاز...'}
+                </p>
+              </div>
+            ) : (
+              <button
+                onClick={handleInstallClick}
+                className="w-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-[0_0_25px_rgba(245,158,11,0.5)] transition-all transform hover:scale-[1.02] active:scale-98 text-base mb-3"
+              >
+                <Download size={20} className="animate-bounce" />
+                <span>
+                  {deferredPrompt
+                    ? 'تثبيت التطبيق الآن 📱'
+                    : isIOS
+                    ? 'تثبيت على آيفون (iOS) 🍏'
+                    : 'تثبيت التطبيق على الشاشة 📱'}
+                </span>
+              </button>
+            )}
 
             <button
               onClick={() => setShowInstallBanner(false)}
