@@ -1687,22 +1687,30 @@ ${framedContent}
                             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                           </div>
                         )}
-                        {/* Magic Ball Element */}
+                        {/* Magic Ball 3D Element */}
                         <div 
-                          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden transition-all duration-300 ${designStyle === style.id ? 'ring-2 ring-offset-2 dark:ring-offset-slate-900' : ''}`}
+                          className={`w-14 h-14 rounded-full flex items-center justify-center relative overflow-hidden transition-all duration-300 transform group-hover:scale-110 group-hover:-translate-y-1 ${
+                            designStyle === style.id 
+                              ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)]' 
+                              : 'shadow-[0_6px_15px_-3px_rgba(0,0,0,0.15)] group-hover:shadow-[0_10px_20px_-3px_rgba(0,0,0,0.25)]'
+                          }`}
                           style={{
                             background: designStyle === style.id 
-                              ? `radial-gradient(circle at 30% 30%, ${style.color}cc 0%, ${style.color} 60%, #000000 150%)` 
-                              : 'radial-gradient(circle at 30% 30%, #f1f5f9 0%, #cbd5e1 60%, #94a3b8 150%)',
-                            color: designStyle === style.id ? 'white' : '#64748b',
-                            boxShadow: designStyle === style.id ? `0 10px 15px -3px ${style.color}60` : '0 4px 6px -1px rgba(0,0,0,0.1)'
+                              ? `radial-gradient(circle at 35% 25%, #ffffff 0%, ${style.color} 55%, #090d16 110%)` 
+                              : `radial-gradient(circle at 35% 25%, #ffffff 0%, ${style.color}dd 60%, #1e293b 120%)`,
+                            color: 'white',
+                            boxShadow: designStyle === style.id 
+                              ? `0 12px 24px -4px ${style.color}80, inset 0 -4px 8px rgba(0,0,0,0.4)` 
+                              : `0 6px 16px -2px ${style.color}40, inset 0 -3px 6px rgba(0,0,0,0.3)`
                           }}
                         >
-                          {/* Specular reflection for magic ball effect */}
-                          <div className="absolute top-1 left-2 w-5 h-3 bg-white opacity-40 rounded-full blur-[1px] -rotate-45 group-hover:opacity-60 transition-opacity" />
-                          <style.icon size={22} className="relative z-10 drop-shadow-md" />
+                          {/* 3D Specular Top Glare */}
+                          <div className="absolute top-1 left-2 w-5 h-3 bg-white/70 rounded-full blur-[0.6px] -rotate-45 pointer-events-none" />
+                          {/* 3D Bottom Rim Reflection */}
+                          <div className="absolute bottom-0 inset-x-0 h-2 bg-gradient-to-t from-white/30 to-transparent pointer-events-none" />
+                          <style.icon size={22} className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] text-white transform transition-transform group-hover:scale-110" />
                         </div>
-                        <span className={`text-[11px] text-center font-bold transition-colors ${designStyle === style.id ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
+                        <span className={`text-[11px] text-center font-extrabold transition-colors ${designStyle === style.id ? 'text-indigo-600 dark:text-indigo-400 scale-105' : 'text-slate-600 dark:text-slate-400'}`}>
                           {style.label}
                         </span>
                       </button>
@@ -1729,10 +1737,10 @@ ${framedContent}
                           setPageFrame(frame.id);
                           saveCurrentPreferences({ pageFrame: frame.id });
                         }}
-                        className={`flex-1 min-w-[80px] py-3 px-2 rounded-xl border-2 text-xs font-bold transition-all relative group overflow-hidden ${
+                        className={`flex-1 min-w-[85px] py-2.5 px-2 rounded-xl border-2 text-xs font-bold transition-all relative group flex flex-col items-center gap-1.5 overflow-hidden ${
                           pageFrame === frame.id 
-                            ? 'bg-slate-800 text-white border-slate-900 shadow-[0_4px_0_0_#0f172a] hover:translate-y-1 hover:shadow-[0_0px_0_0_#0f172a] dark:bg-slate-200 dark:text-slate-900 dark:border-white dark:shadow-[0_4px_0_0_#94a3b8]' 
-                            : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 hover:-translate-y-1 hover:shadow-[0_4px_0_0_#94a3b8] dark:hover:shadow-[0_4px_0_0_#334155]'
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-[0_6px_18px_-4px_rgba(15,23,42,0.4)] scale-105 dark:bg-slate-100 dark:text-slate-900 dark:border-white' 
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-400 dark:hover:border-indigo-500 hover:-translate-y-0.5 hover:shadow-md'
                         } ${isLocked ? 'opacity-60' : ''}`}
                       >
                         {isLocked && (
@@ -1740,8 +1748,31 @@ ${framedContent}
                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        {frame.label}
+                        
+                        {/* Miniature 3D Frame Visual Preview */}
+                        <div className="w-10 h-7 rounded flex items-center justify-center relative overflow-hidden bg-slate-50 dark:bg-slate-900/50">
+                          {frame.id === 'none' && (
+                            <div className="w-7 h-5 bg-white border border-slate-200 dark:border-slate-700 rounded-[1px] shadow-2xs" />
+                          )}
+                          {frame.id === 'simple' && (
+                            <div className="w-7 h-5 bg-white border-2 border-indigo-500 rounded-[1px] shadow-2xs" />
+                          )}
+                          {frame.id === 'double' && (
+                            <div className="w-7 h-5 bg-white border-[3px] border-double border-indigo-600 rounded-[1px] shadow-2xs" />
+                          )}
+                          {frame.id === 'ornate' && (
+                            <div className="w-7 h-5 bg-white border border-dashed border-amber-600 rounded-[1px] outline outline-1 outline-amber-600 -outline-offset-2 shadow-2xs flex items-center justify-center">
+                              <div className="w-1 h-1 bg-amber-500 rounded-full" />
+                            </div>
+                          )}
+                          {frame.id === '3d' && (
+                            <div className="w-7 h-5 bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-slate-800 dark:to-indigo-950 border-t-2 border-l-2 border-r-4 border-b-4 border-indigo-600 rounded-[2px] shadow-[2px_3px_6px_rgba(0,0,0,0.2)] flex items-center justify-center transform -rotate-1 group-hover:rotate-0 transition-transform">
+                              <span className="text-[8px] font-black tracking-tighter text-indigo-700 dark:text-indigo-300 drop-shadow-2xs">3D</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <span className="text-[11px] font-extrabold">{frame.label}</span>
                       </button>
                     );
                   })}
