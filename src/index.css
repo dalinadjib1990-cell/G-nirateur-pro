@@ -154,14 +154,45 @@
   color: #000000 !important;
 }
 
-.a4-page tr, .a4-page img, .a4-page .avoid-break {
+.a4-page tr, 
+.a4-page img, 
+.a4-page svg,
+.a4-page table,
+.a4-page .avoid-break, 
+.a4-page .card, 
+.a4-page .formula-card, 
+.a4-page .rule-card, 
+.a4-page .example-card, 
+.a4-page .exercise-card, 
+.a4-page .callout-box, 
+.a4-page .callout, 
+.a4-page .visual-container, 
+.a4-page .framed-card, 
+.a4-page .standalone-example, 
+.a4-page .pedagogical-card, 
+.a4-page .illustration, 
+.a4-page .diagram,
+.a4-page [style*="page-break-inside: avoid"],
+.a4-page [style*="break-inside: avoid"] {
   page-break-inside: avoid !important;
   break-inside: avoid !important;
+  -webkit-column-break-inside: avoid !important;
 }
 
-.a4-page h1, .a4-page h2, .a4-page h3, .a4-page h4, .a4-page h5, .a4-page h6 {
+.a4-page h1, 
+.a4-page h2, 
+.a4-page h3, 
+.a4-page h4, 
+.a4-page h5, 
+.a4-page h6,
+.a4-page .section-header,
+.a4-page .section-title,
+.a4-page .card-title,
+.a4-page [style*="page-break-after: avoid"],
+.a4-page [style*="break-after: avoid"] {
   page-break-after: avoid !important;
   break-after: avoid !important;
+  -webkit-column-break-after: avoid !important;
 }
 
 @keyframes shine-sweep {
