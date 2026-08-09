@@ -96,7 +96,26 @@ export default function GeneratorPage() {
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   
-  const [generatedHtml, setGeneratedHtml] = useState('');
+  const [generatedHtml, setGeneratedHtml] = useState(() => {
+    try {
+      return sessionStorage.getItem('currentGeneratedHtml') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+
+  const updateGeneratedHtml = (html: string) => {
+    setGeneratedHtml(html);
+    try {
+      if (html) {
+        sessionStorage.setItem('currentGeneratedHtml', html);
+      } else {
+        sessionStorage.removeItem('currentGeneratedHtml');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
   const [isGenerating, setIsGenerating] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -246,8 +265,6 @@ export default function GeneratorPage() {
     if (parsed.examType) setExamType(parsed.examType);
     if (parsed.examTerm) setExamTerm(parsed.examTerm);
     if (parsed.examDuration) setExamDuration(parsed.examDuration);
-
-    setGeneratedHtml('');
   }, [activeUid]);
 
   const [lessonSaveMessage, setLessonSaveMessage] = useState<string | null>(null);
@@ -474,7 +491,7 @@ export default function GeneratorPage() {
 
     if (soundEnabled) soundManager.playGenerateStart();
     setIsGenerating(true);
-    setGeneratedHtml('');
+    updateGeneratedHtml('');
     
     let subjectInfo: SubjectInfo = {};
     if (generationType === 'memo' || generationType === 'summary' || generationType === 'visual' || generationType.startsWith('cutout')) {
@@ -540,7 +557,7 @@ export default function GeneratorPage() {
         }
       }
       
-      setGeneratedHtml(safeHtml);
+      updateGeneratedHtml(safeHtml);
       
       // Update generation quota in Firestore
       if (!isAdmin && userData.role !== 'admin') {
@@ -688,7 +705,7 @@ export default function GeneratorPage() {
     reader.onload = (event) => {
       const base64Url = event.target?.result as string;
       const imgHtml = `<div style="text-align: center; margin: 15px 0;"><img src="${base64Url}" style="max-width: 80%; border-radius: 8px; border: 2px solid var(--doc-color); display: inline-block;" alt="مرفق" /></div>`;
-      setGeneratedHtml((prev) => prev + imgHtml);
+      updateGeneratedHtml(generatedHtml + imgHtml);
     };
     reader.readAsDataURL(file);
     
@@ -1739,7 +1756,7 @@ ${htmlForWord}
                       abortControllerRef.current.abort();
                     }
                     if (soundEnabled) soundManager.playTabClick();
-                    setGeneratedHtml('');
+                    updateGeneratedHtml('');
                     setIsGenerating(false);
                   }} 
                   className="w-full bg-red-500 hover:bg-red-600 text-white p-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-red-500/30 border border-red-400"

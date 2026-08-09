@@ -26,6 +26,11 @@ export function InstallPWA() {
       return;
     }
 
+    // Restore any prompt captured before React mount
+    if ((window as any).deferredPwaPrompt) {
+      setDeferredPrompt((window as any).deferredPwaPrompt);
+    }
+
     // Detect iOS & In-App Browsers (FB, Messenger, Instagram, TikTok)
     const ua = window.navigator.userAgent.toLowerCase();
     const iosDevice = /iphone|ipad|ipod/.test(ua);
@@ -46,6 +51,7 @@ export function InstallPWA() {
     // Listen for native Android/Chrome install prompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
+      (window as any).deferredPwaPrompt = e;
       setDeferredPrompt(e);
       // Auto pop install dialog when ready
       if (!checkStandalone()) {
@@ -71,16 +77,18 @@ export function InstallPWA() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
+    const promptObj = deferredPrompt || (window as any).deferredPwaPrompt;
+    if (promptObj) {
       try {
         // Trigger Chrome/Android native prompt dialog directly
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        promptObj.prompt();
+        const { outcome } = await promptObj.userChoice;
         if (outcome === 'accepted') {
           setIsStandaloneApp(true);
           setShowInstallBanner(false);
         }
         setDeferredPrompt(null);
+        (window as any).deferredPwaPrompt = null;
       } catch (err) {
         console.error('PWA install prompt error:', err);
       }
@@ -88,7 +96,6 @@ export function InstallPWA() {
       setShowInstallBanner(false);
       setShowIosGuide(true);
     } else if (isInAppBrowser) {
-      // In-app webview - open in Chrome or copy link
       window.open(window.location.href, '_system');
       setShowChromeGuide(true);
     } else {
