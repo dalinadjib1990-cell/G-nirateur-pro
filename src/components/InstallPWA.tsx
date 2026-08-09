@@ -31,6 +31,13 @@ export function InstallPWA() {
       setDeferredPrompt((window as any).deferredPwaPrompt);
     }
 
+    (window as any).onPwaPromptReady = (e: Event) => {
+      setDeferredPrompt(e);
+      if (!checkStandalone()) {
+        setShowInstallBanner(true);
+      }
+    };
+
     // Detect iOS & In-App Browsers (FB, Messenger, Instagram, TikTok)
     const ua = window.navigator.userAgent.toLowerCase();
     const iosDevice = /iphone|ipad|ipod/.test(ua);
