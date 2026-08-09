@@ -24,4 +24,6 @@ export interface SubjectInfo {
   examType?: string;
   term?: string;
   duration?: string;
+  numExercisesOption?: string;
+  targetExercisesCount?: number;
 }

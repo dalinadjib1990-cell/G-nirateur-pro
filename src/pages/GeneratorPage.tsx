@@ -109,6 +109,7 @@ export default function GeneratorPage() {
   const [examType, setExamType] = useState('فرض 1');
   const [examTerm, setExamTerm] = useState('الفصل الأول');
   const [examDuration, setExamDuration] = useState('ساعة واحدة');
+  const [numExercisesOption, setNumExercisesOption] = useState<string>('auto');
   
   // Canvas Shapes State
   const [canvasShapes, setCanvasShapes] = useState<CanvasShape[]>([]);
@@ -665,6 +666,7 @@ export default function GeneratorPage() {
     if (parsed.examType) setExamType(parsed.examType);
     if (parsed.examTerm) setExamTerm(parsed.examTerm);
     if (parsed.examDuration) setExamDuration(parsed.examDuration);
+    if (parsed.numExercisesOption) setNumExercisesOption(parsed.numExercisesOption);
   }, [activeUid]);
 
   const [lessonSaveMessage, setLessonSaveMessage] = useState<string | null>(null);
@@ -692,6 +694,7 @@ export default function GeneratorPage() {
         examType,
         examTerm,
         examDuration,
+        numExercisesOption,
         ...overrides
       };
       localStorage.setItem(userStorageKey, JSON.stringify(newData));
@@ -968,8 +971,14 @@ export default function GeneratorPage() {
     if (generationType === 'memo' || generationType === 'summary' || generationType === 'visual' || generationType.startsWith('cutout')) {
       subjectInfo = { section: memoSection, domain: memoDomain, content: memoContent };
     } else {
+      const targetCount = numExercisesOption === 'auto' 
+        ? (exercises.some(e => e.section) ? exercises.length : undefined) 
+        : parseInt(numExercisesOption, 10);
+
       subjectInfo = { 
         exercises, 
+        numExercisesOption,
+        targetExercisesCount: targetCount,
         hasIntegrationSituation: hasIntegration,
         integrationSections: hasIntegration ? integrationSections : '',
         integrationCompetencies: hasIntegration ? integrationCompetencies : '',
@@ -979,6 +988,8 @@ export default function GeneratorPage() {
           examType,
           term: examTerm,
           duration: examDuration,
+          numExercisesOption,
+          targetExercisesCount: targetCount,
           hasIntegrationSituation: hasIntegration,
           integrationSections: hasIntegration ? integrationSections : '',
           integrationCompetencies: hasIntegration ? integrationCompetencies : '',
@@ -1340,14 +1351,75 @@ ${framedContent}
     }
   };
 
+  const handleExamTypeChange = (typeVal: string) => {
+    setExamType(typeVal);
+    let termVal = examTerm;
+    let durVal = examDuration;
+
+    if (typeVal.includes('1') || typeVal.includes('الأول')) {
+      termVal = 'الفصل الأول';
+    } else if (typeVal.includes('2') || typeVal.includes('الثاني')) {
+      termVal = 'الفصل الثاني';
+    } else if (typeVal.includes('3') || typeVal.includes('الثالث')) {
+      termVal = 'الفصل الثالث';
+    }
+
+    if (typeVal.includes('اختبار')) {
+      durVal = 'ساعة ونصف';
+    } else if (typeVal.includes('فرض')) {
+      durVal = 'ساعة واحدة';
+    }
+
+    setExamTerm(termVal);
+    setExamDuration(durVal);
+    saveCurrentPreferences({ examType: typeVal, examTerm: termVal, examDuration: durVal });
+  };
+
+  const handleNumExercisesOptionChange = (val: string) => {
+    setNumExercisesOption(val);
+    saveCurrentPreferences({ numExercisesOption: val });
+    if (val !== 'auto') {
+      const count = parseInt(val, 10);
+      if (!isNaN(count) && count >= 1 && count <= 8) {
+        if (isFreeMode && count > 2) {
+          alert('في النسخة المجانية يقتصر التوليد على تمرينين فقط. يمكنك ترقية الحساب للاستفادة من عدد غير محدود من التمارين!');
+        }
+        setExercises(prev => {
+          const targetCount = isFreeMode ? Math.min(count, 2) : count;
+          if (prev.length < targetCount) {
+            const added: Exercise[] = Array.from({ length: targetCount - prev.length }, () => ({
+              id: generateId(),
+              section: '',
+              competencies: ['']
+            }));
+            return [...prev, ...added];
+          } else if (prev.length > targetCount) {
+            return prev.slice(0, targetCount);
+          }
+          return prev;
+        });
+      }
+    }
+  };
+
   const addExercise = () => {
     if (isFreeMode && exercises.length >= 2) {
       alert('في النسخة المجانية يمكنك إضافة تمرينين فقط. يرجى تفعيل الوضع الاحترافي!');
       return;
     }
-    setExercises([...exercises, { id: generateId(), section: '', competencies: [''] }]);
+    const newList = [...exercises, { id: generateId(), section: '', competencies: [''] }];
+    setExercises(newList);
+    setNumExercisesOption(newList.length.toString());
+    saveCurrentPreferences({ numExercisesOption: newList.length.toString() });
   };
-  const removeExercise = (id: string) => setExercises(exercises.filter(ex => ex.id !== id));
+
+  const removeExercise = (id: string) => {
+    const newList = exercises.filter(ex => ex.id !== id);
+    setExercises(newList);
+    const newOpt = newList.length > 0 ? newList.length.toString() : 'auto';
+    setNumExercisesOption(newOpt);
+    saveCurrentPreferences({ numExercisesOption: newOpt });
+  };
   
   const updateExerciseSection = (id: string, section: string) => {
     setExercises(exercises.map(ex => ex.id === id ? { ...ex, section } : ex));
@@ -2063,36 +2135,77 @@ ${framedContent}
                         <Sparkles size={16} />
                       </div>
                       <div className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
-                        <span className="font-bold text-amber-950 dark:text-amber-100 block mb-0.5">💡 ملاحظة هامة للأستاذ الفاضل:</span>
-                        يمكنك التوليد المباشر باختيار <strong className="underline decoration-amber-400 font-extrabold">الفصل</strong> و<strong className="underline decoration-amber-400 font-extrabold">نوع الفرض أو الاختبار</strong> و<strong className="underline decoration-amber-400 font-extrabold">التوقيت</strong> فقط، وسيتكفل الذكاء الاصطناعي بتوليد موضوع كامل وشامل طبقاً للبرنامج الوزاري المعتمد! (كما يمكنك إضافة تمارين مخصصة أدناه حسب رغبتك).
+                        <span className="font-bold text-amber-950 dark:text-amber-100 block mb-0.5">💡 التوليد المباشر والتكيف مع المنهاج الوزاري:</span>
+                        بمجرد تحديد <strong className="underline decoration-amber-400 font-extrabold">نوع التقويم</strong> و<strong className="underline decoration-amber-400 font-extrabold">الفصل الدراسي</strong> و<strong className="underline decoration-amber-400 font-extrabold">عدد التمارين</strong>، يتولى الذكاء الاصطناعي اختيار تمارين متدرجة ومتنوعة تلقائياً طبقاً لبرنامج هذا الفصل والمستوى والمادة! (ويمكنك أيضاً إضافة تمارين ومقاطع خاصة أدناه حسب رغبتك).
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
                       <div>
                         <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">نوع التقويم</label>
-                        <select value={examType} onChange={e => setExamType(e.target.value)} className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                          <option value="فرض 1">الفرض الأول</option>
-                          <option value="فرض 2">الفرض الثاني</option>
+                        <select 
+                          value={examType} 
+                          onChange={e => handleExamTypeChange(e.target.value)} 
+                          className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                        >
+                          <option value="فرض 1">الفرض الأول (فرض 1)</option>
+                          <option value="فرض 2">الفرض الثاني (فرض 2)</option>
                           <option value="اختبار 1">اختبار الفصل الأول</option>
                           <option value="اختبار 2">اختبار الفصل الثاني</option>
                           <option value="اختبار 3">اختبار الفصل الثالث</option>
+                          <option value="تقويم تشخيصي / فرض محروس">تقويم تشخيصي / فرض محروس</option>
+                          <option value="امتحان تجريبي">امتحان تجريبي / شهادة</option>
                         </select>
                       </div>
+
                       <div>
-                        <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">الفصل</label>
-                        <select value={examTerm} onChange={e => setExamTerm(e.target.value)} className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">الفصل الدراسي</label>
+                        <select 
+                          value={examTerm} 
+                          onChange={e => {
+                            setExamTerm(e.target.value);
+                            saveCurrentPreferences({ examTerm: e.target.value });
+                          }} 
+                          className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                        >
                           <option value="الفصل الأول">الفصل الأول</option>
                           <option value="الفصل الثاني">الفصل الثاني</option>
                           <option value="الفصل الثالث">الفصل الثالث</option>
+                          <option value="المنهاج السنوي">البرنامج السنوي الشامل</option>
                         </select>
                       </div>
+
                       <div>
-                        <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">التوقيت</label>
-                        <select value={examDuration} onChange={e => setExamDuration(e.target.value)} className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">التوقيت والمدة</label>
+                        <select 
+                          value={examDuration} 
+                          onChange={e => {
+                            setExamDuration(e.target.value);
+                            saveCurrentPreferences({ examDuration: e.target.value });
+                          }} 
+                          className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                        >
+                          <option value="45 دقيقة">45 دقيقة</option>
                           <option value="ساعة واحدة">ساعة واحدة (1 سا)</option>
                           <option value="ساعة ونصف">ساعة ونصف (1.5 سا)</option>
                           <option value="ساعتان">ساعتان (2 سا)</option>
+                          <option value="3 ساعات">3 ساعات (3 سا)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">عدد التمارين</label>
+                        <select 
+                          value={numExercisesOption} 
+                          onChange={e => handleNumExercisesOptionChange(e.target.value)} 
+                          className="w-full p-2.5 border border-indigo-200 dark:border-indigo-800 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-950 dark:text-indigo-100 text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-extrabold"
+                        >
+                          <option value="auto">تلقائي (ذكاء اصطناعي 🤖)</option>
+                          <option value="2">تمرينين (2 تمارين)</option>
+                          <option value="3">3 تمارين</option>
+                          <option value="4">4 تمارين</option>
+                          <option value="5">5 تمارين</option>
+                          <option value="6">6 تمارين (موضوع شامل)</option>
                         </select>
                       </div>
                     </div>

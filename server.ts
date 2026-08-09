@@ -2,16 +2,23 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
+import { getAllApiKeysInfo, recordKeyUsage, recordKeyError } from "./src/lib/apiKeyHelper.js";
 
 // Gather all API keys from environment
 const getApiKeys = () => {
   const keys: string[] = [];
   if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
   
-  // Also look for GEMINI_API_KEY_1, GEMINI_API_KEY_2, etc.
+  if (process.env.GEMINI_API_KEYS) {
+    const splitKeys = process.env.GEMINI_API_KEYS.split(/[\n,;\s]+/).map(k => k.trim()).filter(k => k.length > 10);
+    keys.push(...splitKeys);
+  }
+
+  // Also look for GEMINI_API_KEY_1, GEMINI_API_KEY_2, GEMINI_KEY_... etc.
   Object.keys(process.env).forEach(key => {
-    if (key.startsWith('GEMINI_API_KEY_') && process.env[key]) {
-      keys.push(process.env[key] as string);
+    if ((key.startsWith('GEMINI_API_KEY_') || key.startsWith('GEMINI_KEY_')) && process.env[key]) {
+      const val = process.env[key] as string;
+      if (val && val.length > 10) keys.push(val);
     }
   });
   
@@ -51,6 +58,51 @@ async function startServer() {
     } catch (error) {
       console.error("Download endpoint error:", error);
       res.status(500).send("Error generating download");
+    }
+  });
+
+  app.get("/api/keys-stats", async (req, res) => {
+    try {
+      const statsData = await getAllApiKeysInfo();
+      res.json({ success: true, ...statsData });
+    } catch (error: any) {
+      console.error("Error fetching keys stats:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post("/api/test-key", async (req, res) => {
+    const { apiKey } = req.body || {};
+    if (!apiKey || typeof apiKey !== 'string') {
+      return res.status(400).json({ success: false, error: "المفتاح مطلوب" });
+    }
+    const startTime = Date.now();
+    try {
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build-test' } }
+      });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: "test ping",
+      });
+      const latencyMs = Date.now() - startTime;
+      res.json({
+        success: true,
+        status: 'active',
+        latencyMs,
+        message: `المفتاح يعمَل بنجاح (${latencyMs}ms)`
+      });
+    } catch (error: any) {
+      const latencyMs = Date.now() - startTime;
+      const errMsg = error?.message || String(error);
+      const isRateLimit = error?.status === 429 || errMsg.includes('429') || errMsg.includes('quota');
+      res.json({
+        success: false,
+        status: isRateLimit ? 'rate_limited' : 'error',
+        latencyMs,
+        error: isRateLimit ? 'تجاوز حد الاستخدام (429 Rate Limit)' : errMsg.substring(0, 100)
+      });
     }
   });
 
@@ -218,8 +270,18 @@ async function startServer() {
       **تفاصيل المحتوى:**
       ${generationType === 'test' ? `
       - نوع التقويم: ${subjectInfo?.examType || ''}
-      - الفصل: ${subjectInfo?.term || ''}
-      - التوقيت: ${subjectInfo?.duration || ''} (هام جداً: ضع رمز/أيقونة ساعة SVG تعبر عن التوقيت تتناسب مع ستايل التصميم المختار)
+      - الفصل الدراسي: ${subjectInfo?.term || ''}
+      - التوقيت والمدة: ${subjectInfo?.duration || ''} (هام جداً: ضع رمز/أيقونة ساعة SVG تعبر عن التوقيت تتناسب مع ستايل التصميم المختار)
+      - عدد التمارين المطلوبة صراحة: ${subjectInfo?.targetExercisesCount ? `${subjectInfo.targetExercisesCount} تمارين` : 'تلقائي وفقاً للمعايير البيداغوجية والمدة'}
+
+      🚨 **أمر بيداغوجي صارم للتوليد المباشر وفق المنهاج الوزاري المعتمد**:
+      1️⃣ **التكيف التلقائي الذكي مع الفصل والمستوى والمادة**:
+         - المستوى: ${teacherInfo?.level || ''} | المادة: ${teacherInfo?.subject || ''} | الطور: ${teacherInfo?.phase || ''} | الفصل: ${subjectInfo?.term || ''} | نوع التقويم: ${subjectInfo?.examType || ''}.
+         - يمتلك الذكاء الاصطناعي **الحرية البيداغوجية الشاملة والذكية** لاختيار وصياغة تمارين واختبارات متدرجة ومتوازنة تتوافق **تماماً وحصرياً** مع المنهاج الرسمي المعتمد لدروس **${subjectInfo?.term || 'الفصل المختار'}** لهذا المستوى والمادة (مثال: إذا كان الفصل الأول تجلب دروس الفصل الأول فقط، وإذا كان الفصل الثاني تجلب دروس الفصل الثاني...).
+         - إذا ترك المعلم مدخلات المقاطع فارغة، يقوم الذكاء الاصطناعي تلقائياً باختيار أهم المحاور والدروس المبرمجة في هذا الفصل الدراسي وصياغة أسئلة متنوعة ومتطابقة مع توقيت ${subjectInfo?.duration || 'التقويم'}.
+
+      2️⃣ **عدد التمارين الإجباري**:
+         ${subjectInfo?.targetExercisesCount ? `يجب صياغة بالضبط **${subjectInfo.targetExercisesCount} تمارين** مؤطرة ومستقلة (التمرين الأول، التمرين الثاني، ... إلخ) قبل الوضعية الإدماجية إن فُعّلت.` : 'صغ عدداً متوازناً ومناسباً من التمارين (عادة تمرينين إلى 3 تمارين) يناسب توقيت التقويم.'}
       ` : ''}
       ${subjectInfo ? JSON.stringify(subjectInfo, null, 2) : ''}
       
@@ -296,10 +358,9 @@ async function startServer() {
       let keyIdx = Math.floor(Math.random() * apiKeys.length);
 
       while (attempts < retries) {
+        const apiKey = apiKeys[keyIdx % apiKeys.length];
+        keyIdx++;
         try {
-          const apiKey = apiKeys[keyIdx % apiKeys.length];
-          keyIdx++;
-
           const ai = new GoogleGenAI({
             apiKey,
             httpOptions: {
@@ -317,12 +378,17 @@ async function startServer() {
               temperature: 0.7,
             },
           });
+          recordKeyUsage(apiKey).catch(() => {});
           break; // Success
         } catch (error: any) {
           lastError = error;
           attempts++;
-          console.error(`Attempt ${attempts} failed:`, error.message);
+          const errMsg = error?.message || String(error);
+          console.error(`Attempt ${attempts} failed:`, errMsg);
           
+          const isRateLimit = error?.status === 429 || errMsg.includes('429') || errMsg.includes('quota');
+          recordKeyError(apiKey, errMsg, isRateLimit).catch(() => {});
+
           if (error.status === 429) {
             continue;
           } else if (error.status === 503) {
