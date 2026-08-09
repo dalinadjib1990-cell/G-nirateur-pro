@@ -169,7 +169,7 @@ export function InstallPWA() {
             </h2>
             <p className="text-xs text-amber-300/80 font-bold mb-3">مولد المذكرات والدروس الاحترافي</p>
 
-            <div className="w-full bg-slate-900/90 rounded-2xl p-3.5 mb-5 border border-slate-800 text-xs text-slate-300 space-y-2">
+            <div className="w-full bg-slate-900/90 rounded-2xl p-3.5 mb-4 border border-slate-800 text-xs text-slate-300 space-y-2">
               <div className="flex items-center gap-2">
                 <CheckCircle size={14} className="text-amber-400 shrink-0" />
                 <span>إضافة اختصار مباشر على شاشة الهاتف</span>
@@ -182,6 +182,11 @@ export function InstallPWA() {
                 <CheckCircle size={14} className="text-amber-400 shrink-0" />
                 <span>شاشة كاملة وتجربة سريعة كـ تطبيق أندرويد</span>
               </div>
+            </div>
+
+            {/* Security Explanation Note */}
+            <div className="w-full bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-2.5 mb-4 text-[11px] text-indigo-200/90 leading-relaxed text-right">
+              💡 <strong>كيف يعمل التثبيت؟</strong> يمنع المتصفح (Chrome/Safari) تثبيت التطبيقات صامتاً بدون موافقتك لحماية الهاتف. انقر على الزر بالأسفل للتثبيت المباشر أو اتّباع الخطوات البسيطة.
             </div>
 
             {/* In-app Browser Alert Warning */}
