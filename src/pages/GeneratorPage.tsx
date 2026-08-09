@@ -400,14 +400,46 @@ export default function GeneratorPage() {
     { id: '3d', label: 'إطار 3D', isPro: true }
   ];
 
+  const handleColorChange = (newColor: string) => {
+    const oldColor = docColor;
+    setDocColor(newColor);
+    saveCurrentPreferences({ docColor: newColor });
+
+    if (generatedHtml) {
+      let updated = generatedHtml;
+      // 1. Replace var(--doc-color, ...)
+      updated = updated.replace(/var\(--doc-color,\s*[^)]+\)/gi, `var(--doc-color, ${newColor})`);
+      
+      // 2. Replace explicit hex color if present
+      if (oldColor && oldColor.toLowerCase() !== newColor.toLowerCase()) {
+        const escOld = oldColor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        updated = updated.replace(new RegExp(escOld, 'gi'), newColor);
+      }
+      
+      // 3. Catch common fallback hex colors if replacing from default
+      const commonColors = ['#1e40af', '#1d4ed8', '#2563eb', '#3b82f6', '#0284c7', '#0f766e', '#15803d', '#be123c', '#7c3aed', '#9333ea', '#f97316', '#65a30d'];
+      if (oldColor) {
+        commonColors.forEach(c => {
+          if (c.toLowerCase() === oldColor.toLowerCase()) {
+            const escC = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            updated = updated.replace(new RegExp(escC, 'gi'), newColor);
+          }
+        });
+      }
+
+      updateGeneratedHtml(updated);
+    }
+  };
+
   const handleDesignStyleChange = (styleId: string) => {
     if (soundEnabled) soundManager.playTabClick();
     setDesignStyle(styleId);
     const selected = designStyles.find(s => s.id === styleId);
-    if (selected) {
-      setDocColor(selected.color);
+    if (selected && selected.color) {
+      handleColorChange(selected.color);
+    } else {
+      saveCurrentPreferences({ designStyle: styleId });
     }
-    saveCurrentPreferences({ designStyle: styleId, docColor: selected?.color });
   };
 
   const profileInputRef = useRef<HTMLInputElement>(null);
@@ -602,27 +634,29 @@ export default function GeneratorPage() {
 
   const getFrameStyle = (frameId: string, color: string): React.CSSProperties => {
     switch (frameId) {
-      case 'simple': return { border: `2px solid ${color}`, margin: '0', padding: '4mm', minHeight: '297mm', boxSizing: 'border-box' };
-      case 'double': return { border: `4px double ${color}`, margin: '0', padding: '4mm', minHeight: '297mm', boxSizing: 'border-box' };
+      case 'simple': return { border: `2px solid ${color}`, margin: '4mm', padding: '5mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '4px' };
+      case 'double': return { border: `4px double ${color}`, margin: '4mm', padding: '5mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '4px' };
       case 'ornate': return { 
           border: `2px dashed ${color}`, 
           outline: `2px solid ${color}`, 
-          outlineOffset: '-4px',
-          margin: '0',
+          outlineOffset: '-5px',
+          margin: '5mm',
           padding: '6mm',
-          minHeight: '297mm',
+          minHeight: 'calc(297mm - 10mm)',
           boxSizing: 'border-box',
           backgroundColor: '#fff',
+          borderRadius: '4px'
       };
       case '3d': return { 
           borderTop: `3px solid ${color}`, 
           borderLeft: `3px solid ${color}`, 
-          borderBottom: `5px solid ${color}80`, 
-          borderRight: `5px solid ${color}80`, 
-          margin: '0',
-          padding: '4mm',
-          minHeight: '297mm',
-          boxSizing: 'border-box'
+          borderBottom: `6px solid ${color}`, 
+          borderRight: `6px solid ${color}`, 
+          margin: '4mm',
+          padding: '5mm',
+          minHeight: 'calc(297mm - 8mm)',
+          boxSizing: 'border-box',
+          borderRadius: '4px'
       };
       default: return { padding: '6mm', minHeight: '297mm', boxSizing: 'border-box' };
     }
@@ -1813,19 +1847,34 @@ ${framedContent}
                 </button>
               </div>
 
-              {/* Color & Font Size */}
+              {/* Color, Font Size & Frame Selector */}
               <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
                 <input 
                   type="color" 
                   value={docColor} 
-                  onChange={e => setDocColor(e.target.value)}
+                  onChange={e => handleColorChange(e.target.value)}
                   className="w-7 h-7 rounded cursor-pointer border-0 p-0 bg-transparent"
-                  title="تغيير لون العناوين والزخارف"
+                  title="تغيير لون العناوين والزخارف (يتغير مباشرة في المستند)"
                 />
                 <div className="w-px h-4 bg-slate-300 dark:bg-slate-600"></div>
-                <button onClick={() => setPreviewFontSize(Math.max(10, previewFontSize - 1))} className="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition font-bold">-</button>
+                <button onClick={() => setPreviewFontSize(Math.max(10, previewFontSize - 1))} className="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition font-bold" title="تصغير الخط">-</button>
                 <span className="text-xs font-mono w-6 text-center text-slate-700 dark:text-slate-300 font-bold">{previewFontSize}</span>
-                <button onClick={() => setPreviewFontSize(Math.min(30, previewFontSize + 1))} className="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition font-bold">+</button>
+                <button onClick={() => setPreviewFontSize(Math.min(30, previewFontSize + 1))} className="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition font-bold" title="تكبير الخط">+</button>
+                <div className="w-px h-4 bg-slate-300 dark:bg-slate-600"></div>
+                <select 
+                  value={pageFrame} 
+                  onChange={e => {
+                    if (soundEnabled) soundManager.playTabClick();
+                    setPageFrame(e.target.value);
+                    saveCurrentPreferences({ pageFrame: e.target.value });
+                  }}
+                  className="text-xs font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 transition"
+                  title="تغيير شكل إطار الصفحة"
+                >
+                  {pageFrames.map(f => (
+                    <option key={f.id} value={f.id}>{f.label}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Actions */}
