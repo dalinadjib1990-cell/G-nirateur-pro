@@ -1,57 +1,61 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, Smartphone, CheckCircle, Share, PlusSquare, Sparkles } from 'lucide-react';
+import { Download, X, Smartphone, CheckCircle, Share, PlusSquare, Sparkles, ExternalLink, Globe } from 'lucide-react';
 
 export function InstallPWA() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const [showIosGuide, setShowIosGuide] = useState(false);
   const [showChromeGuide, setShowChromeGuide] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false);
 
   useEffect(() => {
-    // Check if running as PWA (Standalone mode or Android App wrapper)
+    // Check if running as actual PWA in standalone window mode
     const checkStandalone = () => {
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                         window.matchMedia('(display-mode: fullscreen)').matches ||
+                         window.matchMedia('(display-mode: minimal-ui)').matches;
       const isIosStandalone = (window.navigator as any).standalone === true;
-      const isAndroidApp = document.referrer.includes('android-app://');
-      const alreadyInstalled = localStorage.getItem('pwa_installed') === 'true';
-      return isStandalone || isIosStandalone || isAndroidApp || alreadyInstalled;
+      const isAndroidAppWrapper = document.referrer.includes('android-app://');
+      return isStandalone || isIosStandalone || isAndroidAppWrapper;
     };
 
     if (checkStandalone()) {
-      setIsInstalled(true);
+      setIsStandaloneApp(true);
       return;
     }
 
-    // Detect iOS
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const iosDevice = /iphone|ipad|ipod/.test(userAgent);
+    // Detect iOS & In-App Browsers (FB, Messenger, Instagram, TikTok)
+    const ua = window.navigator.userAgent.toLowerCase();
+    const iosDevice = /iphone|ipad|ipod/.test(ua);
+    const inApp = /fbav|instagram|messenger|tiktok|wv|microMessenger/i.test(ua);
     setIsIOS(iosDevice);
+    setIsInAppBrowser(inApp);
 
-    // Auto-open install banner on first visit if not installed
+    // Auto-open modal on first visit if not standalone
     const hasSeenModal = sessionStorage.getItem('pwa_banner_seen');
     if (!hasSeenModal) {
       const timer = setTimeout(() => {
         setShowInstallBanner(true);
         sessionStorage.setItem('pwa_banner_seen', 'true');
-      }, 1000);
+      }, 800);
       return () => clearTimeout(timer);
     }
 
+    // Listen for native Android/Chrome install prompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      // Automatically pop modal if not yet installed
+      // Auto pop install dialog when ready
       if (!checkStandalone()) {
         setShowInstallBanner(true);
       }
     };
 
     const handleAppInstalled = () => {
-      console.log('PWA installed successfully');
-      localStorage.setItem('pwa_installed', 'true');
-      setIsInstalled(true);
+      console.log('PWA appinstalled event triggered successfully');
+      setIsStandaloneApp(true);
       setShowInstallBanner(false);
       setShowIosGuide(false);
       setShowChromeGuide(false);
@@ -69,29 +73,32 @@ export function InstallPWA() {
   const handleInstallClick = async () => {
     if (deferredPrompt) {
       try {
+        // Trigger Chrome/Android native prompt dialog directly
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
-          localStorage.setItem('pwa_installed', 'true');
-          setIsInstalled(true);
+          setIsStandaloneApp(true);
           setShowInstallBanner(false);
         }
         setDeferredPrompt(null);
       } catch (err) {
         console.error('PWA install prompt error:', err);
       }
+    } else if (isIOS) {
+      setShowInstallBanner(false);
+      setShowIosGuide(true);
+    } else if (isInAppBrowser) {
+      // In-app webview - open in Chrome or copy link
+      window.open(window.location.href, '_system');
+      setShowChromeGuide(true);
     } else {
-      // Fallback if prompt event not fired yet or on iOS
-      if (isIOS) {
-        setShowIosGuide(true);
-      } else {
-        setShowChromeGuide(true);
-      }
+      setShowInstallBanner(false);
+      setShowChromeGuide(true);
     }
   };
 
-  // Do not render anything if already installed
-  if (isInstalled) {
+  // If app is already launched as a standalone PWA shortcut, hide the install UI
+  if (isStandaloneApp) {
     return null;
   }
 
@@ -101,7 +108,13 @@ export function InstallPWA() {
       {!showInstallBanner && !showIosGuide && !showChromeGuide && (
         <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[90] animate-bounce">
           <button
-            onClick={() => setShowInstallBanner(true)}
+            onClick={() => {
+              if (deferredPrompt) {
+                handleInstallClick();
+              } else {
+                setShowInstallBanner(true);
+              }
+            }}
             className="bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black px-4 py-2 rounded-full text-xs sm:text-sm flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.6)] border border-amber-300/50 transition-all transform active:scale-95"
           >
             <Smartphone size={16} className="animate-pulse" />
@@ -130,9 +143,6 @@ export function InstallPWA() {
                   src="/icon.svg"
                   alt="Pro Générateur Icon"
                   className="w-full h-full object-cover rounded-[22px]"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
                 />
               </div>
               <span className="absolute -bottom-2 -right-2 bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full border-2 border-slate-950 flex items-center gap-1 shadow-lg">
@@ -148,17 +158,25 @@ export function InstallPWA() {
             <div className="w-full bg-slate-900/90 rounded-2xl p-3.5 mb-5 border border-slate-800 text-xs text-slate-300 space-y-2">
               <div className="flex items-center gap-2">
                 <CheckCircle size={14} className="text-amber-400 shrink-0" />
-                <span>تثبيت مباشر كـ تطبيق أندرويد أصلـي</span>
+                <span>إضافة اختصار مباشر على شاشة الهاتف</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle size={14} className="text-amber-400 shrink-0" />
-                <span>دخول سريع بأيقونة فاخرة من شاشتك</span>
+                <span>دخول سريع بأيقونة فاخرة بدون متصفح</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle size={14} className="text-amber-400 shrink-0" />
-                <span>شاشة كاملة وتجربة فائقة السرعة بدون شريط المتصفح</span>
+                <span>شاشة كاملة وتجربة سريعة كـ تطبيق أندرويد</span>
               </div>
             </div>
+
+            {/* In-app Browser Alert Warning */}
+            {isInAppBrowser && (
+              <div className="w-full bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 mb-3 text-[11px] text-amber-200 flex items-center gap-2">
+                <Globe size={16} className="shrink-0 text-amber-400" />
+                <span>أنت تتصفح داخل تطبيق آخر. يرجى فتح الرابط في متصفح Google Chrome للتثبيت المباشر.</span>
+              </div>
+            )}
 
             {/* Install Action Button */}
             <button
@@ -166,7 +184,13 @@ export function InstallPWA() {
               className="w-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-[0_0_25px_rgba(245,158,11,0.5)] transition-all transform hover:scale-[1.02] active:scale-98 text-base mb-3"
             >
               <Download size={20} className="animate-bounce" />
-              <span>{deferredPrompt ? 'تثبيت التطبيق الآن (مباشر) 📱' : 'إضافة إلى الشاشة الرئيسية 📱'}</span>
+              <span>
+                {deferredPrompt
+                  ? 'تثبيت التطبيق الآن 📱'
+                  : isIOS
+                  ? 'تثبيت على آيفون (iOS) 🍏'
+                  : 'تثبيت التطبيق على الشاشة 📱'}
+              </span>
             </button>
 
             <button
@@ -198,16 +222,16 @@ export function InstallPWA() {
             </div>
 
             <ol className="text-xs text-slate-300 space-y-3 mb-6 list-decimal list-inside leading-relaxed bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
-              <li>اضغط على زر <strong className="text-amber-400">المشاركة (Share <Share size={12} className="inline mx-0.5" />)</strong> في أسفل شاشة المتصفح (Safari).</li>
+              <li>اضغط على زر <strong className="text-amber-400">المشاركة (Share <Share size={12} className="inline mx-0.5" />)</strong> في أسفل متصفح Safari.</li>
               <li>انزل للأسفل واختر <strong className="text-amber-400">"إضافة إلى الشاشة الرئيسية" (Add to Home Screen <PlusSquare size={12} className="inline mx-0.5" />)</strong>.</li>
-              <li>اضغط على <strong className="text-amber-400">"إضافة" (Add)</strong> في أعلى الزاوية.</li>
+              <li>اضغط على <strong className="text-amber-400">"إضافة" (Add)</strong> أعلى الشاشة.</li>
             </ol>
 
             <button
               onClick={() => setShowIosGuide(false)}
               className="w-full bg-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-xs"
             >
-              تم، فهمت ذلك
+              تم، حسناً
             </button>
           </div>
         </div>
@@ -228,15 +252,15 @@ export function InstallPWA() {
               <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
                 <Smartphone size={20} />
               </div>
-              <h3 className="font-bold text-lg text-amber-300">طريقة التثبيت على أندرويد</h3>
+              <h3 className="font-bold text-lg text-amber-300">إضافة اختصار إلى الشاشة الرئيسية</h3>
             </div>
 
             <div className="text-xs text-slate-300 space-y-3 mb-6 leading-relaxed bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
-              <p>إذا لم تظهر نافذة التثبيت التلقائية، يمكنك التثبيت بثوانٍ:</p>
+              <p>لإضافة اختصار التطبيق فوراً إلى شاشتك الرئيسية:</p>
               <ol className="list-decimal list-inside space-y-2">
-                <li>اضغط على النقاط الثلاث <strong className="text-amber-400">(⋮)</strong> أعلى متصفحك.</li>
+                <li>اضغط على خيارات المتصفح <strong className="text-amber-400">(⋮)</strong> بالأعلى.</li>
                 <li>اختر <strong className="text-amber-400">"تثبيت التطبيق"</strong> أو <strong className="text-amber-400">"الإضافة إلى الشاشة الرئيسية"</strong>.</li>
-                <li>تأكيد التثبيت ليظهر التطبيق كـ أندرويد مستقل.</li>
+                <li>سيتم إضافة أيقونة التطبيق مباشرة على شاشتك.</li>
               </ol>
             </div>
 
@@ -244,7 +268,7 @@ export function InstallPWA() {
               onClick={() => setShowChromeGuide(false)}
               className="w-full bg-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-xs"
             >
-              تم، حسناً
+              تم، فهمت ذلك
             </button>
           </div>
         </div>
