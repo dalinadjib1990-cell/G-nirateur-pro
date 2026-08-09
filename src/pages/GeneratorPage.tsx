@@ -727,6 +727,21 @@ export default function GeneratorPage() {
     // Convert CSS gradients to solid background colors so MS Word renders backgrounds properly
     htmlForWord = htmlForWord.replace(/background:\s*linear-gradient\([^;)]+\)/gi, `background-color: ${currentColor}`);
 
+    let wordFrameStyle = '';
+    if (pageFrame === 'simple') {
+      wordFrameStyle = `border: 2px solid ${currentColor}; padding: 12px; border-radius: 4px; box-sizing: border-box;`;
+    } else if (pageFrame === 'double') {
+      wordFrameStyle = `border: 4px double ${currentColor}; padding: 12px; border-radius: 4px; box-sizing: border-box;`;
+    } else if (pageFrame === 'ornate') {
+      wordFrameStyle = `border: 2px dashed ${currentColor}; outline: 2px solid ${currentColor}; outline-offset: -4px; padding: 16px; border-radius: 4px; background-color: #ffffff; box-sizing: border-box;`;
+    } else if (pageFrame === '3d') {
+      wordFrameStyle = `border-top: 3px solid ${currentColor}; border-left: 3px solid ${currentColor}; border-bottom: 5px solid ${currentColor}; border-right: 5px solid ${currentColor}; padding: 12px; border-radius: 4px; box-sizing: border-box;`;
+    }
+
+    const framedContent = wordFrameStyle
+      ? `<div style="${wordFrameStyle}">${htmlForWord}</div>`
+      : htmlForWord;
+
     const wordHtml = `<!DOCTYPE html>
 <html xmlns:v="urn:schemas-microsoft-com:vml"
 xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -780,7 +795,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
 </head>
 <body lang="AR-DZ" dir="rtl" style="text-align: right;">
 <div class="WordSection1" dir="rtl" style="direction: rtl; text-align: right; font-family: 'Arial', sans-serif;">
-${htmlForWord}
+${framedContent}
 </div>
 </body>
 </html>`;
