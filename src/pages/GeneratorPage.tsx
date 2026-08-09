@@ -87,6 +87,7 @@ export default function GeneratorPage() {
   // Test/Series specific state
   const [exercises, setExercises] = useState<Exercise[]>([{ id: generateId(), section: '', competencies: [''] }]);
   const [hasIntegration, setHasIntegration] = useState(false);
+  const [includeSolution, setIncludeSolution] = useState(false);
   const [examType, setExamType] = useState('فرض 1');
   const [examTerm, setExamTerm] = useState('الفصل الأول');
   const [examDuration, setExamDuration] = useState('ساعة واحدة');
@@ -259,6 +260,7 @@ export default function GeneratorPage() {
     if (parsed.documentLanguage) setDocumentLanguage(parsed.documentLanguage);
     if (parsed.includeWatermark !== undefined) setIncludeWatermark(parsed.includeWatermark);
     if (parsed.hasIntegration !== undefined) setHasIntegration(parsed.hasIntegration);
+    if (parsed.includeSolution !== undefined) setIncludeSolution(parsed.includeSolution);
     if (parsed.contentStyle) setContentStyle(parsed.contentStyle);
     if (parsed.designStyle) setDesignStyle(parsed.designStyle);
     if (parsed.pageFrame) setPageFrame(parsed.pageFrame);
@@ -282,6 +284,7 @@ export default function GeneratorPage() {
         documentLanguage,
         includeWatermark,
         hasIntegration,
+        includeSolution,
         contentStyle,
         designStyle,
         pageFrame,
@@ -297,8 +300,8 @@ export default function GeneratorPage() {
   };
 
   const handleSaveLessonElements = () => {
-    if (!memoSection && !memoDomain && !memoContent) {
-      alert('يرجى كتابة المقطع أو الميدان أو المورد المعرفي قبل الحفظ.');
+    if (!memoSection && !memoDomain && !memoContent && !aiPrompt && exercises.every(e => !e.section)) {
+      alert('يرجى كتابة المقطع أو الميدان أو المورد المعرفي أو التوجيهات قبل الحفظ.');
       return;
     }
     const uid = user?.uid || 'guest';
@@ -308,6 +311,8 @@ export default function GeneratorPage() {
       memoSection,
       memoDomain,
       memoContent,
+      aiPrompt,
+      exercises,
       subject: teacherInfo.subject,
       updatedAt: new Date().toISOString()
     };
@@ -316,7 +321,7 @@ export default function GeneratorPage() {
     saveCurrentPreferences();
 
     if (soundEnabled) soundManager.playGenerateComplete();
-    setLessonSaveMessage('تم حفظ المقطع والميدان والمورد لدروسك الخاصة بنجاح!');
+    setLessonSaveMessage('تم حفظ معلومات المقطع والكفاءات والتوجيهات بنجاح!');
     setTimeout(() => setLessonSaveMessage(null), 3500);
   };
 
@@ -328,16 +333,37 @@ export default function GeneratorPage() {
     if (savedSubjectData) {
       try {
         const parsed = JSON.parse(savedSubjectData);
-        if (parsed.memoSection) setMemoSection(parsed.memoSection);
-        if (parsed.memoDomain) setMemoDomain(parsed.memoDomain);
-        if (parsed.memoContent) setMemoContent(parsed.memoContent);
-        setLessonSaveMessage('تم استرجاع عناصر دروسك المحفوظة بنجاح!');
+        if (parsed.memoSection !== undefined) setMemoSection(parsed.memoSection);
+        if (parsed.memoDomain !== undefined) setMemoDomain(parsed.memoDomain);
+        if (parsed.memoContent !== undefined) setMemoContent(parsed.memoContent);
+        if (parsed.aiPrompt !== undefined) setAiPrompt(parsed.aiPrompt);
+        if (parsed.exercises && Array.isArray(parsed.exercises)) setExercises(parsed.exercises);
+        setLessonSaveMessage('تم استرجاع معلومات دروسك وكفاءاتك المحفوظة بنجاح!');
         setTimeout(() => setLessonSaveMessage(null), 3500);
       } catch (e) {
         console.error(e);
       }
     } else {
-      alert('لا توجد عناصر درس محفوظة لهذه المادة في حسابك الشخصي حتى الآن. أدخل البيانات واضغط على "تذكر عناصر الدرس".');
+      alert('لا توجد معلومات محفوظة لهذه المادة في حسابك الشخصي حتى الآن. أدخل البيانات واضغط على "حفظ المعلومات والمعطيات".');
+    }
+  };
+
+  const handleResetInputs = () => {
+    if (window.confirm('هل أنت متأكد من رغبتك في إعادة تعيين جميع الحقول وتفريغ البيانات للكتابة مجدداً؟')) {
+      setMemoSection('');
+      setMemoDomain('');
+      setMemoContent('');
+      setAiPrompt('');
+      setExercises([{ id: generateId(), section: '', competencies: [''] }]);
+      saveCurrentPreferences({
+        memoSection: '',
+        memoDomain: '',
+        memoContent: '',
+        aiPrompt: ''
+      });
+      if (soundEnabled) soundManager.playTabClick();
+      setLessonSaveMessage('تم إعادة تعيين جميع الحقول بنجاح للكتابة مجدداً.');
+      setTimeout(() => setLessonSaveMessage(null), 3500);
     }
   };
 
@@ -532,10 +558,12 @@ export default function GeneratorPage() {
       subjectInfo = { 
         exercises, 
         hasIntegrationSituation: hasIntegration,
+        includeSolution,
         ...(generationType === 'test' ? {
           examType,
           term: examTerm,
-          duration: examDuration
+          duration: examDuration,
+          includeSolution
         } : {})
       };
     }
@@ -553,6 +581,7 @@ export default function GeneratorPage() {
           generationType,
           teacherInfo,
           subjectInfo,
+          includeSolution,
           documentLanguage,
           includeWatermark,
           contentStyle: selectedContentLabel,
@@ -1482,14 +1511,14 @@ ${framedContent}
                   <span className="text-xs font-bold text-indigo-800 dark:text-indigo-200 flex items-center gap-1.5">
                     <Bookmark size={16} className="text-indigo-600 dark:text-indigo-400" /> عناصر الدرس (الجيل الثاني)
                   </span>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <button 
                       type="button" 
                       onClick={handleSaveLessonElements}
                       className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition transform active:scale-95"
                       title="حفظ المقطع والميدان والمورد لاستخدامهم لاحقاً"
                     >
-                      <Save size={13} /> تذكر المقطع والميدان والمورد
+                      <Save size={13} /> حفظ المعطيات
                     </button>
                     <button 
                       type="button" 
@@ -1498,6 +1527,14 @@ ${framedContent}
                       title="استرجاع عناصر الدرس المحفوظة سابقاً"
                     >
                       <RotateCcw size={13} /> استرجاع
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={handleResetInputs}
+                      className="text-xs bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-200 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
+                      title="تفريغ الحقول وإعادة التعيين للكتابة مجدداً"
+                    >
+                      <RotateCcw size={13} className="rotate-180" /> إعادة تعيين
                     </button>
                   </div>
                 </div>
@@ -1524,6 +1561,44 @@ ${framedContent}
               </div>
             ) : (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-indigo-50/80 dark:bg-indigo-950/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800/40 shadow-sm">
+                  <span className="text-xs font-bold text-indigo-800 dark:text-indigo-200 flex items-center gap-1.5">
+                    <Bookmark size={16} className="text-indigo-600 dark:text-indigo-400" /> خيارات ومعلومات موضوع التقويم
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    <button 
+                      type="button" 
+                      onClick={handleSaveLessonElements}
+                      className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition transform active:scale-95"
+                      title="حفظ معلومات وتقويمات الفرض لاستخدامهم لاحقاً"
+                    >
+                      <Save size={13} /> حفظ المعطيات
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={handleLoadLessonElements}
+                      className="text-xs bg-indigo-100 dark:bg-indigo-900/60 hover:bg-indigo-200 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-200 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
+                      title="استرجاع معلومات الفرض المحفوظة سابقاً"
+                    >
+                      <RotateCcw size={13} /> استرجاع
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={handleResetInputs}
+                      className="text-xs bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-200 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
+                      title="تفريغ الحقول وإعادة التعيين للكتابة مجدداً"
+                    >
+                      <RotateCcw size={13} className="rotate-180" /> إعادة تعيين
+                    </button>
+                  </div>
+                </div>
+
+                {lessonSaveMessage && (
+                  <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 text-xs font-bold rounded-lg border border-emerald-200 dark:border-emerald-800 animate-in fade-in flex items-center gap-1.5">
+                    <Check size={14} className="text-emerald-600" /> {lessonSaveMessage}
+                  </div>
+                )}
+
                 {generationType === 'test' && (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1554,9 +1629,29 @@ ${framedContent}
                         </select>
                       </div>
                     </div>
-                    <label className="flex items-center gap-3 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/30 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40">
-                      <input type="checkbox" checked={hasIntegration} onChange={e => setHasIntegration(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500 w-5 h-5 accent-indigo-600" />
+                    <label className="flex items-center gap-3 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-800/30 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40">
+                      <input type="checkbox" checked={hasIntegration} onChange={e => { setHasIntegration(e.target.checked); saveCurrentPreferences({ hasIntegration: e.target.checked }); }} className="rounded text-indigo-600 focus:ring-indigo-500 w-5 h-5 accent-indigo-600" />
                       تضمين وضعية إدماجية
+                    </label>
+
+                    <label className="flex items-start gap-3 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold bg-amber-50 dark:bg-amber-950/30 p-3.5 rounded-xl border border-amber-200 dark:border-amber-800/40 transition-colors hover:bg-amber-100 dark:hover:bg-amber-900/40">
+                      <input 
+                        type="checkbox" 
+                        checked={includeSolution} 
+                        onChange={e => { 
+                          setIncludeSolution(e.target.checked); 
+                          saveCurrentPreferences({ includeSolution: e.target.checked }); 
+                        }} 
+                        className="rounded text-amber-600 focus:ring-amber-500 w-5 h-5 accent-amber-600 mt-0.5" 
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-amber-900 dark:text-amber-200 font-bold flex items-center gap-1.5">
+                          <Sparkles size={15} className="text-amber-600" /> تضمين الحل النموذجي والتصحيح
+                        </span>
+                        <span className="text-xs text-amber-700 dark:text-amber-400 font-normal mt-0.5">
+                          عند عدم التفعيل (افتراضي): يتم توليد موضوع الفرض/الاختبار فقط بدون إجابات. وعند التفعيل: يتم توليد الفرض أولاً ثم إلحاق الحل النموذجي وشبكة التنقيط في صفحة جديدة بأسفل الفرض.
+                        </span>
+                      </div>
                     </label>
                   </div>
                 )}
