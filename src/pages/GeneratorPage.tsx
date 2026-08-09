@@ -266,6 +266,8 @@ export default function GeneratorPage() {
   // Scaling logic & states
   const containerRef = useRef<HTMLDivElement>(null);
   const a4PageRef = useRef<HTMLDivElement>(null);
+  const editableDivRef = useRef<HTMLDivElement>(null);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
   const [a4PageHeightInPx, setA4PageHeightInPx] = useState(1122);
   const [autoScale, setAutoScale] = useState(1);
   const [manualScale, setManualScale] = useState(1);
@@ -284,8 +286,8 @@ export default function GeneratorPage() {
 
       if (action === 'move') {
         updateShape(shapeId, {
-          x: Math.max(0, Math.min(720, initialX + dx)),
-          y: Math.max(0, Math.min(1050, initialY + dy))
+          x: Math.max(0, Math.min(730, initialX + dx)),
+          y: Math.max(0, Math.min(a4PageHeightInPx - 40, initialY + dy))
         });
       } else if (action === 'resize') {
         if (touch2 && initialPinchDist) {
@@ -426,6 +428,99 @@ export default function GeneratorPage() {
       default:
         return null;
     }
+  };
+
+  const convertShapeToHTML = (shape: CanvasShape): string => {
+    const commonStyle = `position: absolute; left: ${shape.x}px; top: ${shape.y}px; width: ${shape.width}px; height: ${shape.height}px; transform: rotate(${shape.rotation}deg); transform-origin: center center; z-index: 15; pointer-events: none;`;
+
+    switch (shape.type) {
+      case 'rectangle':
+        return `<div style="${commonStyle} border: ${shape.strokeWidth}px solid ${shape.color}; background-color: ${shape.fill || 'transparent'}; border-radius: 4px;"></div>`;
+      case 'circle':
+        return `<div style="${commonStyle} border: ${shape.strokeWidth}px solid ${shape.color}; background-color: ${shape.fill || 'transparent'}; border-radius: 50%;"></div>`;
+      case 'triangle':
+        return `<div style="${commonStyle}">
+          <svg style="width: 100%; height: 100%; overflow: visible;" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <polygon points="50,5 95,95 5,95" fill="${shape.fill || 'none'}" stroke="${shape.color}" stroke-width="${shape.strokeWidth * 2}" />
+          </svg>
+        </div>`;
+      case 'line':
+        return `<div style="${commonStyle}">
+          <svg style="width: 100%; height: 100%; overflow: visible;" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <line x1="5" y1="50" x2="95" y2="50" stroke="${shape.color}" stroke-width="${shape.strokeWidth * 2}" />
+          </svg>
+        </div>`;
+      case 'arrow':
+        return `<div style="${commonStyle}">
+          <svg style="width: 100%; height: 100%; overflow: visible;" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <defs>
+              <marker id="arrowhead-baked-${shape.id}" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="${shape.color}" />
+              </marker>
+            </defs>
+            <line x1="5" y1="50" x2="88" y2="50" stroke="${shape.color}" stroke-width="${shape.strokeWidth * 2}" marker-end="url(#arrowhead-baked-${shape.id})" />
+          </svg>
+        </div>`;
+      case 'grid':
+        return `<div style="${commonStyle} border: 1px solid ${shape.color}; border-radius: 4px; padding: 4px; background-color: rgba(255, 255, 255, 0.9);">
+          <svg style="width: 100%; height: 100%;" viewBox="0 0 200 160">
+            <path d="M 0 40 L 200 40 M 0 80 L 200 80 M 0 120 L 200 120 M 40 0 L 40 160 M 80 0 L 80 160 M 120 0 L 120 160 M 160 0 L 160 160" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3,3" />
+            <line x1="100" y1="5" x2="100" y2="155" stroke="${shape.color}" stroke-width="2.5" />
+            <polygon points="100,0 95,10 105,10" fill="${shape.color}" />
+            <line x1="5" y1="80" x2="195" y2="80" stroke="${shape.color}" stroke-width="2.5" />
+            <polygon points="200,80 190,75 190,85" fill="${shape.color}" />
+            <text x="108" y="15" fill="${shape.color}" font-size="10" font-weight="bold">y</text>
+            <text x="185" y="73" fill="${shape.color}" font-size="10" font-weight="bold">x</text>
+            <text x="92" y="92" fill="${shape.color}" font-size="9" font-weight="bold">O</text>
+          </svg>
+        </div>`;
+      case 'drawing_box':
+        return `<div style="${commonStyle} border: 2px dashed ${shape.color}; border-radius: 8px; background-color: rgba(248, 250, 252, 0.8); padding: 8px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <span style="font-size: 12px; font-weight: bold; color: ${shape.color}">[ مساحة مخصصة للرسم والتخطيط ]</span>
+        </div>`;
+      case 'stamp':
+        return `<div style="${commonStyle} display: flex; align-items: center; justify-content: center; font-size: ${Math.min(shape.width, shape.height) * 0.8}px; user-select: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));">
+          ${shape.content}
+        </div>`;
+      case 'image':
+        return `<div style="${commonStyle}">
+          <img src="${shape.content}" alt="شكل مرفق" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4px;" />
+        </div>`;
+      default:
+        return '';
+    }
+  };
+
+  const savePreviewChanges = () => {
+    let currentHTML = editableDivRef.current ? editableDivRef.current.innerHTML : generatedHtml;
+
+    if (canvasShapes.length > 0) {
+      const bakedShapesHTML = canvasShapes.map(s => convertShapeToHTML(s)).join('');
+      currentHTML = currentHTML + bakedShapesHTML;
+      setCanvasShapes([]);
+    }
+
+    setGeneratedHtml(currentHTML);
+    if (editableDivRef.current) {
+      editableDivRef.current.innerHTML = currentHTML;
+    }
+
+    const activeUid = user?.uid || 'guest';
+    const userStorageKey = `generateProData_${activeUid}`;
+    try {
+      const stored = localStorage.getItem(userStorageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        parsed.generatedHtml = currentHTML;
+        localStorage.setItem(userStorageKey, JSON.stringify(parsed));
+      }
+    } catch (e) {
+      console.error("Save error:", e);
+    }
+
+    if (soundEnabled) soundManager.playGenerateComplete();
+    setSaveSuccessMsg(true);
+    setTimeout(() => setSaveSuccessMsg(false), 2500);
   };
 
   const [previewFontSize, setPreviewFontSize] = useState(16);
@@ -1029,7 +1124,14 @@ export default function GeneratorPage() {
     // 1. Deselect any active shape to hide selection border, handles & floating toolbars
     setSelectedShapeId(null);
     
-    // Give React state a tick to clear selection overlay
+    // 2. If there are active shapes or direct text edits in the preview, save & bake them first
+    if (editableDivRef.current) {
+      if (canvasShapes.length > 0 || editableDivRef.current.innerHTML !== generatedHtml) {
+        savePreviewChanges();
+        await new Promise(resolve => setTimeout(resolve, 80));
+      }
+    }
+
     await new Promise(resolve => setTimeout(resolve, 60));
 
     const originalElement = document.querySelector('.a4-page') as HTMLElement;
@@ -2431,6 +2533,15 @@ ${framedContent}
 
               {/* Actions */}
               <div className="flex gap-2 flex-wrap">
+                <button 
+                  onClick={savePreviewChanges} 
+                  disabled={!generatedHtml}
+                  className="relative group overflow-hidden flex items-center gap-2 bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black px-4 py-2 rounded-xl text-sm transition-all disabled:opacity-50 shadow-[0_4px_0_0_#b45309] hover:translate-y-1 hover:shadow-[0_0px_0_0_#b45309] active:scale-95"
+                  title="حفظ كافة التعديلات المباشرة والأشكال والصور المضافة نهائياً في المستند"
+                >
+                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Save size={16} /> حفظ التعديلات 💾
+                </button>
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -2520,6 +2631,14 @@ ${framedContent}
                   >
                     <ImageIcon size={14} /> صورة متحرّكة
                   </button>
+
+                  <button 
+                    onClick={savePreviewChanges} 
+                    className="px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-lg flex items-center gap-1.5 text-xs shadow-md transition transform hover:scale-105 active:scale-95"
+                    title="تثبيت وحفظ جميع الأشكال والرسومات المضافة داخل الورقة نهائياً"
+                  >
+                    <Save size={14} /> تثبيت وحفظ الأشكال 💾
+                  </button>
                 </div>
               </div>
 
@@ -2551,10 +2670,11 @@ ${framedContent}
                   onClick={() => setSelectedShapeId(null)}
                 >
                   <div
+                    ref={editableDivRef}
                     contentEditable
                     dangerouslySetInnerHTML={{ __html: generatedHtml }}
                     style={getFrameStyle(pageFrame, docColor)}
-                    className="w-full h-full min-h-[297mm]"
+                    className="w-full h-full min-h-[297mm] outline-none"
                   />
 
                   {/* Visual Page Break Indicators for multi-page documents */}
@@ -2672,6 +2792,14 @@ ${framedContent}
 
         </div>
       </main>
+
+      {/* Save Success Toast Notification */}
+      {saveSuccessMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white font-black px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-2.5 animate-bounce border-2 border-white/80 text-sm">
+          <CheckCircle2 size={22} className="text-amber-300" />
+          <span>تم حفظ كافة التعديلات والأشكال المضافة في مستند المعاينة بنجاح! 💾</span>
+        </div>
+      )}
 
       <DownloadsModal 
         isOpen={isDownloadsModalOpen} 
