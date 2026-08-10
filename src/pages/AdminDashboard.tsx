@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../lib/firebase';
-import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, where, increment } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, setDoc, serverTimestamp, query, where, increment } from 'firebase/firestore';
 import { useAuth, UserData } from '../contexts/AuthContext';
-import { Settings, BarChart3, Trash2, Edit, Plus, RefreshCw, Home, User, Lock, KeyRound, Copy, CheckCircle2, Users, Key, Power, Search, ImageMinus, Activity, Eye, EyeOff, Zap, ShieldCheck, AlertTriangle, XCircle, Check } from 'lucide-react';
+import { Settings, BarChart3, Trash2, Edit, Plus, RefreshCw, Home, User, Lock, KeyRound, Copy, CheckCircle2, Users, Key, Power, Search, ImageMinus, Activity, Eye, EyeOff, Zap, ShieldCheck, AlertTriangle, XCircle, Check, Ban, UserX } from 'lucide-react';
 import { updatePassword, updateEmail } from 'firebase/auth';
 import { uploadImage } from '../lib/cloudinary';
 
@@ -22,6 +22,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [keys, setKeys] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userStatusFilter, setUserStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Advanced Key Statistics State
@@ -161,6 +162,7 @@ export default function AdminDashboard() {
 
   const handleUpdateGenerations = async (uid: string, newAmount: number) => {
     try {
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, generationsRemaining: newAmount } : u));
       await updateDoc(doc(db, 'users', uid), {
         generationsRemaining: newAmount
       });
@@ -172,6 +174,14 @@ export default function AdminDashboard() {
 
   const handleActivateUser = async (uid: string) => {
     try {
+      // Optimistic state update: set active, pro, and give generations
+      setUsers(prev => prev.map(u => u.uid === uid ? {
+        ...u,
+        isActive: true,
+        isPro: true,
+        generationsRemaining: (u.generationsRemaining && u.generationsRemaining > 0) ? u.generationsRemaining : 300
+      } : u));
+
       await updateDoc(doc(db, 'users', uid), {
         isActive: true,
         isPro: true,
@@ -181,11 +191,20 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error activating user:', error);
       alert('حدث خطأ أثناء تفعيل المستخدم.');
+      fetchUsers();
     }
   };
 
   const handleDeactivateUser = async (uid: string) => {
     try {
+      // Optimistic state update: set inactive
+      setUsers(prev => prev.map(u => u.uid === uid ? {
+        ...u,
+        isActive: false,
+        isPro: false,
+        generationsRemaining: 0
+      } : u));
+
       await updateDoc(doc(db, 'users', uid), {
         isActive: false,
         isPro: false,
@@ -195,16 +214,54 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error deactivating user:', error);
       alert('حدث خطأ أثناء إيقاف المستخدم.');
+      fetchUsers();
     }
   };
 
-  const handleDeleteUser = async (uid: string) => {
-    if(window.confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
+  const handleBanAndDeleteUser = async (userToBan: UserData) => {
+    if (!userToBan.uid) return;
+    const userName = `${userToBan.firstName || ''} ${userToBan.lastName || ''}`.trim() || 'المستخدم';
+    const confirmMsg = `هل أنت متأكد من حظر وإزالة هذا الحساب نهائياً؟\n\nالاسم: ${userName}\nالبريد: ${userToBan.email || 'غير مدخل'}\nالهاتف: ${userToBan.phone || 'غير مدخل'}\n\nعند الحظر لن يستطيع صاحب هذا الحساب أو البريد/الهاتف التسجيل أو الدخول مجدداً.`;
+    
+    if (window.confirm(confirmMsg)) {
       try {
-        await deleteDoc(doc(db, 'users', uid));
+        // 1. Create ban records
+        if (userToBan.email) {
+          const cleanEmail = userToBan.email.toLowerCase().trim();
+          await setDoc(doc(db, 'banned_emails', cleanEmail), {
+            bannedAt: Date.now(),
+            email: cleanEmail,
+            uid: userToBan.uid,
+            reason: 'حظر وإزالة من قبل الإدارة'
+          });
+        }
+        if (userToBan.phone) {
+          const cleanPhone = userToBan.phone.trim();
+          await setDoc(doc(db, 'banned_phones', cleanPhone), {
+            bannedAt: Date.now(),
+            phone: cleanPhone,
+            uid: userToBan.uid,
+            reason: 'حظر وإزالة من قبل الإدارة'
+          });
+        }
+        await setDoc(doc(db, 'banned_users', userToBan.uid), {
+          bannedAt: Date.now(),
+          uid: userToBan.uid,
+          email: userToBan.email || '',
+          phone: userToBan.phone || '',
+          reason: 'حظر وإزالة من قبل الإدارة'
+        });
+
+        // 2. Delete user doc
+        await deleteDoc(doc(db, 'users', userToBan.uid));
+        
+        // 3. Update local state
+        setUsers(prev => prev.filter(u => u.uid !== userToBan.uid));
+        alert(`تم إزالة الحساب (${userName}) وحظر البريد/الهاتف نهائياً بنجاح.`);
         fetchUsers();
       } catch (error) {
-        console.error('Error deleting user:', error);
+        console.error('Error banning user:', error);
+        alert('حدث خطأ أثناء حظر وإزالة الحساب.');
       }
     }
   };
@@ -321,11 +378,27 @@ export default function AdminDashboard() {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (u.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (u.phone || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const activeUsersCount = users.filter(u => u.isActive).length;
+  const inactiveUsersCount = users.length - activeUsersCount;
+
+  const filteredUsers = users.filter(u => {
+    const query = searchQuery.toLowerCase().trim();
+    const matchesStatus = 
+      userStatusFilter === 'all' ? true :
+      userStatusFilter === 'active' ? !!u.isActive :
+      !u.isActive;
+
+    if (!matchesStatus) return false;
+    if (!query) return true;
+
+    const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+    const email = (u.email || '').toLowerCase();
+    const phone = (u.phone || '').toLowerCase();
+    const stateName = (u.state || '').toLowerCase();
+    const phase = (u.phase || '').toLowerCase();
+
+    return fullName.includes(query) || email.includes(query) || phone.includes(query) || stateName.includes(query) || phase.includes(query);
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans" dir="rtl">
@@ -378,78 +451,158 @@ export default function AdminDashboard() {
         <div className="max-w-6xl mx-auto">
           
           {activeTab === 'users' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-                <div>
-                  <h2 className="text-3xl font-bold text-slate-800 mb-2">إدارة المستخدمين</h2>
-                  <p className="text-slate-500">تعديل الأرصدة، وتفعيل أو حذف حسابات المستخدمين.</p>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+              
+              {/* Stats Cards Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 mb-1">إجمالي الحسابات</p>
+                    <h3 className="text-2xl font-bold text-slate-800">{users.length}</h3>
+                  </div>
+                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <Users size={22} />
+                  </div>
                 </div>
-                <div className="relative w-full sm:w-64">
-                  <input 
-                    type="text" 
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="بحث بالاسم، الإيميل، أو الهاتف..." 
-                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <Search size={18} className="absolute left-3 top-2.5 text-slate-400" />
+
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-600 mb-1">الحسابات المفعلة</p>
+                    <h3 className="text-2xl font-bold text-emerald-700">{activeUsersCount}</h3>
+                  </div>
+                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <CheckCircle2 size={22} />
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-amber-600 mb-1">غير مفعلة / في الانتظار</p>
+                    <h3 className="text-2xl font-bold text-amber-700">{inactiveUsersCount}</h3>
+                  </div>
+                  <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                    <XCircle size={22} />
+                  </div>
                 </div>
               </div>
 
+              {/* Header & Controls */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800 mb-1">إدارة المستخدمين والتفعيلات</h2>
+                  <p className="text-sm text-slate-500">البحث بالاسم أو البريد، تفعيل الحسابات، وتحديد الرصيد أو الحظر النهائي.</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                  {/* Status Filter Tabs */}
+                  <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                    <button
+                      onClick={() => setUserStatusFilter('all')}
+                      className={`px-3 py-1.5 rounded-lg transition-all ${userStatusFilter === 'all' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      الكل ({users.length})
+                    </button>
+                    <button
+                      onClick={() => setUserStatusFilter('active')}
+                      className={`px-3 py-1.5 rounded-lg transition-all ${userStatusFilter === 'active' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      المفعلة ({activeUsersCount})
+                    </button>
+                    <button
+                      onClick={() => setUserStatusFilter('inactive')}
+                      className={`px-3 py-1.5 rounded-lg transition-all ${userStatusFilter === 'inactive' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      غير المفعلة ({inactiveUsersCount})
+                    </button>
+                  </div>
+
+                  {/* Search Input */}
+                  <div className="relative flex-1 sm:w-64">
+                    <input 
+                      type="text" 
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      placeholder="بحث بالاسم، البريد، أو الهاتف..." 
+                      className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    />
+                    <Search size={18} className="absolute left-3 top-2.5 text-slate-400" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Table */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-right">
                     <thead className="bg-slate-50 text-slate-600 text-sm border-b border-slate-200">
                       <tr>
                         <th className="px-6 py-4 font-semibold">المستخدم</th>
-                        <th className="px-6 py-4 font-semibold">البريد</th>
-                        <th className="px-6 py-4 font-semibold">الرصيد المتبقي</th>
-                        <th className="px-6 py-4 font-semibold">إجمالي التوليد</th>
+                        <th className="px-6 py-4 font-semibold">البريد الإلكتروني / الهاتف</th>
+                        <th className="px-6 py-4 font-semibold">رصيد التوليد</th>
+                        <th className="px-6 py-4 font-semibold">المستهلك</th>
                         <th className="px-6 py-4 font-semibold">الحالة</th>
-                        <th className="px-6 py-4 font-semibold text-center">إجراءات</th>
+                        <th className="px-6 py-4 font-semibold text-center">إجراءات التفعيل والحظر</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredUsers.map(user => (
-                        <tr key={user.uid} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4 font-medium text-slate-800">{user.firstName} {user.lastName}</td>
-                          <td className="px-6 py-4 text-slate-600" dir="ltr" style={{textAlign: 'right'}}>
-                            <span className={`inline-block w-2 h-2 rounded-full mr-2 ${user.isActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                            {user.email}
+                        <tr key={user.uid} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-bold text-slate-800">{user.firstName} {user.lastName}</div>
+                            {(user.state || user.phase) && (
+                              <div className="text-xs text-slate-400 mt-0.5">
+                                {user.state} {user.phase ? `• ${user.phase}` : ''}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-slate-600 text-sm" dir="ltr" style={{textAlign: 'right'}}>
+                            <div>{user.email || 'بدون بريد'}</div>
+                            {user.phone && <div className="text-xs text-slate-400 mt-0.5" dir="ltr">{user.phone}</div>}
                           </td>
                           <td className="px-6 py-4">
                             <input 
                               type="number" 
                               defaultValue={user.generationsRemaining}
-                              onBlur={(e) => handleUpdateGenerations(user.uid!, parseInt(e.target.value))}
-                              className="w-20 px-2 py-1 border border-slate-200 rounded-lg text-center focus:ring-2 focus:ring-indigo-500 outline-none"
+                              onBlur={(e) => handleUpdateGenerations(user.uid!, parseInt(e.target.value) || 0)}
+                              className="w-20 px-2 py-1 border border-slate-200 rounded-lg text-center font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"
                             />
                           </td>
-                          <td className="px-6 py-4 text-slate-600">{user.totalGenerations || 0}</td>
+                          <td className="px-6 py-4 text-slate-600 font-medium">{user.totalGenerations || 0}</td>
                           <td className="px-6 py-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {user.isActive ? 'نشط' : 'موقوف'}
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${user.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                              <span className={`w-2 h-2 rounded-full ${user.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                              {user.isActive ? 'حساب مفعل' : 'غير مفعل (في الانتظار)'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 flex justify-center gap-2">
-                            {!user.isActive ? (
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-center gap-2">
+                              {!user.isActive ? (
+                                <button 
+                                  onClick={() => handleActivateUser(user.uid!)} 
+                                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                                >
+                                  <CheckCircle2 size={16} />
+                                  تفعيل الحساب
+                                </button>
+                              ) : (
+                                <button 
+                                  onClick={() => handleDeactivateUser(user.uid!)} 
+                                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                                >
+                                  <XCircle size={16} />
+                                  تعطيل الحساب
+                                </button>
+                              )}
+                              
                               <button 
-                                onClick={() => handleActivateUser(user.uid!)} 
-                                className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors"
+                                onClick={() => handleBanAndDeleteUser(user)} 
+                                className="px-3 py-2 text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all text-xs font-bold flex items-center gap-1 border border-red-200"
+                                title="إزالة هذا الحساب وحظره نهائياً من التسجيل"
                               >
-                                تفعيل
+                                <UserX size={16} />
+                                حظر وإزالة
                               </button>
-                            ) : (
-                              <button 
-                                onClick={() => handleDeactivateUser(user.uid!)} 
-                                className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors"
-                              >
-                                تعطيل
-                              </button>
-                            )}
-                            <button onClick={() => handleDeleteUser(user.uid!)} className="p-2 text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors" title="حذف">
-                              <Trash2 size={18} />
-                            </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -459,7 +612,7 @@ export default function AdminDashboard() {
                             {fetchError ? (
                               <span className="text-red-500 font-semibold">{fetchError}</span>
                             ) : (
-                              'لا يوجد مستخدمين.'
+                              'لا يوجد مستخدمين يطابقون شروط البحث أو الفلترة.'
                             )}
                           </td>
                         </tr>

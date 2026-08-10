@@ -32,6 +32,16 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      const cleanEmail = email.toLowerCase().trim();
+      if (cleanEmail) {
+        const bannedDoc = await getDoc(doc(db, 'banned_emails', cleanEmail));
+        if (bannedDoc.exists()) {
+          setError('هذا البريد الإلكتروني أو الحساب محظور تماماً بقرار من الإدارة.');
+          setLoading(false);
+          return;
+        }
+      }
+
       const formattedEmail = email.includes('@') ? email : `${email}@phone.pro-gen.com`;
       await signInWithEmailAndPassword(auth, formattedEmail, password);
       // Let AuthContext handle the loading and navigation
@@ -56,6 +66,16 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
+      const userEmail = (user.email || '').toLowerCase().trim();
+      if (userEmail) {
+        const bannedDoc = await getDoc(doc(db, 'banned_emails', userEmail));
+        if (bannedDoc.exists()) {
+          setError('هذا البريد الإلكتروني أو الحساب محظور تماماً بقرار من الإدارة.');
+          setLoading(false);
+          return;
+        }
+      }
+
       // Check if user document exists
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       
@@ -74,11 +94,11 @@ export default function LoginPage() {
           subject: '',
           phone: '',
           role: isAdmin ? 'admin' : 'user',
-          isPro: false,
+          isPro: isAdmin ? true : false,
           generationsRemaining: isAdmin ? 9999 : 30, // 30 free generation
           totalGenerations: 0,
           profilePic: user.photoURL || '',
-          isActive: true,
+          isActive: isAdmin ? true : false,
           createdAt: Date.now()
         });
       }
