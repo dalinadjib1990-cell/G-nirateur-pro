@@ -48,6 +48,7 @@ export default function GeneratorPage() {
   const navigate = useNavigate();
   const { addFile, unreadCount } = useDownloads();
   const [isDownloadsModalOpen, setIsDownloadsModalOpen] = useState(false);
+  const [showOutQuotaModal, setShowOutQuotaModal] = useState(false);
 
   const isAdmin = userData?.role === 'admin' || 
                   userData?.email === 'dalinadjib1990@gmail.com' || 
@@ -953,7 +954,7 @@ export default function GeneratorPage() {
     }
 
     if (!isAdmin && userData.role !== 'admin' && (userData.generationsRemaining === undefined || userData.generationsRemaining <= 0)) {
-      alert('عذراً، لقد استنفدت عدد التوليدات المتاحة لك. الرجاء التواصل مع الإدارة لتجديد الاشتراك.');
+      setShowOutQuotaModal(true);
       return;
     }
 
@@ -1254,7 +1255,7 @@ export default function GeneratorPage() {
       },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
       pagebreak:    { 
-        mode: ['css', 'legacy'], 
+        mode: ['avoid-all', 'css', 'legacy'], 
         avoid: [
           '.avoid-break', '.exercise-card', '.example-card', '.rule-card', 
           '.formula-card', '.callout-box', '.callout', '.card', '.pedagogical-card', 
@@ -1890,11 +1891,11 @@ ${framedContent}
                 </div>
               </div>
             ) : (
-              <div className="mb-5 bg-gradient-to-br from-slate-900 to-red-950 p-4 rounded-xl border border-red-500/40 text-white shadow-md">
+              <div className="mb-5 bg-gradient-to-br from-slate-900 via-amber-950 to-slate-950 p-4 rounded-xl border border-amber-500/40 text-white shadow-md">
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                    <Lock size={14} className="text-amber-400" />
-                    حساب عادي - لترقية حسابك اتصل بالمطور
+                  <h3 className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                    <Zap size={14} className="text-amber-400 fill-amber-400" />
+                    الوضع المجاني
                   </h3>
                   <button
                     type="button"
@@ -1906,40 +1907,46 @@ ${framedContent}
                   </button>
                 </div>
 
-                <p className="text-[11px] text-slate-300 mb-3 leading-relaxed">
-                  احصل على الوضع الاحترافي لتوليد غير محدود لجميع المواضيع والمذكرات وتصميم خلفيات خاصة.
+                <p className="text-[11px] text-amber-200/90 mb-3 leading-relaxed font-medium">
+                  يمكنك الانتقال للوضع الاحترافي عبر تفعيل الحساب للحصول على ميزات جديدة غير محدودة.
                 </p>
 
-                {/* Direct Contact Buttons */}
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <a
-                    href="https://wa.me/213673831994"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs transition-all shadow-md"
-                  >
-                    <Phone size={13} />
-                    <span>واتساب (0673831994)</span>
-                  </a>
-                  <a
-                    href="https://facebook.com"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs transition-all shadow-md"
-                  >
-                    <span>فايسبوك Facebook</span>
-                  </a>
+                {/* Activation Price & Contact Info */}
+                <div className="bg-amber-950/70 border border-amber-500/30 p-2.5 rounded-lg mb-3 text-right">
+                  <div className="text-xs font-black text-amber-300 mb-2 flex items-center justify-between">
+                    <span>💵 سعر التفعيل: <span className="text-emerald-400 font-extrabold">1000 دج</span></span>
+                    <span className="text-[10px] text-slate-300 font-semibold">اتصل بالمسؤول للتفعيل</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <a
+                      href="https://wa.me/213673831994"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs transition-all shadow-md"
+                    >
+                      <Phone size={13} />
+                      <span>واتساب (0673831994)</span>
+                    </a>
+                    <a
+                      href="tel:0771167330"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs transition-all shadow-md"
+                    >
+                      <Phone size={13} />
+                      <span>اتصل بـ (0771167330)</span>
+                    </a>
+                  </div>
                 </div>
 
+                {/* Decreasing Progress Bar without exposing raw number */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] font-bold text-amber-300">
-                    <span>رصيد التوليد المتاح</span>
-                    <span>حساب عادي 🔒</span>
+                    <span>شريط الرصيد المجاني</span>
+                    <span>الوضع المجاني ⚪</span>
                   </div>
-                  <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+                  <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-slate-700">
                     <div 
-                      className="h-2 rounded-full bg-amber-500 transition-all duration-500"
-                      style={{ width: `${Math.min(100, Math.max(0, ((userData?.generationsRemaining ?? 0) / 30) * 100))}%` }}
+                      className="h-full rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 transition-all duration-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"
+                      style={{ width: `${Math.min(100, Math.max(0, ((userData?.generationsRemaining ?? 0) / 20) * 100))}%` }}
                     ></div>
                   </div>
                 </div>
@@ -2980,6 +2987,65 @@ ${framedContent}
         isOpen={isDownloadsModalOpen} 
         onClose={() => setIsDownloadsModalOpen(false)} 
       />
+
+      {/* Out of Quota Modal */}
+      {showOutQuotaModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn" dir="rtl">
+          <div className="bg-slate-900 border-2 border-amber-500/60 rounded-2xl max-w-md w-full p-6 text-white shadow-[0_0_40px_rgba(245,158,11,0.3)] relative overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl"></div>
+            
+            <button 
+              type="button" 
+              onClick={() => setShowOutQuotaModal(false)}
+              className="absolute top-4 left-4 p-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="text-center mb-5">
+              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-amber-500/20 border-2 border-amber-500/60 flex items-center justify-center text-amber-400 animate-pulse">
+                <Zap size={32} />
+              </div>
+              <h2 className="text-xl font-black text-amber-300 mb-2">انتهى الرصيد المجاني!</h2>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                عذراً يا أستاذ، لقد استنفدت رصيد التوليد في الوضع المجاني. يمكنك الآن الانتقال إلى <span className="text-emerald-400 font-bold">الوضع الاحترافي (PRO)</span> لتفعيل الحساب والحصول على مميزات غير محدودة وتوليد كافة الدروس والاختبارات والمذكرات بجميع الأنماط.
+              </p>
+            </div>
+
+            <div className="bg-amber-950/80 border border-amber-500/40 p-4 rounded-xl mb-5 text-center">
+              <div className="text-lg font-black text-emerald-400 mb-1">💰 سعر التفعيل: 1000 دج فقط</div>
+              <div className="text-xs text-amber-200">اتصل بالمسؤول للتفعيل وتنشيط حسابك فوراً</div>
+            </div>
+
+            <div className="space-y-2.5 mb-4">
+              <a
+                href="https://wa.me/213673831994"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all shadow-lg shadow-emerald-600/30"
+              >
+                <Phone size={18} />
+                <span>تواصل مع المسؤول عبر واتساب (0673831994)</span>
+              </a>
+              <a
+                href="tel:0771167330"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm transition-all shadow-lg shadow-indigo-600/30"
+              >
+                <Phone size={18} />
+                <span>اتصل بالمسؤول هاتفياً (0771167330)</span>
+              </a>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowOutQuotaModal(false)}
+              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
+            >
+              إغلاق
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

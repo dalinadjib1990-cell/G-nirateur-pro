@@ -490,7 +490,7 @@ function getDesignStyleInstructions(designStyle: string): string {
       2️⃣ **الضبط المحكم والذكي لتقسيم الصفحات (Content-Aware Page Break Mechanics)**:
          - 🔴 **ممنوع تماماً أن يظهر الفاصل بين الصفحات في منتصف بطاقة أو مثال أو قانون أو معادلة أو سطر نص أو بين سؤال وحيز إجابته!**
          - تجنب تغليف كامل المستند أو جميع الأقسام بمغلف خارجي واحد يمتلك page-break-inside: avoid حتى لا يقفز المستند بأكمله.
-         - **الهيكلة الذرية للمحتوى (Atomic Elements)**: يجب تغليف كل عنصر تعليمي مستقل (كل تمرين، كل مثال، كل صندوق قانون/قاعدة، كل بطاقة حوصلة، كل رسم توضيحي، وكل سؤال مع حيز إجابته) داخل بطاقة صغيرة مستقلة مسبوقة بـ class="exercise-card avoid-break" أو class="card avoid-break" أو class="example-card avoid-break" أو class="rule-card avoid-break" أو class="formula-card avoid-break".
+         - **الهيكلة الذرية للمحتوى (Atomic Elements)**: يجب تغليف كل عنصر تعليمي مستقل (كل مثال بمفرده مثل "مثال 1" في بطاقة و "مثال 2" في بطاقة مستقلة، كل تمرين، كل صندوق قانون/قاعدة، كل بطاقة حوصلة، كل رسم توضيحي) داخل بطاقة صغيرة مستقلة مسبوقة بـ class="example-card avoid-break" أو class="exercise-card avoid-break" أو class="card avoid-break". لا تجمع عدة أمثلة داخل حاوية واحدة كبيرة جداً!
          - عند انتقال الصفحة، ينتقل التمرين أو المثال أو القاعدة بالكامل إلى الصفحة التالية بأسلوب ذكي ورزين دون قص أي عنصر أو شطر أي سطر نصي.
          - بالنسبة للجداول: اجعل الجدول نفسه قابلاً للتنقل بين الصفحات table { page-break-inside: auto; break-inside: auto; } مع الحفاظ على صيانة كل صف tr, th, td { page-break-inside: avoid; break-inside: avoid; } لضمان عدم قطع الخلايا أو الأسطر.
 

@@ -59,7 +59,7 @@ export default function RegisterPage() {
         phone: '', // Can be added later
         role: isAdmin ? 'admin' : 'user',
         isPro: isAdmin ? true : false,
-        generationsRemaining: isAdmin ? 9999 : 30, // 30 free generations
+        generationsRemaining: isAdmin ? 9999 : 20, // 20 free generations
         totalGenerations: 0,
         isActive: isAdmin ? true : false, // Requires admin activation if regular user
         createdAt: Date.now()
@@ -112,7 +112,7 @@ export default function RegisterPage() {
           phone: '',
           role: isAdmin ? 'admin' : 'user',
           isPro: isAdmin ? true : false,
-          generationsRemaining: isAdmin ? 9999 : 30, // 30 free generation
+          generationsRemaining: isAdmin ? 9999 : 20, // 20 free generation
           totalGenerations: 0,
           profilePic: user.photoURL || '',
           isActive: isAdmin ? true : false,
