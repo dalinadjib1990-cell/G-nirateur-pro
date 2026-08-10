@@ -1185,13 +1185,10 @@ export default function GeneratorPage() {
       return 'color: #000000';
     });
 
-    // Remove any inline page-break-inside: avoid from large outer section wrappers
-    htmlContent = htmlContent.replace(/page-break-inside:\s*avoid;?/gi, 'page-break-inside: auto;');
-    htmlContent = htmlContent.replace(/break-inside:\s*avoid;?/gi, 'break-inside: auto;');
-
+    // Preserve inline page-break-inside rules on individual elements
     clone.innerHTML = htmlContent;
 
-    // Inject strict print stylesheet into clone to guarantee clear black text on white paper and flawless row-level breaks
+    // Inject strict print stylesheet into clone to guarantee clear black text on white paper and flawless content-aware breaks
     const printOverrideStyle = document.createElement('style');
     printOverrideStyle.textContent = `
       * {
@@ -1210,15 +1207,21 @@ export default function GeneratorPage() {
       th *, .header-title * {
         color: #ffffff !important;
       }
-      /* Allow tables and section cards to flow naturally without huge blank gaps */
-      table, .card, .pedagogical-card, .section-container, .memo-section, .exercise-card, .framed-card {
+      /* Outer structural document wrappers flow naturally across pages */
+      table, .section-container, .memo-section, .document-body, .document-wrapper {
         page-break-inside: auto !important;
         break-inside: auto !important;
       }
-      /* Keep table rows and small atomic cards intact */
-      tr, th, td, img, svg, .avoid-break, .formula-card, .rule-card, .callout-box {
+      /* Keep all cards, exercises, examples, formulas, rules, callouts, paragraphs, rows, images, and questions intact */
+      tr, th, td, img, svg, figure, .avoid-break, .formula-card, .rule-card, .example-card, .callout-box, .callout, .standalone-example, .exercise-card, .card, .pedagogical-card, .framed-card, .solution-card, .summary-box, .question-block, .illustration, .diagram, p, blockquote {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
+      }
+      h1, h2, h3, h4, h5, h6, .section-header, .section-title, .card-title {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        -webkit-column-break-after: avoid !important;
       }
     `;
     clone.insertBefore(printOverrideStyle, clone.firstChild);
@@ -1250,7 +1253,15 @@ export default function GeneratorPage() {
         scrollY: 0
       },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-      pagebreak:    { mode: ['css', 'legacy'], avoid: ['.avoid-break', 'tr', 'img', '.formula-card', '.rule-card'] }
+      pagebreak:    { 
+        mode: ['css', 'legacy'], 
+        avoid: [
+          '.avoid-break', '.exercise-card', '.example-card', '.rule-card', 
+          '.formula-card', '.callout-box', '.callout', '.card', '.pedagogical-card', 
+          '.framed-card', '.standalone-example', '.solution-card', '.summary-box', 
+          '.question-block', '.illustration', '.diagram', 'tr', 'img', 'svg', 'figure', 'p', 'blockquote'
+        ] 
+      }
     };
 
     try {

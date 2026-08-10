@@ -167,26 +167,22 @@
   color: #000000 !important;
 }
 
-/* Allow tables and section cards to flow naturally across pages to eliminate huge blank spaces */
+/* Allow outer document wrappers and tables to flow naturally across pages */
 .a4-page table,
-.a4-page .card,
-.a4-page .exercise-card,
-.a4-page .pedagogical-card,
 .a4-page .section-container,
 .a4-page .memo-section,
-.a4-page .framed-card {
+.a4-page .document-body,
+.a4-page .document-wrapper {
   page-break-inside: auto !important;
   break-inside: auto !important;
   -webkit-column-break-inside: auto !important;
 }
 
-/* Avoid slicing individual table rows, small atomic formulas, images, or callouts in half */
-.a4-page tr,
-.a4-page th,
-.a4-page td,
-.a4-page img, 
-.a4-page svg,
-.a4-page .avoid-break, 
+/* Prevent cutting cards, exercises, examples, formulas, rules, callouts, paragraphs, or rows across page boundaries */
+.a4-page .card,
+.a4-page .exercise-card,
+.a4-page .pedagogical-card,
+.a4-page .framed-card,
 .a4-page .formula-card, 
 .a4-page .rule-card, 
 .a4-page .example-card, 
@@ -194,7 +190,19 @@
 .a4-page .callout, 
 .a4-page .standalone-example, 
 .a4-page .illustration, 
-.a4-page .diagram {
+.a4-page .diagram,
+.a4-page .question-block,
+.a4-page .solution-card,
+.a4-page .summary-box,
+.a4-page .avoid-break, 
+.a4-page tr,
+.a4-page th,
+.a4-page td,
+.a4-page img, 
+.a4-page svg,
+.a4-page figure,
+.a4-page p,
+.a4-page blockquote {
   page-break-inside: avoid !important;
   break-inside: avoid !important;
   -webkit-column-break-inside: avoid !important;

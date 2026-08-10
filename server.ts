@@ -487,11 +487,12 @@ function getDesignStyleInstructions(designStyle: string): string {
          - اجعل الترويسة مضغوطة ومنسقة (padding: 6px 8px; margin-bottom: 8px) لملء كامل مساحة الصفحة الأولى وتجنب ترك نصف الصفحة فارغاً.
          - تجنب ترك أي هوامش سفلية (margin-bottom) مبالغ فيها، ولا تستخدم وسوم <br> فارغة إطلاقاً.
 
-      2️⃣ **الضبط المحكم لتقسيم الصفحات (Page Break Mechanics)**:
-         - 🔴 **يُمنع منعاً باتاً** وضع "page-break-inside: avoid" أو "break-inside: avoid" على الأقسام الكبيرة أو الأغلفة أو الحاويات الرئيسية الممتدة، لأن ذلك يجبر النظام على قفز الصفحة بأكملها تاركاً مساحة بيضاء شاسعة فارغة في الأسفل!
-         - اجعل الحاويات والأقسام الكبيرة تسمح بالانقسام الطبيعي: "style='page-break-inside: auto; break-inside: auto;'".
-         - بالنسبة للجداول: اجعل الجدول قابلاً للانقسام الطبيعي بين الصفوف "table { page-break-inside: auto; break-inside: auto; }" واجعل صفوف الجدول نفسها غير قابلة للقطع في المنتصف: "tr, th, td { page-break-inside: avoid; break-inside: avoid; }" لضمان عدم شطر الصفوف إلى نصفين.
-         - فقط البطاقات الصغيرة القصيرة جداً (مثل صندوق قانون فرعي أو مثال مصغر) يمكن أن تحوي "class='avoid-break' style='page-break-inside: avoid; break-inside: avoid;'".
+      2️⃣ **الضبط المحكم والذكي لتقسيم الصفحات (Content-Aware Page Break Mechanics)**:
+         - 🔴 **ممنوع تماماً أن يظهر الفاصل بين الصفحات في منتصف بطاقة أو مثال أو قانون أو معادلة أو سطر نص أو بين سؤال وحيز إجابته!**
+         - تجنب تغليف كامل المستند أو جميع الأقسام بمغلف خارجي واحد يمتلك page-break-inside: avoid حتى لا يقفز المستند بأكمله.
+         - **الهيكلة الذرية للمحتوى (Atomic Elements)**: يجب تغليف كل عنصر تعليمي مستقل (كل تمرين، كل مثال، كل صندوق قانون/قاعدة، كل بطاقة حوصلة، كل رسم توضيحي، وكل سؤال مع حيز إجابته) داخل بطاقة صغيرة مستقلة مسبوقة بـ class="exercise-card avoid-break" أو class="card avoid-break" أو class="example-card avoid-break" أو class="rule-card avoid-break" أو class="formula-card avoid-break".
+         - عند انتقال الصفحة، ينتقل التمرين أو المثال أو القاعدة بالكامل إلى الصفحة التالية بأسلوب ذكي ورزين دون قص أي عنصر أو شطر أي سطر نصي.
+         - بالنسبة للجداول: اجعل الجدول نفسه قابلاً للتنقل بين الصفحات table { page-break-inside: auto; break-inside: auto; } مع الحفاظ على صيانة كل صف tr, th, td { page-break-inside: avoid; break-inside: avoid; } لضمان عدم قطع الخلايا أو الأسطر.
 
       3️⃣ **منع الخط الأصفر والتباين العالي للطباعة والتصدير (Dark High-Contrast Text)**:
          - 🔴 **يُمنع منعاً باتاً** كتابة النصوص أو العناوين الفرعية أو البرهان أو النقاط بخط أصفر أو باهت على خلفية بيضاء ("color: yellow", "color: #eab308", "color: #f59e0b", "color: #d97706").
