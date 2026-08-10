@@ -1179,24 +1179,28 @@ export default function GeneratorPage() {
     htmlContent = htmlContent.replace(/var\(--doc-color,\s*[^)]+\)/g, docColorValue);
     htmlContent = htmlContent.replace(/var\(--doc-color\)/g, docColorValue);
 
-    // Replace any leftover yellow/amber inline text color attributes with deep black
-    htmlContent = htmlContent.replace(/color:\s*(#f59e0b|#eab308|#fbbf24|#fde047|#facc15|#d97706|#b45309|yellow|amber)/gi, 'color: #000000');
+    // Replace all yellow, gold, amber inline text color attributes or style rules with deep black
+    htmlContent = htmlContent.replace(/color:\s*(#f59e0b|#eab308|#fbbf24|#fde047|#facc15|#d97706|#b45309|#ca8a04|#854d0e|#eab308|#fef08a|yellow|amber|gold|rgb\([^)]+\))/gi, (match) => {
+      if (match.toLowerCase().includes('255, 255, 255') || match.toLowerCase().includes('fff')) return match;
+      return 'color: #000000';
+    });
+
+    // Remove any inline page-break-inside: avoid from large outer section wrappers
+    htmlContent = htmlContent.replace(/page-break-inside:\s*avoid;?/gi, 'page-break-inside: auto;');
+    htmlContent = htmlContent.replace(/break-inside:\s*avoid;?/gi, 'break-inside: auto;');
 
     clone.innerHTML = htmlContent;
 
-    // Inject strict print stylesheet into clone to guarantee clear black text on white paper
+    // Inject strict print stylesheet into clone to guarantee clear black text on white paper and flawless row-level breaks
     const printOverrideStyle = document.createElement('style');
     printOverrideStyle.textContent = `
       * {
         color-scheme: light !important;
       }
-      .a4-page, .a4-page * {
-        color: #000000;
-      }
-      p, td, li, font, div, span, label, strong, b, em, i {
+      p, td, li, font, div, span, label, strong, b, em, i, h1, h2, h3, h4, h5, h6 {
         color: #000000 !important;
       }
-      /* Preserve white text on dark header rows or colored badges */
+      /* Preserve crisp white text on dark header rows or colored badges */
       [style*="background-color: ${docColorValue}"],
       [style*="background-color:${docColorValue}"],
       [style*="background:${docColorValue}"],
@@ -1205,6 +1209,16 @@ export default function GeneratorPage() {
       }
       th *, .header-title * {
         color: #ffffff !important;
+      }
+      /* Allow tables and section cards to flow naturally without huge blank gaps */
+      table, .card, .pedagogical-card, .section-container, .memo-section, .exercise-card, .framed-card {
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+      }
+      /* Keep table rows and small atomic cards intact */
+      tr, th, td, img, svg, .avoid-break, .formula-card, .rule-card, .callout-box {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
     `;
     clone.insertBefore(printOverrideStyle, clone.firstChild);
@@ -1236,7 +1250,7 @@ export default function GeneratorPage() {
         scrollY: 0
       },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-      pagebreak:    { mode: ['css', 'legacy'], avoid: ['.avoid-break', 'tr', 'img', 'table'] }
+      pagebreak:    { mode: ['css', 'legacy'], avoid: ['.avoid-break', 'tr', 'img', '.formula-card', '.rule-card'] }
     };
 
     try {
