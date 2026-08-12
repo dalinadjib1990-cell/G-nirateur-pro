@@ -272,6 +272,7 @@ export default function GeneratorPage() {
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
   const [a4PageHeightInPx, setA4PageHeightInPx] = useState(1122);
   const [visualBreakPositions, setVisualBreakPositions] = useState<number[]>([]);
+  const isAdjustingBreakRef = useRef(false);
   const [autoScale, setAutoScale] = useState(1);
   const [manualScale, setManualScale] = useState(1);
   const effectiveScale = autoScale * manualScale;
@@ -583,64 +584,112 @@ export default function GeneratorPage() {
     if (!editableDivRef.current) return;
 
     const updateSmartBreaksAndHeight = () => {
+      if (isAdjustingBreakRef.current) return;
+      isAdjustingBreakRef.current = true;
+
       const container = editableDivRef.current;
-      if (!container) return;
-
-      const scrollH = container.scrollHeight || 1122;
-      const PAGE_HEIGHT_PX = 1122;
-
-      if (scrollH <= PAGE_HEIGHT_PX) {
-        setVisualBreakPositions([]);
-        setA4PageHeightInPx(PAGE_HEIGHT_PX);
+      if (!container) {
+        isAdjustingBreakRef.current = false;
         return;
       }
 
-      // Query all breakable block elements inside container
-      const elements = Array.from(container.querySelectorAll<HTMLElement>(
-        'tr, .avoid-break, .card, .formula-card, .rule-card, .example-card, .exercise-card, .pedagogical-card, .framed-card, .solution-card, .summary-box, .callout-box, .illustration, .diagram, p, blockquote, table, h1, h2, h3'
-      ));
+      // Remove existing smart spacers to measure natural document flow
+      const existingSpacers = Array.from(container.querySelectorAll('.smart-page-spacer'));
+      existingSpacers.forEach(s => s.remove());
+
+      const PAGE_HEIGHT_PX = 1122; // Standard A4 height at 96 DPI
+      const scrollH = container.scrollHeight || PAGE_HEIGHT_PX;
+
+      if (scrollH <= PAGE_HEIGHT_PX + 20) {
+        setVisualBreakPositions([]);
+        setA4PageHeightInPx(PAGE_HEIGHT_PX);
+        isAdjustingBreakRef.current = false;
+        return;
+      }
+
+      // Helper to find the deepest block element straddling targetY
+      const findBreakCandidate = (parent: HTMLElement, tY: number, containerTop: number): HTMLElement | null => {
+        const children = Array.from(parent.children) as HTMLElement[];
+        if (children.length === 0) return parent;
+
+        for (const child of children) {
+          if (child.classList.contains('smart-page-spacer')) continue;
+          const rect = child.getBoundingClientRect();
+          const cTop = rect.top - containerTop;
+          const cBottom = rect.bottom - containerTop;
+
+          // If child straddles tY
+          if (cTop < tY - 4 && cBottom > tY + 4) {
+            // If child has children and is not an atomic visual block (like TR, TABLE, SVG, IMG, FIGURE)
+            if (child.children.length > 0 && !['TR', 'TABLE', 'SVG', 'IMG', 'FIGURE'].includes(child.tagName)) {
+              const deeper = findBreakCandidate(child, tY, containerTop);
+              if (deeper) {
+                // If deeper candidate's top is very close to child's top (e.g. title of a card), prefer the child card itself!
+                const deeperRect = deeper.getBoundingClientRect();
+                const deeperTop = deeperRect.top - containerTop;
+                if (deeperTop - cTop < 35 && cTop > tY - 200) {
+                  return child;
+                }
+                return deeper;
+              }
+            }
+            return child;
+          } else if (cTop >= tY - 4) {
+            // Child starts right at or after tY
+            return child;
+          }
+        }
+        return null;
+      };
 
       const breaks: number[] = [];
-      let currentTargetY = PAGE_HEIGHT_PX;
-      const containerRect = container.getBoundingClientRect();
+      let pageIndex = 1;
+      let targetY = PAGE_HEIGHT_PX;
+      let guard = 0;
 
-      while (currentTargetY < scrollH - 40) {
-        let bestBreakY = currentTargetY;
+      while (targetY < container.scrollHeight - 30 && guard < 25) {
+        guard++;
+        const containerRect = container.getBoundingClientRect();
+        const candidate = findBreakCandidate(container, targetY, containerRect.top);
 
-        // Check if any element straddles the currentTargetY boundary
-        for (const el of elements) {
-          const rect = el.getBoundingClientRect();
-          const elTop = rect.top - containerRect.top;
-          const elBottom = rect.bottom - containerRect.top;
+        if (candidate && candidate !== container) {
+          const candRect = candidate.getBoundingClientRect();
+          const candTop = candRect.top - containerRect.top;
 
-          if (elTop < currentTargetY - 15 && elBottom > currentTargetY + 5) {
-            const style = window.getComputedStyle(el);
-            const avoidsBreak = style.breakInside === 'avoid' || 
-                                style.pageBreakInside === 'avoid' || 
-                                el.classList.contains('avoid-break') ||
-                                ['TR', 'IMG', 'SVG', 'TABLE', 'P', 'FIGURE'].includes(el.tagName) ||
-                                el.className.includes('card') ||
-                                el.className.includes('box');
+          // If candidate starts before targetY, insert a spacer before it to push it past targetY
+          if (candTop < targetY - 2) {
+            const pushHeight = Math.max(14, Math.round((targetY - candTop) + 16));
+            
+            const spacer = document.createElement('div');
+            spacer.className = 'smart-page-spacer';
+            spacer.setAttribute('data-page', String(pageIndex));
+            spacer.style.cssText = `height: ${pushHeight}px; width: 100%; clear: both; display: block; pointer-events: none; margin: 0; padding: 0;`;
 
-            if (avoidsBreak && elTop > (breaks[breaks.length - 1] || 0) + 120) {
-              bestBreakY = elTop;
-              break;
+            if (candidate.tagName === 'TR') {
+              const parentTable = candidate.closest('table');
+              if (parentTable) {
+                parentTable.parentNode?.insertBefore(spacer, parentTable);
+              } else {
+                candidate.parentNode?.insertBefore(spacer, candidate);
+              }
+            } else {
+              candidate.parentNode?.insertBefore(spacer, candidate);
             }
           }
         }
 
-        const lastBreak = breaks[breaks.length - 1] || 0;
-        if (bestBreakY <= lastBreak + 120) {
-          bestBreakY = lastBreak + PAGE_HEIGHT_PX;
-        }
-
-        breaks.push(Math.round(bestBreakY));
-        currentTargetY = bestBreakY + PAGE_HEIGHT_PX;
+        breaks.push(targetY);
+        pageIndex++;
+        targetY = pageIndex * PAGE_HEIGHT_PX;
       }
 
       setVisualBreakPositions(breaks);
-      const pageCount = breaks.length + 1;
-      setA4PageHeightInPx(Math.max(scrollH, pageCount * PAGE_HEIGHT_PX));
+      const totalPages = breaks.length + 1;
+      setA4PageHeightInPx(totalPages * PAGE_HEIGHT_PX);
+
+      setTimeout(() => {
+        isAdjustingBreakRef.current = false;
+      }, 80);
     };
 
     updateSmartBreaksAndHeight();

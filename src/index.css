@@ -294,6 +294,24 @@ input[type="text"]:focus, select:focus, textarea:focus {
   animation: floatUpFade 2.5s forwards ease-out;
 }
 
+.smart-page-spacer {
+  width: 100%;
+  clear: both;
+  display: block;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+@media print {
+  .smart-page-spacer {
+    page-break-before: always !important;
+    break-before: page !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
 /* Watermark styles to prevent page break issues */
 .watermark-bg {
   position: absolute;
