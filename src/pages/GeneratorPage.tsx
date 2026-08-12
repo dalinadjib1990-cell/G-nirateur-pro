@@ -271,6 +271,7 @@ export default function GeneratorPage() {
   const editableDivRef = useRef<HTMLDivElement>(null);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
   const [a4PageHeightInPx, setA4PageHeightInPx] = useState(1122);
+  const [visualBreakPositions, setVisualBreakPositions] = useState<number[]>([]);
   const [autoScale, setAutoScale] = useState(1);
   const [manualScale, setManualScale] = useState(1);
   const effectiveScale = autoScale * manualScale;
@@ -577,21 +578,74 @@ export default function GeneratorPage() {
     };
   }, []);
 
-  // Measure A4 page height dynamically for accurate multi-page preview and PDF layout
+  // Measure A4 page height dynamically and calculate content-aware page break lines
   useEffect(() => {
-    if (!a4PageRef.current) return;
+    if (!editableDivRef.current) return;
 
-    const updateA4Height = () => {
-      if (a4PageRef.current) {
-        const scrollH = a4PageRef.current.scrollHeight || 1122;
-        const roundedPages = Math.max(1, Math.ceil(scrollH / 1122));
-        setA4PageHeightInPx(roundedPages * 1122);
+    const updateSmartBreaksAndHeight = () => {
+      const container = editableDivRef.current;
+      if (!container) return;
+
+      const scrollH = container.scrollHeight || 1122;
+      const PAGE_HEIGHT_PX = 1122;
+
+      if (scrollH <= PAGE_HEIGHT_PX) {
+        setVisualBreakPositions([]);
+        setA4PageHeightInPx(PAGE_HEIGHT_PX);
+        return;
       }
+
+      // Query all breakable block elements inside container
+      const elements = Array.from(container.querySelectorAll<HTMLElement>(
+        'tr, .avoid-break, .card, .formula-card, .rule-card, .example-card, .exercise-card, .pedagogical-card, .framed-card, .solution-card, .summary-box, .callout-box, .illustration, .diagram, p, blockquote, table, h1, h2, h3'
+      ));
+
+      const breaks: number[] = [];
+      let currentTargetY = PAGE_HEIGHT_PX;
+      const containerRect = container.getBoundingClientRect();
+
+      while (currentTargetY < scrollH - 40) {
+        let bestBreakY = currentTargetY;
+
+        // Check if any element straddles the currentTargetY boundary
+        for (const el of elements) {
+          const rect = el.getBoundingClientRect();
+          const elTop = rect.top - containerRect.top;
+          const elBottom = rect.bottom - containerRect.top;
+
+          if (elTop < currentTargetY - 15 && elBottom > currentTargetY + 5) {
+            const style = window.getComputedStyle(el);
+            const avoidsBreak = style.breakInside === 'avoid' || 
+                                style.pageBreakInside === 'avoid' || 
+                                el.classList.contains('avoid-break') ||
+                                ['TR', 'IMG', 'SVG', 'TABLE', 'P', 'FIGURE'].includes(el.tagName) ||
+                                el.className.includes('card') ||
+                                el.className.includes('box');
+
+            if (avoidsBreak && elTop > (breaks[breaks.length - 1] || 0) + 120) {
+              bestBreakY = elTop;
+              break;
+            }
+          }
+        }
+
+        const lastBreak = breaks[breaks.length - 1] || 0;
+        if (bestBreakY <= lastBreak + 120) {
+          bestBreakY = lastBreak + PAGE_HEIGHT_PX;
+        }
+
+        breaks.push(Math.round(bestBreakY));
+        currentTargetY = bestBreakY + PAGE_HEIGHT_PX;
+      }
+
+      setVisualBreakPositions(breaks);
+      const pageCount = breaks.length + 1;
+      setA4PageHeightInPx(Math.max(scrollH, pageCount * PAGE_HEIGHT_PX));
     };
 
-    updateA4Height();
-    const observer = new ResizeObserver(updateA4Height);
-    observer.observe(a4PageRef.current);
+    updateSmartBreaksAndHeight();
+    const observer = new ResizeObserver(updateSmartBreaksAndHeight);
+    observer.observe(editableDivRef.current);
     return () => observer.disconnect();
   }, [generatedHtml, pageFrame, previewFontSize, canvasShapes]);
 
@@ -2860,13 +2914,16 @@ ${framedContent}
                   />
 
                   {/* Visual Page Break Indicators for multi-page documents */}
-                  {Array.from({ length: Math.max(0, Math.floor(a4PageHeightInPx / 1122) - 1) }).map((_, idx) => (
+                  {visualBreakPositions.map((breakTop, idx) => (
                     <div 
                       key={idx} 
-                      className="absolute left-0 right-0 border-b-2 border-dashed border-rose-400/80 pointer-events-none z-30 flex justify-end pr-3"
-                      style={{ top: `${(idx + 1) * 1122}px` }}
+                      className="absolute left-0 right-0 border-b-2 border-dashed border-rose-500/90 pointer-events-none z-30 flex justify-between items-center px-4"
+                      style={{ top: `${breakTop}px` }}
                     >
-                      <span className="bg-rose-500 text-white text-[11px] px-2 py-0.5 rounded-b font-bold shadow-md">
+                      <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded font-bold shadow-md">
+                        بداية الصفحة {idx + 2}
+                      </span>
+                      <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded font-bold shadow-md">
                         نهاية الصفحة {idx + 1}
                       </span>
                     </div>
