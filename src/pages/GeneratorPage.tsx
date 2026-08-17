@@ -598,11 +598,6 @@ export default function GeneratorPage() {
 
       const containerRect = container.getBoundingClientRect();
 
-      // Query all block elements inside container that shouldn't be split awkwardly
-      const elements = Array.from(container.querySelectorAll<HTMLElement>(
-        '.card, .exercise-card, .pedagogical-card, .framed-card, .formula-card, .rule-card, .example-card, .callout-box, .callout, .solution-card, .summary-box, .question-block, .avoid-break, table, tr, p, ul, ol, blockquote, figure, .illustration, .diagram, h1, h2, h3, h4'
-      ));
-
       const breaks: number[] = [];
       let lastBreakY = 0; // Top of current page in container coordinates
       let guard = 0;
@@ -611,40 +606,49 @@ export default function GeneratorPage() {
         guard++;
         const targetBoundary = lastBreakY + PAGE_HEIGHT_PX;
         let bestBreakY = targetBoundary;
-        let straddlingFound = false;
 
-        for (const el of elements) {
+        // Query all candidate elements that shouldn't be split awkwardly across a page cut
+        const allCandidates = Array.from(container.querySelectorAll<HTMLElement>(
+          '.card, .exercise-card, .pedagogical-card, .framed-card, .formula-card, .rule-card, .example-card, .callout-box, .callout, .solution-card, .summary-box, .question-block, .avoid-break, table, tr, p, div, ul, ol, li, blockquote, figure, .illustration, .diagram, h1, h2, h3, h4, h5, h6'
+        ));
+
+        // Find the deepest / closest element that straddles targetBoundary
+        let chosenCandidate: HTMLElement | null = null;
+        let chosenTop = -1;
+
+        for (const el of allCandidates) {
           const rect = el.getBoundingClientRect();
           const elTop = Math.round(rect.top - containerRect.top);
           const elBottom = Math.round(rect.bottom - containerRect.top);
 
           // Does el straddle the target boundary?
-          if (elTop < targetBoundary - 6 && elBottom > targetBoundary + 6) {
-            // Can we break at elTop? (It must be significantly below lastBreakY)
+          if (elTop < targetBoundary - 4 && elBottom > targetBoundary + 4) {
+            // Ensure this element starts well below the start of the current page
             if (elTop > lastBreakY + 80) {
-              bestBreakY = elTop;
-              straddlingFound = true;
-              break; // Pick the first/top-most block straddling targetBoundary
-            } else if (elBottom > targetBoundary + 6) {
-              // The outer element started near top of page, look for internal children (like tr or p)
-              const children = Array.from(el.querySelectorAll<HTMLElement>('tr, p, li, .question-block, blockquote, .formula-card'));
-              for (const child of children) {
-                const cRect = child.getBoundingClientRect();
-                const cTop = Math.round(cRect.top - containerRect.top);
-                const cBottom = Math.round(cRect.bottom - containerRect.top);
-                if (cTop < targetBoundary - 6 && cBottom > targetBoundary + 6 && cTop > lastBreakY + 80) {
-                  bestBreakY = cTop;
-                  straddlingFound = true;
-                  break;
-                }
+              // We prefer the element whose top is closest to targetBoundary (highest elTop)
+              // to avoid creating large empty white areas while guaranteeing no line cuts
+              if (elTop > chosenTop) {
+                chosenTop = elTop;
+                chosenCandidate = el;
               }
-              if (straddlingFound) break;
             }
           }
         }
 
-        // If no straddling element found or bestBreakY didn't advance sufficiently
-        if (bestBreakY <= lastBreakY + 80) {
+        if (chosenCandidate && chosenTop > lastBreakY + 80) {
+          // If the element is a table row <tr> or inside a row, align to the top of the table row
+          if (chosenCandidate.tagName === 'TR' || chosenCandidate.closest('tr')) {
+            const tr = (chosenCandidate.tagName === 'TR' ? chosenCandidate : chosenCandidate.closest('tr')) as HTMLElement;
+            if (tr) {
+              const trRect = tr.getBoundingClientRect();
+              const trTop = Math.round(trRect.top - containerRect.top);
+              if (trTop > lastBreakY + 80) {
+                chosenTop = trTop;
+              }
+            }
+          }
+          bestBreakY = chosenTop - 4; // Clean gap above the element
+        } else {
           bestBreakY = targetBoundary;
         }
 
