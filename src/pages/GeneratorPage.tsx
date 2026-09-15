@@ -2927,10 +2927,11 @@ ${framedContent}
               <div style={{ width: 794 * effectiveScale, height: a4PageHeightInPx * effectiveScale, position: 'relative' }}>
                 <div 
                   ref={a4PageRef}
-                  className={`a4-page print-area bg-white text-black outline-none transition-transform duration-200 ease-out absolute top-0 left-0 overflow-visible style-${activeStyleDef.id.replace(/_/g, '-')} frame-${activeStyleDef.frameType}`}
+                  className={`a4-page print-area text-black outline-none transition-transform duration-200 ease-out absolute top-0 left-0 overflow-visible style-${activeStyleDef.id.replace(/_/g, '-')} frame-${activeStyleDef.frameType}`}
                   style={{
                     fontFamily: activeStyleDef.fontFamily,
                     fontSize: `${previewFontSize}px`,
+                    '--page-bg': activeStyleDef.bgCss || activeStyleDef.tokens.background || '#ffffff',
                     '--doc-color': docColor || activeStyleDef.tokens.primary,
                     '--style-primary': activeStyleDef.tokens.primary,
                     '--style-secondary': activeStyleDef.tokens.secondary,

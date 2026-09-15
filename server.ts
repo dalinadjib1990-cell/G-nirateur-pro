@@ -108,114 +108,95 @@ async function startServer() {
 
 function getDesignStyleInstructions(designStyle: string): string {
   switch (designStyle) {
-    case 'style1': // كلاسيكي
-      return `🎨 **توجيهات ستايل 1 (كلاسيكي - Classic Royal Blue Workbook)**:
-         - **الهوية البصرية**: كلاسيكي أنيق، منظم، رسم للدفاتر التربوية المعتمدة بلمسات زرقاء ملكية رصينة.
-         - **الألوان**: الأزرق الملكي (#1e40af)، الأزرق الفاتح (#eff6ff)، الحواف (#93c5fd).
-         - **الترويسة والبطاقات**: ترويسة علوية فاخرة بخلفية أزرق ملكي (background-color: #1e40af; color: #ffffff; padding: 16px; border-radius: 8px; margin-bottom: 16px;). البطاقات مؤطرة (border: 1.5px solid #1e40af; border-radius: 8px; padding: 14px; margin-bottom: 14px; background-color: #ffffff; box-shadow: 0 2px 4px rgba(30,64,175,0.06);).
-         - **شارات العناوين والأيقونات**: شارات زرقاء ملكية (background-color: #1e40af; color: #ffffff; padding: 6px 16px; font-weight: bold; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; margin-bottom: 10px;).
-         - **صناديق القواعد والحوصلة**: (background-color: #eff6ff; border: 1.5px solid #93c5fd; border-right: 5px solid #1e40af; border-radius: 8px; padding: 12px 16px; margin: 12px 0;). مع رمز 💡 للقوانين و🎯 للحوصلة.
-         - **التنسيق الجانبي والرسومات**: عند وجود شكل أو مخطط بصري، استخدم تنسيقاً مرناً يضع الشكل داخل بطاقة بجانب النص الشارح (display: flex; gap: 16px; align-items: center; flex-wrap: wrap;).`;
+    case 'royal_academy':
+    case 'style1':
+      return `🎨 **توجيهات ستايل 01 — اللوح التعليمي ثلاثي الأبعاد (3D Educational Board)**:
+         - **الهوية البصرية**: لوح مدرسي عائم ذو عمق ثلاثي الأبعاد حقيقي، أطر زجاجية، براغي تثبيت معدنية في الأركان ⚪، بطاقات عائمة بظلال واقعية.
+         - **المفاهيم البصرية**: عند الأعداد النسبية والعمليات، اعرض كرات ثلاثية الأبعاد خضراء (+) وحمراء (-) مع أسهم حركة الاتجاه ونتائج العمليات (مثل Reference 2: (+3) × (-4) = (-12)).
+         - **البطاقات**: بطاقات بيضاء ملساء مع شريط بروز سفلي وشارات كبسولية ثلاثية الأبعاد (border: 2px solid #0f274a; border-radius: 12px; box-shadow: 0 10px 25px rgba(15,39,74,0.12); padding: 14px; background: #ffffff;).
+         - **صناديق القواعد**: بطاقة قاعدة زجاجية بشارة بارزة مذهبة (background: #fffbeb; border: 2px solid #f59e0b; border-radius: 12px; box-shadow: inset 0 2px 4px rgba(245,158,11,0.1);).`;
 
-    case 'style5': // داكن
-      return `🎨 **توجيهات ستايل 5 (داكن رمادي - Slate Navy Executive Workbook)**:
-         - **الهوية البصرية**: عالي التباين، حاد، تنفيذي، رسم للطباعة الكحلية والفضية عالية الوضوح بشخصية جادة.
-         - **الألوان**: الكحلي والرمادي الداكن (#1e293b / #334155)، الخلفية الشفافة (#f8fafc)، الحواف (#cbd5e1).
-         - **الترويسة والبطاقات**: ترويسة كحلية داكنة (background-color: #1e293b; color: #ffffff; padding: 16px; border-radius: 6px; margin-bottom: 16px;). بطاقات بإطار داكن متين (border: 1.5px solid #334155; border-radius: 6px; padding: 14px; margin-bottom: 14px; background-color: #ffffff;).
-         - **شارات العناوين والأيقونات**: شارات كحلية داكنة (background-color: #1e293b; color: #ffffff; padding: 6px 14px; border-radius: 4px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;).
-         - **صناديق القواعد والحوصلة**: (background-color: #f8fafc; border: 1.5px solid #cbd5e1; border-right: 5px solid #1e293b; border-radius: 6px; padding: 12px 16px; margin: 12px 0;). مع أيقونات بيداغوجية صريحة.
-         - **التنسيق الجانبي والرسومات**: إبراز المخططات والأشكال الرياضية بحدود كحلية دقيقة عالية التباين.`;
+    case 'orange_active':
+    case 'style10':
+      return `🎨 **توجيهات ستايل 02 — الإنفوجرافيك الرياضي الملون (Colorful Math Infographic)**:
+         - **الهوية البصرية**: مستوحى من إنفوجرافيك الرياضيات الحديث (Reference 3)، شبكة مربعات بيانية دافئة، عقدة مفهوم مركزية متفرعة، أسهم وأنابيب ربط بصرية ملونة.
+         - **المفاهيم البصرية**: عند الكسور، أدرج أشرطة كسور مستطيلة مقسمة ملونة أو قطاعات دائرية بالـ SVG. عند العمليات، أدرج مخطط شجري لخطوات الحساب.
+         - **البطاقات**: بطاقات إنفوجرافيك برتقالية زاهية مع زوايا دائرية (border: 2px solid #ea580c; border-radius: 14px; background: #ffffff; padding: 14px; box-shadow: 0 6px 20px rgba(234,88,12,0.12);).
+         - **شارات العناوين**: كبسولات ملونة عريضة مع أيقونة دائرية بارزة.`;
 
-    case 'style2': // إبداعي
-      return `🎨 **توجيهات ستايل 2 (إبداعي بنفسجي - Creative Violet Workbook)**:
-         - **الهوية البصرية**: إبداعي، حافل بالحيوية، عصري وجذاب ببطاقات وشارات منحنية وتدرجات بنفسجية ناعمة.
-         - **الألوان**: البنفسجي الملكي (linear-gradient(135deg, #7e22ce, #4338ca))، الخلفية الناعمة (#faf5ff)، الحواف (#d8b4fe).
-         - **الترويسة والبطاقات**: ترويسة متدرجة بنفسجية. بطاقات بحواف منحنية وجذابة (border: 1.5px solid #a855f7; border-radius: 12px; padding: 16px; margin-bottom: 16px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(168,85,247,0.08);).
-         - **شارات العناوين والأيقونات**: كبسولة دائرية (background: linear-gradient(135deg, #7e22ce, #6366f1); color: #ffffff; padding: 6px 18px; border-radius: 20px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;).
-         - **صناديق القواعد والحوصلة**: (background-color: #faf5ff; border: 1.5px solid #d8b4fe; border-radius: 12px; padding: 12px 16px; margin: 12px 0;). مع لمسات أيقونات مبتكرة 💡 📌 🎯 ✍️.
-         - **التنسيق الجانبي والرسومات**: تصميم بطاقات بصرية مزدوجة بجانب بعضها البعض مع إيضاحات SVG ملونة.`;
+    case 'math_pro':
+    case 'style13':
+      return `🎨 **توجيهات ستايل 03 — المخطط الهندسي الأزرق (Educational Blueprint)**:
+         - **الهوية البصرية**: مخطط معماري وتقني، خلفية شبكة رسم بياني ميليمترية زرقاء، خطوط تقنية، زوايا قائمة ⦜، محاور إحداثيات (x, y)، وتأطير مهندسين دقيق.
+         - **المفاهيم البصرية**: عند الهندسة (مثلثات، متطابقات، مساحات)، أدرج أشكالاً هندسية دقيقة بالـ SVG مع رموز الزوايا القائمة وتسمية الرؤوس والأضلاع (Reference 5).
+         - **البطاقات**: بطاقات تقنية بأركان حادة أو نصف قطر 2px، حدود كحلية وسماوية مزدوجة، وترميزات تقنية مثل [SEC-01 // RULE] و [MATH-DZ // SCALE: 1:1].`;
 
-    case 'style3': // عصري
-      return `🎨 **توجيهات ستايل 3 (عصري زمردي - Modern Emerald Teal Workbook)**:
-         - **الهوية البصرية**: حداثي، مريح للعين، منعش ومنظم بلمسات التيل والزمرد الطبيعي.
-         - **الألوان**: الزمردي والتيل المشرق (linear-gradient(135deg, #059669, #0d9488))، الخلفية (#f0fdf4)، الحواف (#a7f3d0).
-         - **الترويسة والبطاقات**: ترويسة زمرّدية ناعمة. بطاقات (border: 1.5px solid #10b981; border-radius: 10px; padding: 14px; margin-bottom: 14px; background-color: #ffffff; box-shadow: 0 2px 8px rgba(16,185,129,0.08);).
-         - **شارات العناوين والأيقونات**: شارة كبسولية زمردية (background-color: #059669; color: #ffffff; padding: 6px 16px; border-radius: 8px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;).
-         - **صناديق القواعد والحوصلة**: (background-color: #f0fdf4; border: 1.5px solid #a7f3d0; border-right: 5px solid #059669; border-radius: 10px; padding: 12px 16px; margin: 12px 0;).
-         - **التنسيق الجانبي والرسومات**: ربط المفاهيم والرسومات الرياضية بشريط تسلسلي زمردي جذاب.`;
+    case 'emerald_school':
+    case 'style3':
+      return `🎨 **توجيهات ستايل 04 — الكتاب المدرسي الفاخر (Premium Published Textbook)**:
+         - **الهوية البصرية**: كتاب مدرسي منشور ومطبوع من أرقى دور النشر (Reference 4 & 5)، أطر مطبوعة بزخارف أنيقة في الأركان، شريط عنوان الفصل الملكي، وتبويبات تمارين مسننة (Ribbon-cut tabs).
+         - **المفاهيم البصرية**: صناديق مبرهنات نموذجية بلون زمردي وذهبي، شروحات متقابلة (عمودان متجاوران: التوضيح الهندسي | البرهان الجبري)، وصناديق حلول نموذجية.
+         - **البطاقات**: بطاقات كتاب مدرسي بإطار مزدوج (border: 2px solid #065f46; border-radius: 6px; background: #ffffff; padding: 14px;). شارة التمرين تظهر كشريط مميز (التمرين الأول ★ تطبيق مباشر).`;
 
-    case 'style6': // هندسي
-      return `🎨 **توجيهات ستايل 6 (تقني هندسي - Geometric Cyan Tech Workbook)**:
-         - **الهوية البصرية**: دقيق، رياضي، تقني بخطوط وتقسيمات هندسية واضحة جداً.
-         - **الألوان**: الأزرق السماوي التقني (#0891b2 / #0284c7)، الخلفية (#ecfeff)، الحواف (#a5f3fc).
-         - **الترويسة والبطاقات**: ترويسة أزرق سماوي تقنية. بطاقات (border: 1.5px solid #0891b2; border-radius: 6px; padding: 14px; margin-bottom: 14px; background-color: #ffffff;).
-         - **شارات العناوين والأيقونات**: شريط هندسي بزوايا تقنية (background-color: #0891b2; color: #ffffff; padding: 6px 16px; font-weight: bold; border-left: 4px solid #0e7490; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;).
-         - **صناديق القواعد والحوصلة**: (background-color: #ecfeff; border: 1.5px solid #a5f3fc; border-right: 5px solid #0891b2; border-radius: 6px; padding: 12px 16px; margin: 12px 0;).
-         - **الرسومات التوضيحية**: إدراج أشكال هندسية، شبكات بيانية، أو مخططات قسمة هندسية ودائرية بإنلاين SVG تقني متقن.`;
+    case 'power_red':
+    case 'style5':
+      return `🎨 **توجيهات ستايل 05 — التعلم التفاعلي والألعاب (Gamified Education)**:
+         - **الهوية البصرية**: نظام مغامرة وتحدي بيداغوجي! تحويل مراحل الدرس إلى مستويات:
+           * المستوى 1: مرحلة الانطلاق والتحمية 🚀 (+50 XP)
+           * المستوى 2: تحدي الكفاءة والمهارة ⚡ (+100 XP)
+           * المستوى 3: مرحلة الأبطال والإتقان 🏆 (+200 XP)
+         - **المفاهيم البصرية**: شريط تقدم المهمة، نجوم الإنجاز (★★★)، شارات نقاط الخبرة (XP Badges)، وبطاقات مهارات خارقة للقواعد المستنتجة.
+         - **البطاقات**: بطاقات تفاعلية بحواف دائرية (border: 2px solid #dc2626; border-radius: 16px; background: #ffffff; padding: 14px; box-shadow: 0 6px 18px rgba(220,38,38,0.15);).`;
 
-    case 'style7': // مرح
-      return `🎨 **توجيهات ستايل 7 (مرح مبهج - Playful Magenta Pink Workbook)**:
-         - **الهوية البصرية**: مبهج، محفز، دافئ ومناسب للمراحل الأولى والتعليم الابتدائي بالتفاعلية.
-         - **الألوان**: الوردي والماجندا الزاهي (linear-gradient(135deg, #db2777, #e11d48))، الخلفية (#fdf2f8)، الحواف (#fbcfe8).
-         - **الترويسة والبطاقات**: ترويسة وردية زاهية. بطاقات دائرية الحواف (border: 2px solid #f472b6; border-radius: 16px; padding: 16px; margin-bottom: 16px; background-color: #ffffff;).
-         - **شارات العناوين والأيقونات**: كبسولة دائرية مبهجة (background-color: #db2777; color: #ffffff; padding: 6px 20px; border-radius: 25px; font-weight: bold; display: inline-flex; align-items: center; gap: 8px;).
-         - **صناديق القواعد والحوصلة**: (background-color: #fdf2f8; border: 1.5px solid #fbcfe8; border-radius: 14px; padding: 12px 16px; margin: 12px 0;). مع أيقونات نجوم ورموز مبهجة 🌟 💡 🎯.`;
+    case 'smart_tech':
+    case 'style6':
+      return `🎨 **توجيهات ستايل 06 — التعليم الرقمي والذكاء الاصطناعي (Smart AI Education)**:
+         - **الهوية البصرية**: واجهة سيبرانية رقمية مستقبلية، ألوان السيان النيوني والبنفسجي الرقمي، شبكات بيانات كوانتومية، وشارات HUD.
+         - **المفاهيم البصرية**: كبسولات توجيه الذكاء الاصطناعي (🤖 إرشاد المعلم الذكي: ...)، بطاقات تحليل الخطوات، ومخططات تدفق رقمية بالـ SVG.
+         - **البطاقات**: بطاقات HUD رقمية بإطار سيان وبنفسجي علوي (border: 1.5px solid #0284c7; border-top: 5px solid #6366f1; border-radius: 8px; background: #ffffff; padding: 14px;).`;
 
-    case 'style8': // أكاديمي
-      return `🎨 **توجيهات ستايل 8 (أكاديمي موجه - Formal Academic Indigo Workbook)**:
-         - **الهوية البصرية**: فخم، رفيع المستوى، أكاديمي موجه للطور الثانوي والجامعي بشخصية متميزة.
-         - **الألوان**: الأزرق النيلي العميق (#3730a3 / #4f46e5)، الخلفية (#eef2ff)، الحواف (#c7d2fe).
-         - **الترويسة والبطاقات**: ترويسة نيلية عميقة بحافة سفيلية بنفسجية. بطاقات (border: 1.5px solid #4f46e5; border-radius: 8px; padding: 14px; margin-bottom: 14px; background-color: #ffffff;).
-         - **شارات العناوين والأيقونات**: (background-color: #3730a3; color: #ffffff; padding: 6px 16px; font-weight: bold; border-bottom: 3px solid #a855f7; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;).
-         - **صناديق القواعد والحوصلة**: (background-color: #eef2ff; border: 1.5px solid #c7d2fe; border-right: 5px solid #3730a3; border-radius: 8px; padding: 12px 16px; margin: 12px 0;).`;
+    case 'teaching_cards':
+    case 'style9':
+      return `🎨 **توجيهات ستايل 07 — دفتر الأنشطة الملموس 3D (Notebook 3D)**:
+         - **الهوية البصرية**: يحاكي دفتر التلميذ الحقيقي الملموس (Reference 1)! خلفية ورق مربعات كراس، حلقات سلك الدفتر العلوية، قصاصات مثبتة بدبابيس ملونة 📌، وأوراق ملاحظات صفراء لاصقة مائلة بشريط لاصق 45°.
+         - **المفاهيم البصرية**: قواعد الدرس تُكتب داخل بطاقة بوست-إت صفراء مع دبوس 📌، وتطبيقات الحساب داخل مربعات شبكة الدفتر.
+         - **البطاقات**: بطاقات كراس مدرسية (border: 1.5px solid #cbd5e1; border-radius: 8px; background: #fffef5; box-shadow: 0 8px 18px rgba(0,0,0,0.08); padding: 14px;).`;
 
-    case 'style9': // ناعم
-      return `🎨 **توجيهات ستايل 9 (ناعم مرجاني - Soft Rose Coral Workbook)**:
-         - **الهوية البصرية**: ناعم، مريح جداً للعين، أنيق وجذاب بظلال خفيفة وخطوط ناعمة.
-         - **الألوان**: الوردي المرجاني الناعم (#e11d48 / #fb7185)، الخلفية (#fff1f2)، الحواف (#fecdd3).
-         - **الترويسة والبطاقات**: ترويسة مرجانية ناعمة. بطاقات (border: 1.5px solid #fda4af; border-radius: 12px; padding: 14px; margin-bottom: 14px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(225,29,72,0.05);).
-         - **شارات العناوين والأيقونات**: (background-color: #e11d48; color: #ffffff; padding: 6px 18px; border-radius: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;).
-         - **صناديق القواعد والحوصلة**: (background-color: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 10px; padding: 12px 16px; margin: 12px 0;).`;
+    case 'education_pro':
+    case 'style8':
+      return `🎨 **توجيهات ستايل 08 — الكتل اللونية الحديثة (Color Block Education)**:
+         - **الهوية البصرية**: أسلوب بوهوسي حديث، كتل ومساحات لونية صلبة متناغمة، أرقام أقسام وتمارين عملاقة (01، 02، 03) بخطوط عريضة جداً، تقسيم بنتو-جريد واضح.
+         - **المفاهيم البصرية**: كتل معلومات مقسمة أفقياً وعمودياً مع تباين قوي وسهل المتابعة البصرية بالعين.
+         - **البطاقات**: بطاقات كتل لونية متينة (border: 1px solid #ccfbf1; border-right: 8px solid #0f766e; border-radius: 4px; background: #ffffff; padding: 14px;).`;
 
-    case 'style10': // بني / عتيق
-      return `🎨 **توجيهات ستايل 10 (بني تراثي - Vintage Amber Coffee Workbook)**:
-         - **الهوية البصرية**: دافئ، تراثي، أصيل ومناسب جداً لمواد اللغة العربية والتاريخ والشريعة.
-         - **الألوان**: بني القهوة الدافئ (#78350f / #92400e)، الخلفية الدافئة (#fffbf0 / #fef3c7)، الحواف (#fde68a).
-         - **الترويسة والبطاقات**: ترويسة بني دافئة. بطاقات (border: 1.5px solid #b45309; border-radius: 8px; padding: 14px; margin-bottom: 14px; background-color: #fffbf0;).
-         - **شارات العناوين والأيقونات**: شريطة بني تراثية (background-color: #78350f; color: #ffffff; padding: 6px 16px; font-weight: bold; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;).
-         - **صناديق القواعد والحوصلة**: (background-color: #fef3c7; border: 1.5px solid #fde68a; border-right: 5px solid #92400e; border-radius: 8px; padding: 12px 16px; margin: 12px 0;). مع أيقونات تراثية بيداغوجية 📜 💡 🎯.`;
+    case 'purple_ai':
+    case 'style2':
+      return `🎨 **توجيهات ستايل 09 — الخريطة الذهنية التعليمية (Mind Map Lesson)**:
+         - **الهوية البصرية**: هيكلة عناصر الدرس في شكل شبكة وخريطة ذهنية مرئية مترابطة، عقدة المفهوم في المنتصف وتتفرع منها مسارات ملونة ومتقوسة إلى الأهداف والقواعد والتمارين.
+         - **المفاهيم البصرية**: مسارات وأسهم رابطة بين كل مفهوم والمثال الخاص به، شارات بيضاوية ناعمة بتدرجات بنفسجية ووردية.
+         - **البطاقات**: بطاقات عقدية ناعمة ومنحنية (border: 2px solid #c084fc; border-radius: 16px; background: #faf5ff; padding: 14px; box-shadow: 0 6px 18px rgba(192,132,252,0.15);).`;
 
-    case 'style13': // خارق للعادة
-      return `🎨 **توجيهات ستايل 13 (ثلاثي الأبعاد بريميوم - 3D Ocean Sky Workbook)**:
-         - **الهوية البصرية**: مجسم ثلاثي الأبعاد، بارز وعصري جداً بطبقات ظلال وظلال جانبية.
-         - **الألوان**: الأزرق المحيطي البرّاق (linear-gradient(135deg, #0284c7, #2563eb))، الخلفية (#f0f9ff)، الحواف (#7dd3fc).
-         - **الترويسة والبطاقات**: بطاقات ثلاثية الأبعاد (border: 2px solid #0284c7; border-radius: 12px; padding: 16px; margin-bottom: 16px; background-color: #ffffff; box-shadow: 0 5px 0 #0369a1, 0 8px 15px rgba(2,132,199,0.15);).
-         - **شارات العناوين والأيقونات**: شارة ثلاثية الأبعاد (background-color: #0284c7; color: #ffffff; padding: 6px 18px; border-radius: 8px; font-weight: bold; box-shadow: 0 3px 0 #0369a1; display: inline-flex; align-items: center; gap: 6px;).
-         - **صناديق القواعد والحوصلة**: (background-color: #f0f9ff; border: 1.5px solid #7dd3fc; border-radius: 10px; padding: 12px 16px; margin: 12px 0; box-shadow: inset 0 2px 4px rgba(2,132,199,0.05);).`;
+    case 'dz_education':
+    case 'style14':
+      return `🎨 **توجيهات ستايل 10 — المنهاج الجزائري الملكي (Algerian Educational Premium)**:
+         - **الهوية البصرية**: الهوية الوطنية الرسمية المعتمدة لوزارة التربية الوطنية الجزائرية (الجيل الثاني)، ألوان العلم الوطني (الأخضر الزمردي، الأبيض الناصع، الأحمر الياقوتي)، زخارف نجمية مغاربية ثمانية ۞، وترويسة رسمية فخمة.
+         - **المفاهيم البصرية**: جدول سير الدرس البيداغوجي ذو الأعمدة الأربعة (المرحلة، المدة، سير النشاطات ودور الأستاذ والمتعلم، التقويم ومعايير النجاح)، الالتزام الصارم برموز الجيل الثاني LTR.
+         - **البطاقات**: بطاقات مؤطرة بإتقان بالأخضر الزمردي والأحمر (border: 2px solid #006633; border-top: 5px solid #006633; border-bottom: 3px solid #d21034; border-radius: 6px; background: #ffffff; padding: 14px;).`;
 
-    case 'style14': // طبيعي
-      return `🎨 **توجيهات ستايل 14 (طبيعي بيئي - Organic Nature Lime Workbook)**:
-         - **الهوية البصرية**: بيئي، طبيعي، حافل بالحيوية ومناسب لعلوم الطبيعة والحياة والجغرافيا.
-         - **الألوان**: الأخضر الليموني البيئي (linear-gradient(135deg, #65a30d, #15803d))، الخلفية (#f7fee7)، الحواف (#d9f99d).
-         - **الترويسة والبطاقات**: (border: 1.5px solid #84cc16; border-radius: 10px; padding: 14px; margin-bottom: 14px; background-color: #ffffff;).
-         - **شارات العناوين والأيقونات**: (background-color: #65a30d; color: #ffffff; padding: 6px 18px; border-radius: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;).
-         - **صناديق القواعد والحوصلة**: (background-color: #f7fee7; border: 1.5px solid #d9f99d; border-right: 5px solid #65a30d; border-radius: 10px; padding: 12px 16px; margin: 12px 0;). مع رموز بيئية وعلمية 🌱 💡 🎯.`;
+    case 'kids_smart':
+    case 'style7':
+      return `🎨 **توجيهات ستايل 11 — الابتدائي الإبداعي (Creative Primary - Number Train)**:
+         - **الهوية البصرية**: موجه للأطوار التعليمية الابتدائية والمتوسطة الصغار (Reference 1)! قاطرة وعربات قطار الأعداد، قفزات الفاصلة العشرية بالأسهم المقوسة ↷ ↷ ↷، سحابات ملونة، شارات نجوم تشجيعية، وألوان مبهجة تحبب المادة للتلميذ.
+         - **المفاهيم البصرية**: عند الضرب في 10 أو القسمة على 10، ارسم أسهم قفز المراتب بالـ SVG فوق الأرقام لإيضاح حركة الفاصلة بحسب عدد الأصفار.
+         - **البطاقات**: بطاقات سحابية مستديرة الحواف (border: 3px solid #38bdf8; border-radius: 20px; background: #fffdf5; padding: 14px; box-shadow: 0 6px 18px rgba(56,189,248,0.15);).`;
 
-    case 'style15': // ذهبي
-      return `🎨 **توجيهات ستايل 15 (ذهبي فاخر - Luxury Gold Award Workbook)**:
-         - **الهوية البصرية**: فاخر، متميز، يمنح طابع الامتياز والمستويات الرفيعة.
-         - **الألوان**: الذهبي البراق (linear-gradient(135deg, #a16207, #ca8a04, #854d0e))، الخلفية (#fefce8)، الحواف (#fef08a).
-         - **الترويسة والبطاقات**: (border: 1.5px solid #ca8a04; border-radius: 8px; padding: 14px; margin-bottom: 14px; background-color: #ffffff; box-shadow: 0 2px 8px rgba(202,138,4,0.1);).
-         - **شارات العناوين والأيقونات**: شريطة ذهبية فاخرة (background: linear-gradient(135deg, #ca8a04, #a16207); color: #ffffff; padding: 6px 18px; border-radius: 6px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;).
-         - **صناديق القواعد والحوصلة**: (background-color: #fefce8; border: 1.5px solid #fef08a; border-right: 5px solid #ca8a04; border-radius: 8px; padding: 12px 16px; margin: 12px 0;). مع لمسات امتياز ⭐ 💡 🎯.`;
-
+    case 'premium_editorial':
+    case 'style15':
     default:
-      if (designStyle && designStyle.startsWith('visual_')) {
-        return `🎨 **توجيهات ستايل تفاعلي بصري (Interactive Card Visual Workbook)**:
-         - **الهوية البصرية**: يعتمد على البطاقات التفاعلية مع خرائط الأفكار والرسومات التوضيحية لجميع المفاهيم.
-         - **البطاقات**: بطاقات واسعة ومؤطرة بإتقان مع إيقونات تعليمية ورسومات توضيحية جانبية لكل قسم.`;
-      }
-      return `🎨 **توجيهات ستايل مخصص أنيق**: استخدم بطاقات مؤطرة ونظيفة تتطابق مع لون var(--doc-color) مع زوايا منحنية وشارات عناوين ملونة وأيقونات بيداغوجية.`;
+      return `🎨 **توجيهات ستايل 12 — البوستر الإنفوجرافي الشامل (Master Infographic)**:
+         - **الهوية البصرية**: يحول ورقة المذكرة أو الاختبار إلى بوستر إنفوجرافي بيداغوجي احترافي شامل، هرمية بصرية متسلسلة (بانر ترويسة رئيسي -> مرساة المفهوم -> مسار التدفق البيداغوجي -> صندوق القوانين البارز -> أعمدة الأمثلة المقارنة -> حقل التحدي والتمارين -> شريطة الحوصلة الختامية).
+         - **المفاهيم البصرية**: إبراز العلاقات الرياضية بمخططات مقارنة، إطارات مزدوجة سوداء وزرقاء فاخرة، وخط عربي كلاسيكي رفيع.
+         - **البطاقات**: بطاقات بوستر عريضة بإطارات متينة عالية التباين (border: 2px solid #0f172a; border-radius: 8px; background: #ffffff; padding: 14px; box-shadow: 0 8px 24px rgba(15,23,42,0.1);).`;
   }
 }
 
