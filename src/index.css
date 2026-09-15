@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;700&family=Space+Grotesk:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800;900&family=Changa:wght@500;600;700;800&family=El+Messiri:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Space+Grotesk:wght@400;700&family=Tajawal:wght@400;700;800&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -334,4 +334,196 @@ input[type="text"]:focus, select:focus, textarea:focus {
   width: 500px;
   height: auto;
 }
+
+/* ==========================================================================
+   12-STYLE PEDAGOGICAL DESIGN SYSTEM
+   ========================================================================== */
+
+/* 01. Royal Academy */
+.style-royal-academy {
+  --style-font: 'Amiri', 'Traditional Arabic', serif;
+  --style-heading-font: 'Amiri', 'Cairo', serif;
+  font-family: var(--style-font);
+}
+.style-royal-academy.frame-double_gold,
+.frame-double_gold {
+  border: 4px double #c59b27 !important;
+  outline: 1px solid #0f274a !important;
+  outline-offset: -5px;
+  padding: 8mm !important;
+}
+.style-royal-academy .situation-card {
+  border-right: 6px solid #c59b27 !important;
+  background: #fdfcf7 !important;
+}
+
+/* 02. Smart Tech */
+.style-smart-tech {
+  --style-font: 'Space Grotesk', 'IBM Plex Sans Arabic', sans-serif;
+  --style-heading-font: 'Space Grotesk', 'Changa', sans-serif;
+  font-family: var(--style-font);
+}
+.style-smart-tech.frame-tech_hud,
+.frame-tech_hud {
+  border: 2px solid #0284c7 !important;
+  border-top: 6px solid #6366f1 !important;
+  border-bottom: 6px solid #06b6d4 !important;
+  border-radius: 6px;
+  padding: 8mm !important;
+}
+.style-smart-tech .situation-card {
+  border-right: 5px solid #0284c7 !important;
+  background: #f0f9ff !important;
+}
+
+/* 03. Education Pro */
+.style-education-pro {
+  --style-font: 'Cairo', 'Tajawal', sans-serif;
+  --style-heading-font: 'Cairo', sans-serif;
+  font-family: var(--style-font);
+}
+.style-education-pro.frame-side_rail,
+.frame-side_rail {
+  border: 1px solid #ccfbf1 !important;
+  border-right: 8px solid #0f766e !important;
+  border-left: 2px solid #0d9488 !important;
+  padding: 8mm !important;
+}
+
+/* 04. Emerald School */
+.style-emerald-school {
+  --style-font: 'Tajawal', 'Cairo', sans-serif;
+  --style-heading-font: 'Cairo', sans-serif;
+  font-family: var(--style-font);
+}
+.style-emerald-school.frame-emerald_ornate,
+.frame-emerald_ornate {
+  border: 3px double #065f46 !important;
+  border-radius: 12px;
+  padding: 8mm !important;
+}
+
+/* 05. Power Red */
+.style-power-red {
+  --style-font: 'Cairo', 'Changa', sans-serif;
+  --style-heading-font: 'Changa', 'Cairo', sans-serif;
+  font-family: var(--style-font);
+}
+.style-power-red.frame-power_banner,
+.frame-power_banner {
+  border: 2px solid #fecaca !important;
+  border-top: 8px solid #991b1b !important;
+  padding: 8mm !important;
+}
+
+/* 06. Purple AI */
+.style-purple-ai {
+  --style-font: 'Tajawal', 'Space Grotesk', sans-serif;
+  --style-heading-font: 'Changa', 'Cairo', sans-serif;
+  font-family: var(--style-font);
+}
+.style-purple-ai.frame-purple_digital,
+.frame-purple_digital {
+  border: 2px solid #c084fc !important;
+  border-radius: 14px;
+  padding: 8mm !important;
+}
+
+/* 07. Orange Active */
+.style-orange-active {
+  --style-font: 'Cairo', 'Almarai', sans-serif;
+  --style-heading-font: 'Cairo', 'Changa', sans-serif;
+  font-family: var(--style-font);
+}
+.style-orange-active.frame-orange_dynamic,
+.frame-orange_dynamic {
+  border: 2px solid #fdba74 !important;
+  border-right: 7px solid #ea580c !important;
+  border-radius: 8px;
+  padding: 8mm !important;
+}
+
+/* 08. Mathematics Pro */
+.style-math-pro {
+  --style-font: 'Space Grotesk', 'Cairo', sans-serif;
+  --style-heading-font: 'Space Grotesk', 'Cairo', sans-serif;
+  font-family: var(--style-font);
+}
+.style-math-pro.frame-math_grid,
+.frame-math_grid {
+  border: 2px solid #1e3a8a !important;
+  outline: 1px dashed #7dd3fc !important;
+  outline-offset: -4px;
+  padding: 8mm !important;
+}
+
+/* 09. Teaching Cards */
+.style-teaching-cards {
+  --style-font: 'IBM Plex Sans Arabic', 'Cairo', sans-serif;
+  --style-heading-font: 'Cairo', sans-serif;
+  font-family: var(--style-font);
+}
+.style-teaching-cards.frame-cards_modular,
+.frame-cards_modular {
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 16px;
+  padding: 8mm !important;
+}
+
+/* 10. DZ Education */
+.style-dz-education {
+  --style-font: 'Amiri', 'Tajawal', serif;
+  --style-heading-font: 'Amiri', 'Cairo', serif;
+  font-family: var(--style-font);
+}
+.style-dz-education.frame-dz_geometric,
+.frame-dz_geometric {
+  border: 3px solid #047857 !important;
+  border-top: 6px solid #047857 !important;
+  border-bottom: 4px solid #b91c1c !important;
+  padding: 8mm !important;
+}
+
+/* 11. Premium Editorial */
+.style-premium-editorial {
+  --style-font: 'El Messiri', 'Amiri', serif;
+  --style-heading-font: 'El Messiri', 'Cairo', serif;
+  font-family: var(--style-font);
+}
+.style-premium-editorial.frame-editorial_rules,
+.frame-editorial_rules {
+  border-top: 4px solid #18181b !important;
+  border-bottom: 2px solid #b45309 !important;
+  border-left: none !important;
+  border-right: none !important;
+  padding: 10mm 6mm !important;
+}
+
+/* 12. Kids Smart */
+.style-kids-smart {
+  --style-font: 'Almarai', 'Changa', sans-serif;
+  --style-heading-font: 'Changa', 'Almarai', sans-serif;
+  font-family: var(--style-font);
+}
+.style-kids-smart.frame-kids_playful,
+.frame-kids_playful {
+  border: 4px solid #38bdf8 !important;
+  border-radius: 20px;
+  padding: 8mm !important;
+}
+
+/* Pedagogical Components Core Printing Rules */
+.situation-card,
+.objective-card,
+.competency-card,
+.rule-card,
+.summary-card,
+.example-card,
+.warning-card,
+.exercise-card {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+  -webkit-column-break-inside: avoid !important;
+}
+
 

@@ -12,6 +12,8 @@ import DownloadsModal from '../components/DownloadsModal';
 import SymbolBar from '../components/SymbolBar';
 import { expertChatEmitter, profileModalEmitter } from '../App';
 import { uploadImage } from '../lib/cloudinary';
+import { getStyleById, STYLES_REGISTRY, transformDocumentToStyle } from '../lib/designSystem';
+import { StyleSelector } from '../components/StyleSelector';
 
 // Simple unique ID generator
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -608,9 +610,9 @@ export default function GeneratorPage() {
         let bestBreakY = targetBoundary;
 
         // Query all candidate elements that shouldn't be split awkwardly across a page cut
-        const allCandidates = Array.from(container.querySelectorAll<HTMLElement>(
+        const allCandidates: HTMLElement[] = Array.from(container.querySelectorAll(
           '.card, .exercise-card, .pedagogical-card, .framed-card, .formula-card, .rule-card, .example-card, .callout-box, .callout, .solution-card, .summary-box, .question-block, .avoid-break, table, tr, p, div, ul, ol, li, blockquote, figure, .illustration, .diagram, h1, h2, h3, h4, h5, h6'
-        ));
+        )) as HTMLElement[];
 
         // Find the deepest / closest element that straddles targetBoundary
         let chosenCandidate: HTMLElement | null = null;
@@ -878,26 +880,24 @@ export default function GeneratorPage() {
 
   const isFreeMode = !isProUser;
 
-  let designStyles = [
-    { id: 'style1', label: 'كلاسيكي', icon: BookOpen, color: '#1e40af', twColor: 'text-blue-600', twBg: 'bg-blue-100', twBorder: 'border-blue-200' },
-    { id: 'style5', label: 'داكن', icon: Printer, color: '#334155', twColor: 'text-slate-700', twBg: 'bg-slate-200', twBorder: 'border-slate-300' },
-    { id: 'style2', label: 'إبداعي', icon: Palette, color: '#9333ea', twColor: 'text-purple-600', twBg: 'bg-purple-100', twBorder: 'border-purple-200', isPro: true },
-    { id: 'style3', label: 'عصري', icon: Sparkles, color: '#059669', twColor: 'text-emerald-600', twBg: 'bg-emerald-100', twBorder: 'border-emerald-200', isPro: true },
-    { id: 'style6', label: 'هندسي', icon: Hexagon, color: '#0891b2', twColor: 'text-cyan-600', twBg: 'bg-cyan-100', twBorder: 'border-cyan-200', isPro: true },
-    { id: 'style7', label: 'مرح', icon: Smile, color: '#db2777', twColor: 'text-pink-600', twBg: 'bg-pink-100', twBorder: 'border-pink-200', isPro: true },
-    { id: 'style8', label: 'أكاديمي', icon: GraduationCap, color: '#4f46e5', twColor: 'text-indigo-600', twBg: 'bg-indigo-100', twBorder: 'border-indigo-200', isPro: true },
-    { id: 'style9', label: 'ناعم', icon: Heart, color: '#e11d48', twColor: 'text-rose-600', twBg: 'bg-rose-100', twBorder: 'border-rose-200', isPro: true },
-    { id: 'style10', label: 'بني', icon: Coffee, color: '#92400e', twColor: 'text-orange-800', twBg: 'bg-orange-100', twBorder: 'border-orange-200', isPro: true },
-    { id: 'style13', label: 'خارق للعادة', icon: Layers, color: '#0369a1', twColor: 'text-sky-700', twBg: 'bg-sky-100', twBorder: 'border-sky-200', isPro: true },
-    { id: 'style14', label: 'طبيعي', icon: Leaf, color: '#65a30d', twColor: 'text-lime-600', twBg: 'bg-lime-100', twBorder: 'border-lime-200', isPro: true },
-    { id: 'style15', label: 'ذهبي', icon: Star, color: '#ca8a04', twColor: 'text-yellow-600', twBg: 'bg-yellow-100', twBorder: 'border-yellow-200', isPro: true }
-  ];
+  const activeStyleDef = getStyleById(designStyle);
+
+  let designStyles = STYLES_REGISTRY.map(s => ({
+    id: s.id,
+    label: s.nameAr,
+    icon: Sparkles,
+    color: s.tokens.primary,
+    twColor: 'text-indigo-600',
+    twBg: 'bg-indigo-100',
+    twBorder: 'border-indigo-200',
+    isPro: s.isPro
+  }));
 
   if (generationType === 'visual') {
     designStyles = [
-      { id: 'visual_nature', label: 'تفاعلي - طبيعة (أخضر)', icon: Leaf, color: '#65a30d', twColor: 'text-lime-600', twBg: 'bg-lime-100', twBorder: 'border-lime-200' },
-      { id: 'visual_elegant', label: 'تفاعلي - أناقة (بنفسجي)', icon: Palette, color: '#9333ea', twColor: 'text-purple-600', twBg: 'bg-purple-100', twBorder: 'border-purple-200' },
-      { id: 'visual_geometric', label: 'تفاعلي - هندسي (برتقالي)', icon: Hexagon, color: '#f97316', twColor: 'text-orange-600', twBg: 'bg-orange-100', twBorder: 'border-orange-200' }
+      { id: 'visual_nature', label: 'تفاعلي - طبيعة (أخضر)', icon: Leaf, color: '#65a30d', twColor: 'text-lime-600', twBg: 'bg-lime-100', twBorder: 'border-lime-200', isPro: false },
+      { id: 'visual_elegant', label: 'تفاعلي - أناقة (بنفسجي)', icon: Palette, color: '#9333ea', twColor: 'text-purple-600', twBg: 'bg-purple-100', twBorder: 'border-purple-200', isPro: true },
+      { id: 'visual_geometric', label: 'تفاعلي - هندسي (برتقالي)', icon: Hexagon, color: '#f97316', twColor: 'text-orange-600', twBg: 'bg-orange-100', twBorder: 'border-orange-200', isPro: true }
     ];
   }
 
@@ -908,7 +908,7 @@ export default function GeneratorPage() {
   ];
 
   const pageFrames = [
-    { id: 'none', label: 'بدون إطار' },
+    { id: 'none', label: 'إطار النمط المختار (افتراضي)' },
     { id: 'simple', label: 'إطار بسيط' },
     { id: 'double', label: 'إطار مزدوج', isPro: true },
     { id: 'ornate', label: 'إطار مزخرف مميز', isPro: true },
@@ -949,11 +949,24 @@ export default function GeneratorPage() {
   const handleDesignStyleChange = (styleId: string) => {
     if (soundEnabled) soundManager.playTabClick();
     setDesignStyle(styleId);
-    const selected = designStyles.find(s => s.id === styleId);
-    if (selected && selected.color) {
-      handleColorChange(selected.color);
-    } else {
-      saveCurrentPreferences({ designStyle: styleId });
+    const styleDef = getStyleById(styleId);
+    const newColor = styleDef.tokens.primary;
+    setDocColor(newColor);
+    saveCurrentPreferences({ designStyle: styleId, docColor: newColor });
+
+    if (generatedHtml) {
+      const meta = {
+        school: teacherInfo.school,
+        subject: teacherInfo.subject,
+        teacher: `${teacherInfo.firstName} ${teacherInfo.lastName}`.trim(),
+        level: teacherInfo.level,
+        domain: memoDomain,
+        topic: memoContent || memoSection,
+        duration: teacherInfo.phase,
+        typeLabel: generationType === 'memo' ? 'مذكرة تربوية' : 'مستند تربوي'
+      };
+      const styled = transformDocumentToStyle(generatedHtml, styleId, meta);
+      updateGeneratedHtml(styled);
     }
   };
 
@@ -1122,7 +1135,19 @@ export default function GeneratorPage() {
         }
       }
       
-      updateGeneratedHtml(safeHtml);
+      // Transform with active pedagogical design system & smart component detector
+      const docMeta = {
+        school: teacherInfo.school,
+        subject: teacherInfo.subject,
+        teacher: `${teacherInfo.firstName} ${teacherInfo.lastName}`.trim(),
+        level: teacherInfo.level,
+        domain: memoDomain || (subjectInfo as any).domain,
+        topic: memoContent || memoSection || (subjectInfo as any).section,
+        duration: (subjectInfo as any).duration || teacherInfo.phase,
+        typeLabel: generationType === 'memo' ? 'مذكرة تربوية' : 'مستند تربوي'
+      };
+      const styledContent = transformDocumentToStyle(safeHtml, designStyle, docMeta);
+      updateGeneratedHtml(styledContent);
       
       // Update generation quota in Firestore
       if (!isAdmin && userData.role !== 'admin') {
@@ -1166,6 +1191,37 @@ export default function GeneratorPage() {
   };
 
   const getFrameStyle = (frameId: string, color: string): React.CSSProperties => {
+    const activeDef = getStyleById(designStyle);
+    if (frameId === 'none') {
+      switch (activeDef.frameType) {
+        case 'double_gold':
+          return { border: `4px double ${activeDef.tokens.accent}`, outline: `1px solid ${activeDef.tokens.primary}`, outlineOffset: '-5px', margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '4px' };
+        case 'tech_hud':
+          return { border: `2px solid ${activeDef.tokens.primary}`, borderTop: `6px solid ${activeDef.tokens.secondary}`, borderBottom: `6px solid ${activeDef.tokens.accent}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '6px' };
+        case 'side_rail':
+          return { border: `1px solid ${activeDef.tokens.border}`, borderRight: `8px solid ${activeDef.tokens.primary}`, borderLeft: `2px solid ${activeDef.tokens.secondary}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box' };
+        case 'emerald_ornate':
+          return { border: `3px double ${activeDef.tokens.primary}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '12px' };
+        case 'power_banner':
+          return { border: `2px solid ${activeDef.tokens.border}`, borderTop: `8px solid ${activeDef.tokens.primary}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box' };
+        case 'purple_digital':
+          return { border: `2px solid ${activeDef.tokens.secondary}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '14px' };
+        case 'orange_dynamic':
+          return { border: `2px solid ${activeDef.tokens.border}`, borderRight: `7px solid ${activeDef.tokens.primary}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '8px' };
+        case 'math_grid':
+          return { border: `2px solid ${activeDef.tokens.primary}`, outline: `1px dashed ${activeDef.tokens.border}`, outlineOffset: '-4px', margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '4px' };
+        case 'cards_modular':
+          return { border: `1px solid ${activeDef.tokens.border}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '16px' };
+        case 'dz_geometric':
+          return { border: `3px solid ${activeDef.tokens.primary}`, borderTop: `6px solid ${activeDef.tokens.primary}`, borderBottom: `4px solid ${activeDef.tokens.accent}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '6px' };
+        case 'editorial_rules':
+          return { borderTop: `4px solid ${activeDef.tokens.primary}`, borderBottom: `2px solid ${activeDef.tokens.accent}`, margin: '5mm', padding: '8mm 6mm', minHeight: 'calc(297mm - 10mm)', boxSizing: 'border-box' };
+        case 'kids_playful':
+          return { border: `4px solid ${activeDef.tokens.primary}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '20px' };
+        default:
+          return { margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box' };
+      }
+    }
     switch (frameId) {
       case 'simple': return { border: `2px solid ${color}`, margin: '4mm', padding: '5mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '4px' };
       case 'double': return { border: `4px double ${color}`, margin: '4mm', padding: '5mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '4px' };
@@ -1248,45 +1304,54 @@ export default function GeneratorPage() {
 
     // Substitute var(--doc-color, ...) CSS variables with concrete hex values for html2canvas reliability
     let htmlContent = clone.innerHTML;
-    const docColorValue = docColor || '#1e40af';
+    const docColorValue = docColor || activeStyleDef.tokens.primary;
     htmlContent = htmlContent.replace(/var\(--doc-color,\s*[^)]+\)/g, docColorValue);
     htmlContent = htmlContent.replace(/var\(--doc-color\)/g, docColorValue);
+    htmlContent = htmlContent.replace(/var\(--style-primary\)/g, activeStyleDef.tokens.primary);
+    htmlContent = htmlContent.replace(/var\(--style-secondary\)/g, activeStyleDef.tokens.secondary);
+    htmlContent = htmlContent.replace(/var\(--style-accent\)/g, activeStyleDef.tokens.accent);
 
-    // Replace all yellow, gold, amber inline text color attributes or style rules with deep black
-    htmlContent = htmlContent.replace(/color:\s*(#f59e0b|#eab308|#fbbf24|#fde047|#facc15|#d97706|#b45309|#ca8a04|#854d0e|#eab308|#fef08a|yellow|amber|gold|rgb\([^)]+\))/gi, (match) => {
-      if (match.toLowerCase().includes('255, 255, 255') || match.toLowerCase().includes('fff')) return match;
-      return 'color: #000000';
-    });
+    // Replace unreadable washed-out yellow text with high-contrast text for print
+    htmlContent = htmlContent.replace(/color:\s*(#fde047|#facc15|#fef08a|yellow)\b/gi, 'color: #0f172a');
 
     // Preserve inline page-break-inside rules on individual elements
     clone.innerHTML = htmlContent;
 
-    // Inject strict print stylesheet into clone to guarantee clear black text on white paper and flawless content-aware breaks
+    // Apply active design system classes and typography directly to clone
+    clone.className = `a4-page print-area bg-white text-black outline-none absolute top-0 left-0 overflow-visible style-${activeStyleDef.id.replace(/_/g, '-')} frame-${activeStyleDef.frameType}`;
+    clone.style.fontFamily = activeStyleDef.fontFamily;
+    clone.style.setProperty('--doc-color', docColorValue);
+    clone.style.setProperty('--style-primary', activeStyleDef.tokens.primary);
+    clone.style.setProperty('--style-secondary', activeStyleDef.tokens.secondary);
+    clone.style.setProperty('--style-accent', activeStyleDef.tokens.accent);
+    clone.style.setProperty('--style-surface', activeStyleDef.tokens.surface);
+    clone.style.setProperty('--style-border', activeStyleDef.tokens.border);
+
+    // Inject strict print stylesheet into clone to guarantee clear typography and flawless content-aware breaks
     const printOverrideStyle = document.createElement('style');
     printOverrideStyle.textContent = `
       * {
         color-scheme: light !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
-      p, td, li, font, div, span, label, strong, b, em, i, h1, h2, h3, h4, h5, h6 {
-        color: #000000 !important;
+      body, .a4-page {
+        color: #0f172a;
+        background-color: #ffffff !important;
       }
-      /* Preserve crisp white text on dark header rows or colored badges */
-      [style*="background-color: ${docColorValue}"],
-      [style*="background-color:${docColorValue}"],
-      [style*="background:${docColorValue}"],
-      th, .bg-blue-600, .bg-indigo-600, .bg-slate-900, .bg-black {
-        color: #ffffff !important;
-      }
-      th *, .header-title * {
-        color: #ffffff !important;
+      /* Ensure base reading text has high-contrast readability without breaking designed accent badges */
+      p:not([class*="text-"]):not([style*="color"]), 
+      li:not([class*="text-"]):not([style*="color"]), 
+      td:not([class*="text-"]):not([style*="color"]) {
+        color: #1e293b;
       }
       /* Outer structural document wrappers flow naturally across pages */
       table, .section-container, .memo-section, .document-body, .document-wrapper {
         page-break-inside: auto !important;
         break-inside: auto !important;
       }
-      /* Keep all cards, exercises, examples, formulas, rules, callouts, paragraphs, rows, images, and questions intact */
-      tr, th, td, img, svg, figure, .avoid-break, .formula-card, .rule-card, .example-card, .callout-box, .callout, .standalone-example, .exercise-card, .card, .pedagogical-card, .framed-card, .solution-card, .summary-box, .question-block, .illustration, .diagram, p, blockquote {
+      /* Prevent clipping on all pedagogical cards, situations, formulas, tables, and questions */
+      tr, th, td, img, svg, figure, .avoid-break, .situation-card, .pedagogical-step, .memo-header, .memo-footer, .formula-card, .rule-card, .example-card, .callout-box, .callout, .standalone-example, .exercise-card, .card, .pedagogical-card, .framed-card, .solution-card, .summary-box, .question-block, .illustration, .diagram, blockquote {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         -webkit-column-break-inside: avoid !important;
@@ -1309,7 +1374,6 @@ export default function GeneratorPage() {
     clone.style.margin = '0';
     clone.style.boxShadow = 'none';
     clone.style.backgroundColor = '#ffffff';
-    clone.style.color = '#000000';
 
     const opt = {
       margin:       [0, 0] as [number, number], // 0 margin maps 1:1 to A4 dimensions (210mm x 297mm)
@@ -1329,7 +1393,8 @@ export default function GeneratorPage() {
       pagebreak:    { 
         mode: ['avoid-all', 'css', 'legacy'], 
         avoid: [
-          '.avoid-break', '.exercise-card', '.example-card', '.rule-card', 
+          '.avoid-break', '.situation-card', '.pedagogical-step', '.memo-header', '.memo-footer',
+          '.exercise-card', '.example-card', '.rule-card', 
           '.formula-card', '.callout-box', '.callout', '.card', '.pedagogical-card', 
           '.framed-card', '.standalone-example', '.solution-card', '.summary-box', 
           '.question-block', '.illustration', '.diagram', 'tr', 'img', 'svg', 'figure', 'p', 'blockquote'
@@ -2538,62 +2603,14 @@ ${framedContent}
                 </div>
               </div>
 
-              {/* Design Style */}
-              <div>
-                <label className="block text-xs font-bold mb-3 text-slate-800 dark:text-slate-200 uppercase tracking-wider">ستايل التصميم والألوان</label>
-                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                  {designStyles.map(style => {
-                    const isLocked = isFreeMode && style.isPro;
-                    return (
-                      <button
-                        key={style.id}
-                        onClick={() => {
-                          if (isLocked) {
-                            alert('هذا التصميم متاح للمشتركين فقط. يرجى الترقية لفتحه!');
-                            return;
-                          }
-                          handleDesignStyleChange(style.id);
-                        }}
-                        className={`relative flex flex-col items-center justify-center gap-2 transition-all group ${
-                          designStyle === style.id ? 'transform scale-110' : 'hover:transform hover:scale-105 hover:-translate-y-1 opacity-80 hover:opacity-100'
-                        } ${isLocked ? 'grayscale opacity-60 hover:grayscale-0' : ''}`}
-                        style={{ width: '70px' }}
-                      >
-                        {isLocked && (
-                          <div className="absolute top-0 right-0 z-20 bg-slate-900/80 rounded-full p-1 shadow-sm border border-slate-700/50">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                          </div>
-                        )}
-                        {/* Magic Ball 3D Element */}
-                        <div 
-                          className={`w-14 h-14 rounded-full flex items-center justify-center relative overflow-hidden transition-all duration-300 transform group-hover:scale-110 group-hover:-translate-y-1 ${
-                            designStyle === style.id 
-                              ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)]' 
-                              : 'shadow-[0_6px_15px_-3px_rgba(0,0,0,0.15)] group-hover:shadow-[0_10px_20px_-3px_rgba(0,0,0,0.25)]'
-                          }`}
-                          style={{
-                            background: designStyle === style.id 
-                              ? `radial-gradient(circle at 35% 25%, #ffffff 0%, ${style.color} 55%, #090d16 110%)` 
-                              : `radial-gradient(circle at 35% 25%, #ffffff 0%, ${style.color}dd 60%, #1e293b 120%)`,
-                            color: 'white',
-                            boxShadow: designStyle === style.id 
-                              ? `0 12px 24px -4px ${style.color}80, inset 0 -4px 8px rgba(0,0,0,0.4)` 
-                              : `0 6px 16px -2px ${style.color}40, inset 0 -3px 6px rgba(0,0,0,0.3)`
-                          }}
-                        >
-                          {/* 3D Specular Top Glare */}
-                          <div className="absolute top-1 left-2 w-5 h-3 bg-white/70 rounded-full blur-[0.6px] -rotate-45 pointer-events-none" />
-                          {/* 3D Bottom Rim Reflection */}
-                          <div className="absolute bottom-0 inset-x-0 h-2 bg-gradient-to-t from-white/30 to-transparent pointer-events-none" />
-                          <style.icon size={22} className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] text-white transform transition-transform group-hover:scale-110" />
-                        </div>
-                        <span className={`text-[11px] text-center font-extrabold transition-colors ${designStyle === style.id ? 'text-indigo-600 dark:text-indigo-400 scale-105' : 'text-slate-600 dark:text-slate-400'}`}>
-                          {style.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* 12-Style Pedagogical Design System Selector */}
+              <div className="w-full">
+                <StyleSelector
+                  selectedStyleId={designStyle}
+                  onSelectStyle={handleDesignStyleChange}
+                  isFreeMode={isFreeMode}
+                  soundEnabled={soundEnabled}
+                />
               </div>
 
               {/* Page Frame */}
@@ -2910,11 +2927,16 @@ ${framedContent}
               <div style={{ width: 794 * effectiveScale, height: a4PageHeightInPx * effectiveScale, position: 'relative' }}>
                 <div 
                   ref={a4PageRef}
-                  className="a4-page print-area bg-white text-black outline-none transition-transform duration-200 ease-out absolute top-0 left-0 overflow-visible"
+                  className={`a4-page print-area bg-white text-black outline-none transition-transform duration-200 ease-out absolute top-0 left-0 overflow-visible style-${activeStyleDef.id.replace(/_/g, '-')} frame-${activeStyleDef.frameType}`}
                   style={{
-                    fontFamily: 'Arial, sans-serif',
+                    fontFamily: activeStyleDef.fontFamily,
                     fontSize: `${previewFontSize}px`,
-                    '--doc-color': docColor,
+                    '--doc-color': docColor || activeStyleDef.tokens.primary,
+                    '--style-primary': activeStyleDef.tokens.primary,
+                    '--style-secondary': activeStyleDef.tokens.secondary,
+                    '--style-accent': activeStyleDef.tokens.accent,
+                    '--style-surface': activeStyleDef.tokens.surface,
+                    '--style-border': activeStyleDef.tokens.border,
                     transform: `scale(${effectiveScale})`,
                     transformOrigin: 'top left',
                     width: '210mm',
