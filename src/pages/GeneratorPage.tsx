@@ -1102,7 +1102,8 @@ export default function GeneratorPage() {
           documentLanguage,
           includeWatermark,
           contentStyle: selectedContentLabel,
-          designStyle: selectedDesignLabel,
+          designStyle: designStyle,
+          designStyleLabel: selectedDesignLabel,
           pageFrame: selectedFrameLabel,
           aiPrompt
         })

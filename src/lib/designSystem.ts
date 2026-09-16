@@ -927,21 +927,49 @@ function applyPedagogicalTableStyle(table: HTMLTableElement, style: StyleDefinit
   const t = style.tokens;
   table.style.width = '100%';
   table.style.borderCollapse = 'collapse';
-  table.style.margin = '10px 0 14px 0';
+  table.style.margin = '12px 0 16px 0';
   table.style.fontFamily = style.fontFamily;
   table.style.fontSize = '12px';
   table.style.pageBreakInside = 'auto';
 
+  // Check if this is the official 4-column pedagogical memo table
+  const tableText = table.textContent || '';
+  const isStagesTable = tableText.includes('المراحل') || 
+                       tableText.includes('أنشطة التعلم') || 
+                       tableText.includes('سير التعلمات') || 
+                       tableText.includes('مؤشرات الكفاءة') || 
+                       tableText.includes('التقويم');
+
+  // Header styling with Art Direction gradients
   table.querySelectorAll('th').forEach(th => {
     const el = th as HTMLElement;
     el.style.backgroundColor = t.tableHeader;
     el.style.color = t.tableHeaderColor;
-    el.style.padding = '8px 10px';
+    el.style.padding = '10px 12px';
     el.style.fontWeight = 'bold';
-    el.style.border = `1px solid ${t.tableBorder}`;
+    el.style.border = `1.5px solid ${t.tableBorder}`;
     el.style.fontFamily = style.headingFont;
     el.style.textAlign = 'center';
-    el.style.fontSize = '12.5px';
+    el.style.fontSize = '13px';
+    el.style.letterSpacing = '0.2px';
+    
+    // Gradient accent on th based on art direction
+    if (style.artDirection === 'board_3d') {
+      el.style.background = `linear-gradient(135deg, ${t.primary} 0%, #1e3a8a 100%)`;
+      el.style.color = '#ffffff';
+    } else if (style.artDirection === 'math_infographic') {
+      el.style.background = `linear-gradient(135deg, #c2410c 0%, #ea580c 100%)`;
+      el.style.color = '#ffffff';
+    } else if (style.artDirection === 'gamified') {
+      el.style.background = `linear-gradient(135deg, #991b1b 0%, #dc2626 100%)`;
+      el.style.color = '#ffffff';
+    } else if (style.artDirection === 'blueprint') {
+      el.style.background = `linear-gradient(135deg, #0369a1 0%, #0284c7 100%)`;
+      el.style.color = '#ffffff';
+    } else if (style.artDirection === 'dz_premium') {
+      el.style.background = `linear-gradient(135deg, #065f46 0%, #047857 100%)`;
+      el.style.color = '#ffffff';
+    }
   });
 
   table.querySelectorAll('tbody tr, tr').forEach((tr, rowIdx) => {
@@ -950,16 +978,213 @@ function applyPedagogicalTableStyle(table: HTMLTableElement, style: StyleDefinit
     elTr.style.breakInside = 'avoid';
 
     const tds = Array.from(elTr.querySelectorAll('td'));
-    if (tds.length > 0 && rowIdx > 0) {
-      elTr.style.backgroundColor = rowIdx % 2 === 0 ? t.tableStripe : '#ffffff';
-    }
+    if (tds.length === 0) return; // Header row
 
-    tds.forEach(td => {
+    // Base zebra striping
+    elTr.style.backgroundColor = rowIdx % 2 === 0 ? t.tableStripe : '#ffffff';
+
+    tds.forEach((td, colIdx) => {
       const elTd = td as HTMLElement;
-      elTd.style.padding = '8px 10px';
+      elTd.style.padding = '10px 12px';
       elTd.style.border = `1px solid ${t.tableBorder}`;
       elTd.style.verticalAlign = 'top';
-      elTd.style.lineHeight = '1.6';
+      elTd.style.lineHeight = '1.7';
+      elTd.style.color = '#000000'; // Pure dark black text for sharp contrast
+
+      if (!isStagesTable) return;
+
+      const cellText = elTd.textContent || '';
+
+      // 1️⃣ Column 0: المراحل (Stages)
+      if (colIdx === 0 || (tds.length === 4 && colIdx === 0)) {
+        elTd.style.textAlign = 'center';
+        elTd.style.width = '16%';
+        elTd.style.fontWeight = 'bold';
+
+        if (cellText.includes('التمهيد') || cellText.includes('تهيئة') || cellText.includes('المرحلة 1')) {
+          elTd.style.backgroundColor = style.artDirection === 'gamified' ? '#fef2f2' : '#f0f9ff';
+          elTd.style.borderRight = `4px solid ${style.artDirection === 'gamified' ? '#ef4444' : '#0284c7'}`;
+          elTd.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
+              <span style="font-size: 20px;">✨</span>
+              <span style="font-family: ${style.headingFont}; color: ${t.primary}; font-weight: 800; font-size: 13px;">
+                التمهيد والتهيئة
+              </span>
+              <span style="background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; margin-top: 4px;">
+                ⏱ 05 - 10 د
+              </span>
+            </div>
+          `;
+        } else if (cellText.includes('بناء التعلمات') || cellText.includes('الوضعية') || cellText.includes('المرحلة 2')) {
+          elTd.style.backgroundColor = style.artDirection === 'gamified' ? '#fff7ed' : '#fefce8';
+          elTd.style.borderRight = `4px solid ${style.artDirection === 'gamified' ? '#f97316' : '#eab308'}`;
+          elTd.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
+              <span style="font-size: 22px;">🧭</span>
+              <span style="font-family: ${style.headingFont}; color: #b45309; font-weight: 800; font-size: 13px;">
+                بناء التعلمات
+              </span>
+              <span style="font-size: 10.5px; color: #854d0e; font-weight: bold;">(الوضعية المشكلة)</span>
+              <span style="background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; margin-top: 4px;">
+                ⏱ 20 - 25 د
+              </span>
+            </div>
+          `;
+        } else if (cellText.includes('المعارف') || cellText.includes('الحوصلة') || cellText.includes('المرحلة 3')) {
+          elTd.style.backgroundColor = '#faf5ff';
+          elTd.style.borderRight = `4px solid #a855f7`;
+          elTd.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
+              <span style="font-size: 20px;">💡</span>
+              <span style="font-family: ${style.headingFont}; color: #7e22ce; font-weight: 800; font-size: 13px;">
+                المعارف والحوصلة
+              </span>
+              <span style="background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; margin-top: 4px;">
+                ⏱ 10 - 15 د
+              </span>
+            </div>
+          `;
+        } else if (cellText.includes('إعادة الاستثمار') || cellText.includes('التقويم') || cellText.includes('المرحلة 4')) {
+          elTd.style.backgroundColor = '#f0fdf4';
+          elTd.style.borderRight = `4px solid #22c55e`;
+          elTd.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
+              <span style="font-size: 20px;">🎯</span>
+              <span style="font-family: ${style.headingFont}; color: #15803d; font-weight: 800; font-size: 13px;">
+                إعادة الاستثمار
+              </span>
+              <span style="background: #dcfce7; color: #166534; border: 1px solid #86efac; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; margin-top: 4px;">
+                ⏱ 10 - 15 د
+              </span>
+            </div>
+          `;
+        }
+      }
+
+      // 2️⃣ Column 1: أنشطة التعلم (Activities & Content)
+      if (colIdx === 1 || (tds.length === 4 && colIdx === 1)) {
+        elTd.style.width = '48%';
+        
+        // Ensure any SVGs are centered and framed nicely
+        elTd.querySelectorAll('svg').forEach(svg => {
+          const elSvg = svg as unknown as HTMLElement;
+          elSvg.style.display = 'block';
+          elSvg.style.margin = '10px auto';
+          elSvg.style.maxWidth = '100%';
+          elSvg.style.height = 'auto';
+          elSvg.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.06))';
+        });
+
+        // Enhance headings or labels inside activities
+        elTd.querySelectorAll('strong, b, h3, h4, h5').forEach(heading => {
+          const elH = heading as HTMLElement;
+          const hText = elH.textContent || '';
+          
+          if (hText.includes('تهيئة') || hText.includes('المكتسبات القبلية')) {
+            elH.style.display = 'inline-block';
+            elH.style.color = '#0284c7';
+            elH.style.fontFamily = style.headingFont;
+            elH.style.fontSize = '13.5px';
+            elH.style.marginBottom = '6px';
+            elH.innerHTML = `✨ ${hText}`;
+          } else if (hText.includes('الوضعية التعلمية') || hText.includes('وضعية مشكلة')) {
+            elH.style.display = 'inline-block';
+            elH.style.color = '#b45309';
+            elH.style.fontFamily = style.headingFont;
+            elH.style.fontSize = '14px';
+            elH.style.marginBottom = '6px';
+            elH.innerHTML = `🧭 ${hText}`;
+          } else if (hText.includes('الحوصلة') || hText.includes('قاعدة') || hText.includes('مبرهنة')) {
+            elH.style.display = 'inline-block';
+            elH.style.color = '#7e22ce';
+            elH.style.fontFamily = style.headingFont;
+            elH.style.fontSize = '13.5px';
+            elH.style.marginBottom = '6px';
+            elH.innerHTML = `💡 ${hText}`;
+          } else if (hText.includes('إعادة استثمار') || hText.includes('تطبيق')) {
+            elH.style.display = 'inline-block';
+            elH.style.color = '#15803d';
+            elH.style.fontFamily = style.headingFont;
+            elH.style.fontSize = '13.5px';
+            elH.style.marginBottom = '6px';
+            elH.innerHTML = `🎯 ${hText}`;
+          }
+        });
+      }
+
+      // 3️⃣ Column 2: مؤشرات الكفاءة (Competency Indicators)
+      if (colIdx === 2 || (tds.length === 4 && colIdx === 2)) {
+        elTd.style.width = '20%';
+        elTd.style.fontSize = '11.5px';
+        
+        // Transform list items or lines into clean checkmark bullets
+        const lines = elTd.innerHTML.split(/<br\s*\/?>|\n/);
+        if (lines.length > 1) {
+          elTd.innerHTML = lines.map(line => {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) return '';
+            const cleanText = trimmedLine.replace(/^[-*•]\s*/, '').trim();
+            return `
+              <div style="display: flex; align-items: flex-start; gap: 6px; margin-bottom: 6px;">
+                <span style="color: ${t.secondary}; font-weight: bold; font-size: 12px; flex-shrink: 0;">✓</span>
+                <span style="color: #0f172a; line-height: 1.5;">${cleanText}</span>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      // 4️⃣ Column 3: التقويم (Assessment)
+      if (colIdx === 3 || (tds.length === 4 && colIdx === 3)) {
+        elTd.style.width = '16%';
+        elTd.style.textAlign = 'center';
+
+        if (cellText.includes('تشخيصي')) {
+          elTd.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+              <span style="background: #e0f2fe; color: #0369a1; border: 1.5px solid #38bdf8; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(3,105,161,0.1);">
+                🔍 تشخيصي
+              </span>
+              <span style="font-size: 10px; color: #64748b; line-height: 1.4; margin-top: 2px;">
+                ${cellText.replace(/تشخيصي:?/, '').trim()}
+              </span>
+            </div>
+          `;
+        } else if (cellText.includes('تكويني')) {
+          elTd.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+              <span style="background: #fef3c7; color: #b45309; border: 1.5px solid #f59e0b; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(180,83,9,0.1);">
+                🔄 تكويني
+              </span>
+              <span style="font-size: 10px; color: #64748b; line-height: 1.4; margin-top: 2px;">
+                ${cellText.replace(/تكويني:?/, '').trim()}
+              </span>
+            </div>
+          `;
+        } else if (cellText.includes('استنتاجي')) {
+          elTd.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+              <span style="background: #f3e8ff; color: #7e22ce; border: 1.5px solid #c084fc; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(126,34,206,0.1);">
+                💡 استنتاجي
+              </span>
+              <span style="font-size: 10px; color: #64748b; line-height: 1.4; margin-top: 2px;">
+                ${cellText.replace(/استنتاجي:?/, '').trim()}
+              </span>
+            </div>
+          `;
+        } else if (cellText.includes('تحصيلي') || cellText.includes('ختامي')) {
+          elTd.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+              <span style="background: #dcfce7; color: #15803d; border: 1.5px solid #4ade80; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(21,128,61,0.1);">
+                🎯 تحصيلي
+              </span>
+              <span style="font-size: 10px; color: #64748b; line-height: 1.4; margin-top: 2px;">
+                ${cellText.replace(/تحصيلي:?|ختامي:?/, '').trim()}
+              </span>
+            </div>
+          `;
+        }
+      }
     });
   });
 }
