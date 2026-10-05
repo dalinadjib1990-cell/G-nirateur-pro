@@ -32,16 +32,6 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const cleanEmail = email.toLowerCase().trim();
-      if (cleanEmail) {
-        const bannedDoc = await getDoc(doc(db, 'banned_emails', cleanEmail));
-        if (bannedDoc.exists()) {
-          setError('هذا البريد الإلكتروني أو الحساب محظور تماماً بقرار من الإدارة.');
-          setLoading(false);
-          return;
-        }
-      }
-
       const formattedEmail = email.includes('@') ? email : `${email}@phone.pro-gen.com`;
       await signInWithEmailAndPassword(auth, formattedEmail, password);
       // Let AuthContext handle the loading and navigation
@@ -66,16 +56,6 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
-      const userEmail = (user.email || '').toLowerCase().trim();
-      if (userEmail) {
-        const bannedDoc = await getDoc(doc(db, 'banned_emails', userEmail));
-        if (bannedDoc.exists()) {
-          setError('هذا البريد الإلكتروني أو الحساب محظور تماماً بقرار من الإدارة.');
-          setLoading(false);
-          return;
-        }
-      }
-
       // Check if user document exists
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       
@@ -94,11 +74,11 @@ export default function LoginPage() {
           subject: '',
           phone: '',
           role: isAdmin ? 'admin' : 'user',
-          isPro: isAdmin ? true : false,
-          generationsRemaining: isAdmin ? 9999 : 20, // 20 free generation
+          isPro: false,
+          generationsRemaining: isAdmin ? 9999 : 30, // 30 free generation
           totalGenerations: 0,
           profilePic: user.photoURL || '',
-          isActive: isAdmin ? true : false,
+          isActive: true,
           createdAt: Date.now()
         });
       }
@@ -211,8 +191,8 @@ export default function LoginPage() {
         <div className="mt-8 bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 border border-amber-200 dark:border-amber-800 p-4 rounded-xl text-center shadow-inner relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-16 h-16 bg-amber-300/30 rounded-full blur-xl"></div>
           <div className="absolute -left-4 -bottom-4 w-16 h-16 bg-orange-300/30 rounded-full blur-xl"></div>
-          <h3 className="font-bold text-amber-800 dark:text-amber-300 mb-1 relative z-10 text-lg">🎁 جرب التطبيق مجاناً</h3>
-          <p className="text-sm text-amber-700 dark:text-amber-400 relative z-10">سجل الآن وجرب التطبيق مجاناً، واحصل على أدوات ذكاء اصطناعي احترافية لإنتاج الدروس والتمارين والمذكرات.</p>
+          <h3 className="font-bold text-amber-800 dark:text-amber-300 mb-1 relative z-10 text-lg">🎁 30 توليدة مجانية لكل مشترك جديد!</h3>
+          <p className="text-sm text-amber-700 dark:text-amber-400 relative z-10">سجل الآن وجرب التطبيق مجاناً، واحصل على أدوات ذكاء اصطناعي احترافية لإنتاج الدروس والتمارين.</p>
         </div>
 
         <div className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">

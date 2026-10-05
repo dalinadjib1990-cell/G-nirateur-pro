@@ -19,16 +19,9 @@ export interface SubjectInfo {
   section?: string;
   domain?: string;
   content?: string;
-  memoWarmup?: string;
-  memoLearningSituation?: string;
-  memoSummary?: string;
-  memoReinvestment?: string;
   exercises?: Exercise[];
   hasIntegrationSituation?: boolean;
   examType?: string;
   term?: string;
   duration?: string;
-  numExercisesOption?: string;
-  targetExercisesCount?: number;
-  [key: string]: any;
 }

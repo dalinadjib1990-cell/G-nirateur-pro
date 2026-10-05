@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone, CheckCircle2, Lock, Shapes, Sliders, ChevronDown, Scissors } from 'lucide-react';
+import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone, CheckCircle2, Lock } from 'lucide-react';
 import { TeacherInfo, GenerationType, SubjectInfo, Exercise } from '../types';
 import { soundManager } from '../audio';
 import html2pdf from 'html2pdf.js';
@@ -9,11 +9,8 @@ import { doc, updateDoc, collection, getDocs, query, where, increment } from 'fi
 import { useNavigate } from 'react-router-dom';
 import { useDownloads } from '../contexts/DownloadsContext';
 import DownloadsModal from '../components/DownloadsModal';
-import SymbolBar from '../components/SymbolBar';
 import { expertChatEmitter, profileModalEmitter } from '../App';
 import { uploadImage } from '../lib/cloudinary';
-import { getStyleById, STYLES_REGISTRY, transformDocumentToStyle } from '../lib/designSystem';
-import { StyleSelector } from '../components/StyleSelector';
 
 // Simple unique ID generator
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -31,26 +28,11 @@ const ADHKAR_LIST = [
   "لا إله إلا أنت سبحانك إني كنت من الظالمين"
 ];
 
-export interface CanvasShape {
-  id: string;
-  type: 'rectangle' | 'circle' | 'triangle' | 'arrow' | 'line' | 'grid' | 'drawing_box' | 'stamp' | 'image';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation: number;
-  color: string;
-  strokeWidth: number;
-  fill?: string;
-  content?: string;
-}
-
 export default function GeneratorPage() {
   const { user, userData, signOut, refreshUserData } = useAuth();
   const navigate = useNavigate();
   const { addFile, unreadCount } = useDownloads();
   const [isDownloadsModalOpen, setIsDownloadsModalOpen] = useState(false);
-  const [showOutQuotaModal, setShowOutQuotaModal] = useState(false);
 
   const isAdmin = userData?.role === 'admin' || 
                   userData?.email === 'dalinadjib1990@gmail.com' || 
@@ -63,7 +45,8 @@ export default function GeneratorPage() {
     isAdmin || 
     userData?.isPro === true || 
     userData?.isActive === true || 
-    userData?.role === 'pro'
+    userData?.role === 'pro' || 
+    (userData?.generationsRemaining !== undefined && userData.generationsRemaining > 30)
   );
 
   const [darkMode, setDarkMode] = useState(false);
@@ -97,11 +80,6 @@ export default function GeneratorPage() {
   const [memoSection, setMemoSection] = useState('');
   const [memoDomain, setMemoDomain] = useState('');
   const [memoContent, setMemoContent] = useState('');
-  const [memoWarmup, setMemoWarmup] = useState('');
-  const [memoLearningSituation, setMemoLearningSituation] = useState('');
-  const [memoSummary, setMemoSummary] = useState('');
-  const [memoReinvestment, setMemoReinvestment] = useState('');
-  const [showMemoCustomStages, setShowMemoCustomStages] = useState(false);
   const [contentStyle, setContentStyle] = useState('standard');
   const [designStyle, setDesignStyle] = useState('style1');
   const [pageFrame, setPageFrame] = useState('none');
@@ -110,163 +88,16 @@ export default function GeneratorPage() {
   // Test/Series specific state
   const [exercises, setExercises] = useState<Exercise[]>([{ id: generateId(), section: '', competencies: [''] }]);
   const [hasIntegration, setHasIntegration] = useState(false);
-  const [integrationSections, setIntegrationSections] = useState('');
-  const [integrationCompetencies, setIntegrationCompetencies] = useState('');
-  const [integrationPrompt, setIntegrationPrompt] = useState('');
-  const [includeSolution, setIncludeSolution] = useState(false);
   const [examType, setExamType] = useState('فرض 1');
   const [examTerm, setExamTerm] = useState('الفصل الأول');
   const [examDuration, setExamDuration] = useState('ساعة واحدة');
-  const [numExercisesOption, setNumExercisesOption] = useState<string>('auto');
   
-  // Canvas Shapes State
-  const [canvasShapes, setCanvasShapes] = useState<CanvasShape[]>([]);
-  const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
-  const shapeImageInputRef = useRef<HTMLInputElement>(null);
-
-  const activeInteractionRef = useRef<{
-    shapeId: string;
-    action: 'move' | 'resize' | 'rotate';
-    startX: number;
-    startY: number;
-    initialX: number;
-    initialY: number;
-    initialWidth: number;
-    initialHeight: number;
-    initialRotation: number;
-    initialPinchDist?: number;
-  } | null>(null);
-
-  const addCanvasShape = (type: CanvasShape['type'], content?: string) => {
-    if (soundEnabled) soundManager.playTabClick();
-    const newShape: CanvasShape = {
-      id: generateId(),
-      type,
-      x: 200 + Math.random() * 40,
-      y: 180 + Math.random() * 40,
-      width: type === 'stamp' ? 80 : (type === 'grid' ? 220 : (type === 'line' || type === 'arrow' ? 180 : 150)),
-      height: type === 'stamp' ? 80 : (type === 'grid' ? 180 : (type === 'line' || type === 'arrow' ? 40 : 110)),
-      rotation: 0,
-      color: docColor || '#1e40af',
-      strokeWidth: 2,
-      content: content || '',
-      fill: type === 'rectangle' || type === 'circle' || type === 'triangle' ? 'transparent' : undefined
-    };
-    setCanvasShapes(prev => [...prev, newShape]);
-    setSelectedShapeId(newShape.id);
-  };
-
-  const updateShape = (id: string, partial: Partial<CanvasShape>) => {
-    setCanvasShapes(prev => prev.map(s => s.id === id ? { ...s, ...partial } : s));
-  };
-
-  const duplicateShape = (id: string) => {
-    const existing = canvasShapes.find(s => s.id === id);
-    if (!existing) return;
-    const copy: CanvasShape = {
-      ...existing,
-      id: generateId(),
-      x: existing.x + 20,
-      y: existing.y + 20
-    };
-    setCanvasShapes(prev => [...prev, copy]);
-    setSelectedShapeId(copy.id);
-  };
-
-  const deleteShape = (id: string) => {
-    setCanvasShapes(prev => prev.filter(s => s.id !== id));
-    if (selectedShapeId === id) setSelectedShapeId(null);
-  };
-
-  const handleInsertShapeImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        addCanvasShape('image', dataUrl);
-      }
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
-  const startInteraction = (
-    e: React.MouseEvent | React.TouchEvent,
-    shapeId: string,
-    action: 'move' | 'resize' | 'rotate'
-  ) => {
-    e.stopPropagation();
-    const isTouch = 'touches' in e;
-    const touch1 = isTouch ? (e as React.TouchEvent).touches[0] : null;
-    const touch2 = isTouch && (e as React.TouchEvent).touches.length > 1 ? (e as React.TouchEvent).touches[1] : null;
-
-    const clientX = isTouch ? touch1!.clientX : (e as React.MouseEvent).clientX;
-    const clientY = isTouch ? touch1!.clientY : (e as React.MouseEvent).clientY;
-
-    const shape = canvasShapes.find(s => s.id === shapeId);
-    if (!shape) return;
-
-    setSelectedShapeId(shapeId);
-
-    activeInteractionRef.current = {
-      shapeId,
-      action,
-      startX: clientX,
-      startY: clientY,
-      initialX: shape.x,
-      initialY: shape.y,
-      initialWidth: shape.width,
-      initialHeight: shape.height,
-      initialRotation: shape.rotation,
-      initialPinchDist: touch1 && touch2 ? Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY) : undefined
-    };
-  };
-
   const [selectedProfileImage, setSelectedProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   
-  const [generatedHtml, setGeneratedHtml] = useState(() => {
-    try {
-      return sessionStorage.getItem('currentGeneratedHtml') || '';
-    } catch (e) {
-      return '';
-    }
-  });
-
-  const [rawGeneratedHtml, setRawGeneratedHtml] = useState(() => {
-    try {
-      return sessionStorage.getItem('rawGeneratedHtml') || '';
-    } catch (e) {
-      return '';
-    }
-  });
-
-  const [showStyleSwitcherModal, setShowStyleSwitcherModal] = useState(false);
-
-  const updateGeneratedHtml = (html: string, raw?: string) => {
-    setGeneratedHtml(html);
-    try {
-      if (html) {
-        sessionStorage.setItem('currentGeneratedHtml', html);
-      } else {
-        sessionStorage.removeItem('currentGeneratedHtml');
-      }
-      if (raw !== undefined) {
-        setRawGeneratedHtml(raw);
-        if (raw) {
-          sessionStorage.setItem('rawGeneratedHtml', raw);
-        } else {
-          sessionStorage.removeItem('rawGeneratedHtml');
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  const [generatedHtml, setGeneratedHtml] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -290,274 +121,16 @@ export default function GeneratorPage() {
     }
   }, [generationType, designStyle]);
 
-  // Scaling logic & states
-  const containerRef = useRef<HTMLDivElement>(null);
-  const a4PageRef = useRef<HTMLDivElement>(null);
-  const editableDivRef = useRef<HTMLDivElement>(null);
-  const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
-  const [a4PageHeightInPx, setA4PageHeightInPx] = useState(1122);
-  const [visualBreakPositions, setVisualBreakPositions] = useState<number[]>([]);
-  const isAdjustingBreakRef = useRef(false);
-  const [autoScale, setAutoScale] = useState(1);
-  const [manualScale, setManualScale] = useState(1);
-  const effectiveScale = autoScale * manualScale;
-
-  // Canvas shapes global movement and touch gestures
-  useEffect(() => {
-    const handleMove = (clientX: number, clientY: number, touch2?: { clientX: number, clientY: number }) => {
-      const interaction = activeInteractionRef.current;
-      if (!interaction) return;
-
-      const { shapeId, action, startX, startY, initialX, initialY, initialWidth, initialHeight, initialPinchDist } = interaction;
-      
-      const dx = (clientX - startX) / effectiveScale;
-      const dy = (clientY - startY) / effectiveScale;
-
-      if (action === 'move') {
-        updateShape(shapeId, {
-          x: Math.max(0, Math.min(730, initialX + dx)),
-          y: Math.max(0, Math.min(a4PageHeightInPx - 40, initialY + dy))
-        });
-      } else if (action === 'resize') {
-        if (touch2 && initialPinchDist) {
-          const currentPinchDist = Math.hypot(clientX - touch2.clientX, clientY - touch2.clientY);
-          const scale = currentPinchDist / initialPinchDist;
-          updateShape(shapeId, {
-            width: Math.max(30, Math.round(initialWidth * scale)),
-            height: Math.max(30, Math.round(initialHeight * scale))
-          });
-        } else {
-          updateShape(shapeId, {
-            width: Math.max(30, Math.round(initialWidth + dx)),
-            height: Math.max(30, Math.round(initialHeight + dy))
-          });
-        }
-      } else if (action === 'rotate') {
-        const shape = canvasShapes.find(s => s.id === shapeId);
-        if (shape) {
-          const centerX = shape.x + shape.width / 2;
-          const centerY = shape.y + shape.height / 2;
-          const rad = Math.atan2(clientY - centerY, clientX - centerX);
-          let deg = Math.round(rad * (180 / Math.PI));
-          if (deg < 0) deg += 360;
-          updateShape(shapeId, { rotation: deg });
-        }
-      }
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (activeInteractionRef.current) {
-        e.preventDefault();
-        handleMove(e.clientX, e.clientY);
-      }
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (activeInteractionRef.current && e.touches.length > 0) {
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        handleMove(touch1.clientX, touch1.clientY, touch2 ? { clientX: touch2.clientX, clientY: touch2.clientY } : undefined);
-      }
-    };
-
-    const handleEnd = () => {
-      activeInteractionRef.current = null;
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleEnd);
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchend', handleEnd);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleEnd);
-    };
-  }, [effectiveScale, canvasShapes]);
-
-  const renderShapeContent = (shape: CanvasShape) => {
-    switch (shape.type) {
-      case 'rectangle':
-        return (
-          <div 
-            className="w-full h-full rounded transition-colors" 
-            style={{ 
-              border: `${shape.strokeWidth}px solid ${shape.color}`, 
-              backgroundColor: shape.fill || 'transparent' 
-            }} 
-          />
-        );
-      case 'circle':
-        return (
-          <div 
-            className="w-full h-full rounded-full transition-colors" 
-            style={{ 
-              border: `${shape.strokeWidth}px solid ${shape.color}`, 
-              backgroundColor: shape.fill || 'transparent' 
-            }} 
-          />
-        );
-      case 'triangle':
-        return (
-          <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <polygon points="50,5 95,95 5,95" fill={shape.fill || 'none'} stroke={shape.color} strokeWidth={shape.strokeWidth * 2} />
-          </svg>
-        );
-      case 'line':
-        return (
-          <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <line x1="5" y1="50" x2="95" y2="50" stroke={shape.color} strokeWidth={shape.strokeWidth * 2} />
-          </svg>
-        );
-      case 'arrow':
-        return (
-          <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <defs>
-              <marker id={`arrowhead-${shape.id}`} markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill={shape.color} />
-              </marker>
-            </defs>
-            <line x1="5" y1="50" x2="88" y2="50" stroke={shape.color} strokeWidth={shape.strokeWidth * 2} markerEnd={`url(#arrowhead-${shape.id})`} />
-          </svg>
-        );
-      case 'grid':
-        return (
-          <div className="w-full h-full border rounded p-1 bg-white/80 dark:bg-slate-900/80 shadow-xs flex flex-col justify-between" style={{ borderColor: shape.color }}>
-            <svg className="w-full h-full" viewBox="0 0 200 160">
-              <path d="M 0 40 L 200 40 M 0 80 L 200 80 M 0 120 L 200 120 M 40 0 L 40 160 M 80 0 L 80 160 M 120 0 L 120 160 M 160 0 L 160 160" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3,3" />
-              <line x1="100" y1="5" x2="100" y2="155" stroke={shape.color} strokeWidth="2.5" />
-              <polygon points="100,0 95,10 105,10" fill={shape.color} />
-              <line x1="5" y1="80" x2="195" y2="80" stroke={shape.color} strokeWidth="2.5" />
-              <polygon points="200,80 190,75 190,85" fill={shape.color} />
-              <text x="108" y="15" fill={shape.color} fontSize="10" fontWeight="bold">y</text>
-              <text x="185" y="73" fill={shape.color} fontSize="10" fontWeight="bold">x</text>
-              <text x="92" y="92" fill={shape.color} fontSize="9" fontWeight="bold">O</text>
-            </svg>
-          </div>
-        );
-      case 'drawing_box':
-        return (
-          <div className="w-full h-full border-2 border-dashed rounded-lg bg-slate-50/70 dark:bg-slate-900/70 p-2 flex flex-col items-center justify-center text-center select-none" style={{ borderColor: shape.color }}>
-            <span className="text-xs font-bold" style={{ color: shape.color }}>[ مساحة مخصصة للرسم والتخطيط ]</span>
-            <span className="text-[10px] text-slate-400 mt-1">يمكنك الرسم أو كتابة الحلول هنا</span>
-          </div>
-        );
-      case 'stamp':
-        return (
-          <div className="w-full h-full flex items-center justify-center text-4xl select-none filter drop-shadow-md">
-            {shape.content}
-          </div>
-        );
-      case 'image':
-        return (
-          <img src={shape.content} alt="شكل مرفق" className="w-full h-full object-contain pointer-events-none rounded" />
-        );
-      default:
-        return null;
-    }
-  };
-
-  const convertShapeToHTML = (shape: CanvasShape): string => {
-    const commonStyle = `position: absolute; left: ${shape.x}px; top: ${shape.y}px; width: ${shape.width}px; height: ${shape.height}px; transform: rotate(${shape.rotation}deg); transform-origin: center center; z-index: 15; pointer-events: none;`;
-
-    switch (shape.type) {
-      case 'rectangle':
-        return `<div style="${commonStyle} border: ${shape.strokeWidth}px solid ${shape.color}; background-color: ${shape.fill || 'transparent'}; border-radius: 4px;"></div>`;
-      case 'circle':
-        return `<div style="${commonStyle} border: ${shape.strokeWidth}px solid ${shape.color}; background-color: ${shape.fill || 'transparent'}; border-radius: 50%;"></div>`;
-      case 'triangle':
-        return `<div style="${commonStyle}">
-          <svg style="width: 100%; height: 100%; overflow: visible;" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <polygon points="50,5 95,95 5,95" fill="${shape.fill || 'none'}" stroke="${shape.color}" stroke-width="${shape.strokeWidth * 2}" />
-          </svg>
-        </div>`;
-      case 'line':
-        return `<div style="${commonStyle}">
-          <svg style="width: 100%; height: 100%; overflow: visible;" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <line x1="5" y1="50" x2="95" y2="50" stroke="${shape.color}" stroke-width="${shape.strokeWidth * 2}" />
-          </svg>
-        </div>`;
-      case 'arrow':
-        return `<div style="${commonStyle}">
-          <svg style="width: 100%; height: 100%; overflow: visible;" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <defs>
-              <marker id="arrowhead-baked-${shape.id}" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="${shape.color}" />
-              </marker>
-            </defs>
-            <line x1="5" y1="50" x2="88" y2="50" stroke="${shape.color}" stroke-width="${shape.strokeWidth * 2}" marker-end="url(#arrowhead-baked-${shape.id})" />
-          </svg>
-        </div>`;
-      case 'grid':
-        return `<div style="${commonStyle} border: 1px solid ${shape.color}; border-radius: 4px; padding: 4px; background-color: rgba(255, 255, 255, 0.9);">
-          <svg style="width: 100%; height: 100%;" viewBox="0 0 200 160">
-            <path d="M 0 40 L 200 40 M 0 80 L 200 80 M 0 120 L 200 120 M 40 0 L 40 160 M 80 0 L 80 160 M 120 0 L 120 160 M 160 0 L 160 160" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3,3" />
-            <line x1="100" y1="5" x2="100" y2="155" stroke="${shape.color}" stroke-width="2.5" />
-            <polygon points="100,0 95,10 105,10" fill="${shape.color}" />
-            <line x1="5" y1="80" x2="195" y2="80" stroke="${shape.color}" stroke-width="2.5" />
-            <polygon points="200,80 190,75 190,85" fill="${shape.color}" />
-            <text x="108" y="15" fill="${shape.color}" font-size="10" font-weight="bold">y</text>
-            <text x="185" y="73" fill="${shape.color}" font-size="10" font-weight="bold">x</text>
-            <text x="92" y="92" fill="${shape.color}" font-size="9" font-weight="bold">O</text>
-          </svg>
-        </div>`;
-      case 'drawing_box':
-        return `<div style="${commonStyle} border: 2px dashed ${shape.color}; border-radius: 8px; background-color: rgba(248, 250, 252, 0.8); padding: 8px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <span style="font-size: 12px; font-weight: bold; color: ${shape.color}">[ مساحة مخصصة للرسم والتخطيط ]</span>
-        </div>`;
-      case 'stamp':
-        return `<div style="${commonStyle} display: flex; align-items: center; justify-content: center; font-size: ${Math.min(shape.width, shape.height) * 0.8}px; user-select: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));">
-          ${shape.content}
-        </div>`;
-      case 'image':
-        return `<div style="${commonStyle}">
-          <img src="${shape.content}" alt="شكل مرفق" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4px;" />
-        </div>`;
-      default:
-        return '';
-    }
-  };
-
-  const savePreviewChanges = () => {
-    let currentHTML = editableDivRef.current ? editableDivRef.current.innerHTML : generatedHtml;
-
-    if (canvasShapes.length > 0) {
-      const bakedShapesHTML = canvasShapes.map(s => convertShapeToHTML(s)).join('');
-      currentHTML = currentHTML + bakedShapesHTML;
-      setCanvasShapes([]);
-    }
-
-    setGeneratedHtml(currentHTML);
-    if (editableDivRef.current) {
-      editableDivRef.current.innerHTML = currentHTML;
-    }
-
-    const activeUid = user?.uid || 'guest';
-    const userStorageKey = `generateProData_${activeUid}`;
-    try {
-      const stored = localStorage.getItem(userStorageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        parsed.generatedHtml = currentHTML;
-        localStorage.setItem(userStorageKey, JSON.stringify(parsed));
-      }
-    } catch (e) {
-      console.error("Save error:", e);
-    }
-
-    if (soundEnabled) soundManager.playGenerateComplete();
-    setSaveSuccessMsg(true);
-    setTimeout(() => setSaveSuccessMsg(false), 2500);
-  };
-
   const [previewFontSize, setPreviewFontSize] = useState(16);
   const [docColor, setDocColor] = useState('#1e40af');
   const [documentLanguage, setDocumentLanguage] = useState('ar');
   const [includeWatermark, setIncludeWatermark] = useState(false);
 
   // Scaling logic
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [autoScale, setAutoScale] = useState(1);
+  const [manualScale, setManualScale] = useState(1);
+
   useEffect(() => {
     let animationFrameId: number;
     
@@ -604,124 +177,19 @@ export default function GeneratorPage() {
     };
   }, []);
 
-  // Measure A4 page height dynamically and calculate content-aware page break lines
-  useEffect(() => {
-    if (!editableDivRef.current) return;
-
-    const updateSmartBreaksAndHeight = () => {
-      const container = editableDivRef.current;
-      if (!container) return;
-
-      const PAGE_HEIGHT_PX = 1122; // Standard A4 height at 96 DPI
-      const scrollH = container.scrollHeight || PAGE_HEIGHT_PX;
-
-      if (scrollH <= PAGE_HEIGHT_PX + 20) {
-        setVisualBreakPositions([]);
-        setA4PageHeightInPx(PAGE_HEIGHT_PX);
-        return;
-      }
-
-      const containerRect = container.getBoundingClientRect();
-      const scale = effectiveScale || 1;
-
-      // Check for explicit manual page breaks in the document
-      const explicitBreakEls = Array.from(
-        container.querySelectorAll('.page-break, [style*="page-break-before: always"], [style*="break-before: always"]')
-      ) as HTMLElement[];
-      const explicitPositions = explicitBreakEls.map(el => {
-        const rect = el.getBoundingClientRect();
-        return Math.round((rect.top - containerRect.top) / scale);
-      }).filter(y => y > 50).sort((a, b) => a - b);
-
-      const breaks: number[] = [];
-      let lastBreakY = 0; // Top of current page in unscaled container coordinates
-      let guard = 0;
-
-      while (lastBreakY + PAGE_HEIGHT_PX < scrollH - 30 && guard < 20) {
-        guard++;
-        const targetBoundary = lastBreakY + PAGE_HEIGHT_PX;
-        let bestBreakY = targetBoundary;
-
-        // Check if an explicit manual page break falls in this range
-        const manualBreak = explicitPositions.find(p => p > lastBreakY + 80 && p <= targetBoundary + 150);
-        if (manualBreak) {
-          bestBreakY = manualBreak;
-        } else {
-          // Query all candidate elements that shouldn't be split awkwardly across a page cut
-          const allCandidates: HTMLElement[] = Array.from(container.querySelectorAll(
-            '.card, .exercise-card, .pedagogical-card, .framed-card, .formula-card, .rule-card, .example-card, .callout-box, .callout, .solution-card, .summary-box, .question-block, .situation-card, .pedagogical-step, .memo-header, .avoid-break, table, tr, p, div.border, div.rounded-xl, div.rounded-lg, ul, ol, figure, .illustration, .diagram, h1, h2, h3, h4, h5, h6'
-          )) as HTMLElement[];
-
-          // Find the deepest / closest element that straddles targetBoundary
-          let chosenCandidate: HTMLElement | null = null;
-          let chosenTop = -1;
-
-          for (const el of allCandidates) {
-            const rect = el.getBoundingClientRect();
-            // Crucial: divide by scale to map back to unscaled A4 page coordinates
-            const elTop = Math.round((rect.top - containerRect.top) / scale);
-            const elBottom = Math.round((rect.bottom - containerRect.top) / scale);
-
-            // Does el straddle the target boundary?
-            if (elTop < targetBoundary - 6 && elBottom > targetBoundary + 6) {
-              // Ensure this element starts well below the start of the current page
-              if (elTop > lastBreakY + 80) {
-                // We prefer the element whose top is closest to targetBoundary (highest elTop)
-                // to avoid creating large empty white areas while guaranteeing no line cuts
-                if (elTop > chosenTop) {
-                  chosenTop = elTop;
-                  chosenCandidate = el;
-                }
-              }
-            }
-          }
-
-          if (chosenCandidate && chosenTop > lastBreakY + 80) {
-            // If the element is a table row <tr> or inside a row, align cleanly to the top of the table row
-            if (chosenCandidate.tagName === 'TR' || chosenCandidate.closest('tr')) {
-              const tr = (chosenCandidate.tagName === 'TR' ? chosenCandidate : chosenCandidate.closest('tr')) as HTMLElement;
-              if (tr) {
-                const trRect = tr.getBoundingClientRect();
-                const trTop = Math.round((trRect.top - containerRect.top) / scale);
-                if (trTop > lastBreakY + 80) {
-                  chosenTop = trTop;
-                }
-              }
-            }
-            bestBreakY = chosenTop - 6; // Clean gap above the element
-          } else {
-            bestBreakY = targetBoundary;
-          }
-        }
-
-        breaks.push(bestBreakY);
-        lastBreakY = bestBreakY;
-      }
-
-      setVisualBreakPositions(breaks);
-      const totalPages = breaks.length + 1;
-      setA4PageHeightInPx(Math.max(scrollH, totalPages * PAGE_HEIGHT_PX));
-    };
-
-    updateSmartBreaksAndHeight();
-    const observer = new ResizeObserver(updateSmartBreaksAndHeight);
-    observer.observe(editableDivRef.current);
-    return () => observer.disconnect();
-  }, [generatedHtml, pageFrame, previewFontSize, canvasShapes, effectiveScale]);
+  const effectiveScale = autoScale * manualScale;
 
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
 
-  const activeUid = user?.uid || 'guest';
-
   useEffect(() => {
-    const savedBgImage = localStorage.getItem(`appBgImage_${activeUid}`);
-    const savedBgColor = localStorage.getItem(`appBgColor_${activeUid}`);
+    const savedBgImage = localStorage.getItem('appBgImage');
+    const savedBgColor = localStorage.getItem('appBgColor');
     if (savedBgImage) setAppBgImage(savedBgImage);
     if (savedBgColor) setAppBgColor(savedBgColor);
-  }, [activeUid]);
+  }, []);
 
   const handleAppBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -730,7 +198,7 @@ export default function GeneratorPage() {
       reader.onloadend = () => {
         const result = reader.result as string;
         setAppBgImage(result);
-        localStorage.setItem(`appBgImage_${activeUid}`, result);
+        localStorage.setItem('appBgImage', result);
       };
       reader.readAsDataURL(file);
     }
@@ -739,229 +207,129 @@ export default function GeneratorPage() {
   const handleAppBgColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const color = e.target.value;
     setAppBgColor(color);
-    localStorage.setItem(`appBgColor_${activeUid}`, color);
+    localStorage.setItem('appBgColor', color);
   };
 
   useEffect(() => {
-    const userStorageKey = `generateProData_${activeUid}`;
-    const saved = localStorage.getItem(userStorageKey);
-    let parsed: any = {};
+    const saved = localStorage.getItem('generateProData');
     if (saved) {
       try {
-        parsed = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed.teacherInfo) setTeacherInfo(parsed.teacherInfo);
+        if (parsed.memoSection) setMemoSection(parsed.memoSection);
+        if (parsed.memoDomain) setMemoDomain(parsed.memoDomain);
+        if (parsed.memoContent) setMemoContent(parsed.memoContent);
+        if (parsed.documentLanguage) setDocumentLanguage(parsed.documentLanguage);
+        if (parsed.includeWatermark !== undefined) setIncludeWatermark(parsed.includeWatermark);
+        if (parsed.hasIntegration !== undefined) setHasIntegration(parsed.hasIntegration);
+        if (parsed.contentStyle) setContentStyle(parsed.contentStyle);
+        if (parsed.designStyle) setDesignStyle(parsed.designStyle);
+        if (parsed.pageFrame) setPageFrame(parsed.pageFrame);
+        if (parsed.examType) setExamType(parsed.examType);
+        if (parsed.examTerm) setExamTerm(parsed.examTerm);
+        if (parsed.examDuration) setExamDuration(parsed.examDuration);
       } catch (e) {
-        console.error("Could not parse saved user data", e);
+        console.error("Could not parse saved data", e);
       }
     }
-
-    const savedTeacher = parsed.teacherInfo || {};
-    setTeacherInfo({
-      firstName: userData?.firstName !== undefined ? userData.firstName : (savedTeacher.firstName || ''),
-      lastName: userData?.lastName !== undefined ? userData.lastName : (savedTeacher.lastName || ''),
-      school: userData?.school !== undefined ? userData.school : (savedTeacher.school || ''),
-      phase: userData?.phase !== undefined ? userData.phase : (savedTeacher.phase || ''),
-      subject: userData?.subject !== undefined ? userData.subject : (savedTeacher.subject || ''),
-      level: userData?.level !== undefined ? userData.level : (savedTeacher.level || ''),
-    });
-
-    setMemoSection(parsed.memoSection || '');
-    setMemoDomain(parsed.memoDomain || '');
-    setMemoContent(parsed.memoContent || '');
-    setMemoWarmup(parsed.memoWarmup || '');
-    setMemoLearningSituation(parsed.memoLearningSituation || '');
-    setMemoSummary(parsed.memoSummary || '');
-    setMemoReinvestment(parsed.memoReinvestment || '');
-
-    if (parsed.documentLanguage) setDocumentLanguage(parsed.documentLanguage);
-    if (parsed.includeWatermark !== undefined) setIncludeWatermark(parsed.includeWatermark);
-    if (parsed.hasIntegration !== undefined) setHasIntegration(parsed.hasIntegration);
-    if (parsed.integrationSections !== undefined) setIntegrationSections(parsed.integrationSections);
-    if (parsed.integrationCompetencies !== undefined) setIntegrationCompetencies(parsed.integrationCompetencies);
-    if (parsed.integrationPrompt !== undefined) setIntegrationPrompt(parsed.integrationPrompt);
-    if (parsed.includeSolution !== undefined) setIncludeSolution(parsed.includeSolution);
-    if (parsed.contentStyle) setContentStyle(parsed.contentStyle);
-    if (parsed.designStyle) setDesignStyle(parsed.designStyle);
-    if (parsed.pageFrame) setPageFrame(parsed.pageFrame);
-    if (parsed.examType) setExamType(parsed.examType);
-    if (parsed.examTerm) setExamTerm(parsed.examTerm);
-    if (parsed.examDuration) setExamDuration(parsed.examDuration);
-    if (parsed.numExercisesOption) setNumExercisesOption(parsed.numExercisesOption);
-  }, [activeUid]);
+  }, []);
 
   const [lessonSaveMessage, setLessonSaveMessage] = useState<string | null>(null);
 
   const saveCurrentPreferences = (overrides?: Record<string, any>) => {
     try {
-      const userStorageKey = `generateProData_${user?.uid || 'guest'}`;
-      const currentData = JSON.parse(localStorage.getItem(userStorageKey) || '{}');
+      const currentData = JSON.parse(localStorage.getItem('generateProData') || '{}');
       const newData = {
         ...currentData,
         teacherInfo,
         memoSection,
         memoDomain,
         memoContent,
-        memoWarmup,
-        memoLearningSituation,
-        memoSummary,
-        memoReinvestment,
         documentLanguage,
         includeWatermark,
         hasIntegration,
-        integrationSections,
-        integrationCompetencies,
-        integrationPrompt,
-        includeSolution,
         contentStyle,
         designStyle,
         pageFrame,
         examType,
         examTerm,
         examDuration,
-        numExercisesOption,
         ...overrides
       };
-      localStorage.setItem(userStorageKey, JSON.stringify(newData));
+      localStorage.setItem('generateProData', JSON.stringify(newData));
     } catch (e) {
       console.error("Could not auto-save preferences", e);
     }
   };
 
   const handleSaveLessonElements = () => {
-    if (!memoSection && !memoDomain && !memoContent && !memoWarmup && !memoLearningSituation && !memoSummary && !memoReinvestment && !aiPrompt && exercises.every(e => !e.section) && !integrationSections && !integrationCompetencies && !integrationPrompt) {
-      alert('يرجى كتابة المقطع أو الميدان أو المورد المعرفي أو مراحل المذكرة أو التوجيهات أو معطيات الوضعية الإدماجية قبل الحفظ.');
+    if (!memoSection && !memoDomain && !memoContent) {
+      alert('يرجى كتابة المقطع أو الميدان أو المورد المعرفي قبل الحفظ.');
       return;
     }
-    const uid = user?.uid || 'guest';
-    const subjectKey = `lesson_elements_${uid}_${teacherInfo.subject || 'default'}`;
-    const lastKey = `lesson_elements_${uid}_last`;
+    const subjectKey = `lesson_elements_${teacherInfo.subject || 'default'}`;
     const dataToSave = {
       memoSection,
       memoDomain,
       memoContent,
-      memoWarmup,
-      memoLearningSituation,
-      memoSummary,
-      memoReinvestment,
-      aiPrompt,
-      exercises,
-      integrationSections,
-      integrationCompetencies,
-      integrationPrompt,
       subject: teacherInfo.subject,
       updatedAt: new Date().toISOString()
     };
     localStorage.setItem(subjectKey, JSON.stringify(dataToSave));
-    localStorage.setItem(lastKey, JSON.stringify(dataToSave));
+    localStorage.setItem('lesson_elements_last', JSON.stringify(dataToSave));
     saveCurrentPreferences();
 
     if (soundEnabled) soundManager.playGenerateComplete();
-    setLessonSaveMessage('تم حفظ معلومات المقطع والكفاءات ومراحل المذكرة والوضعية بنجاح!');
+    setLessonSaveMessage('تم حفظ المقطع والميدان والمورد بنجاح! سينتذكرها النظام تلقائياً.');
     setTimeout(() => setLessonSaveMessage(null), 3500);
   };
 
   const handleLoadLessonElements = () => {
-    const uid = user?.uid || 'guest';
-    const subjectKey = `lesson_elements_${uid}_${teacherInfo.subject || 'default'}`;
-    const lastKey = `lesson_elements_${uid}_last`;
-    const savedSubjectData = localStorage.getItem(subjectKey) || localStorage.getItem(lastKey);
+    const subjectKey = `lesson_elements_${teacherInfo.subject || 'default'}`;
+    const savedSubjectData = localStorage.getItem(subjectKey) || localStorage.getItem('lesson_elements_last');
     if (savedSubjectData) {
       try {
         const parsed = JSON.parse(savedSubjectData);
-        if (parsed.memoSection !== undefined) setMemoSection(parsed.memoSection);
-        if (parsed.memoDomain !== undefined) setMemoDomain(parsed.memoDomain);
-        if (parsed.memoContent !== undefined) setMemoContent(parsed.memoContent);
-        if (parsed.memoWarmup !== undefined) setMemoWarmup(parsed.memoWarmup);
-        if (parsed.memoLearningSituation !== undefined) setMemoLearningSituation(parsed.memoLearningSituation);
-        if (parsed.memoSummary !== undefined) setMemoSummary(parsed.memoSummary);
-        if (parsed.memoReinvestment !== undefined) setMemoReinvestment(parsed.memoReinvestment);
-        if (parsed.aiPrompt !== undefined) setAiPrompt(parsed.aiPrompt);
-        if (parsed.exercises && Array.isArray(parsed.exercises)) setExercises(parsed.exercises);
-        if (parsed.integrationSections !== undefined) setIntegrationSections(parsed.integrationSections);
-        if (parsed.integrationCompetencies !== undefined) setIntegrationCompetencies(parsed.integrationCompetencies);
-        if (parsed.integrationPrompt !== undefined) setIntegrationPrompt(parsed.integrationPrompt);
-        setLessonSaveMessage('تم استرجاع معلومات دروسك ومراحل مذكرتك والوضعية الإدماجية بنجاح!');
+        if (parsed.memoSection) setMemoSection(parsed.memoSection);
+        if (parsed.memoDomain) setMemoDomain(parsed.memoDomain);
+        if (parsed.memoContent) setMemoContent(parsed.memoContent);
+        setLessonSaveMessage('تم استرجاع عناصر الدرس المحفوظة للمادة بنجاح!');
         setTimeout(() => setLessonSaveMessage(null), 3500);
       } catch (e) {
         console.error(e);
       }
     } else {
-      alert('لا توجد معلومات محفوظة لهذه المادة في حسابك الشخصي حتى الآن. أدخل البيانات واضغط على "حفظ المعطيات".');
+      alert('لا توجد عناصر درس محفوظة لهذه المادة حتى الآن. أدخل البيانات واضغط على "تذكر عناصر الدرس".');
     }
   };
 
-  const handleResetInputs = () => {
-    if (window.confirm('هل أنت متأكد من رغبتك في إعادة تعيين جميع الحقول وتفريغ البيانات للكتابة مجدداً؟')) {
-      setMemoSection('');
-      setMemoDomain('');
-      setMemoContent('');
-      setMemoWarmup('');
-      setMemoLearningSituation('');
-      setMemoSummary('');
-      setMemoReinvestment('');
-      setAiPrompt('');
-      setIntegrationSections('');
-      setIntegrationCompetencies('');
-      setIntegrationPrompt('');
-      setExercises([{ id: generateId(), section: '', competencies: [''] }]);
-      saveCurrentPreferences({
-        memoSection: '',
-        memoDomain: '',
-        memoContent: '',
-        memoWarmup: '',
-        memoLearningSituation: '',
-        memoSummary: '',
-        memoReinvestment: '',
-        aiPrompt: '',
-        integrationSections: '',
-        integrationCompetencies: '',
-        integrationPrompt: ''
-      });
-      if (soundEnabled) soundManager.playTabClick();
-      setLessonSaveMessage('تم إعادة تعيين جميع الحقول بنجاح للكتابة مجدداً.');
-      setTimeout(() => setLessonSaveMessage(null), 3500);
-    }
-  };
-
-  const handleSaveTeacher = async () => {
+  const handleSaveTeacher = () => {
     saveCurrentPreferences();
-    if (userData?.uid) {
-      try {
-        await updateDoc(doc(db, 'users', userData.uid), {
-          firstName: teacherInfo.firstName,
-          lastName: teacherInfo.lastName,
-          school: teacherInfo.school,
-          phase: teacherInfo.phase,
-          subject: teacherInfo.subject,
-          level: teacherInfo.level
-        });
-        await refreshUserData();
-      } catch (e) {
-        console.error("Failed to update user profile in Firestore", e);
-      }
-    }
-    alert('تم حفظ معلوماتك الشخصية وإعداداتك في حسابك بنجاح!');
+    alert('تم حفظ معلومات الأستاذ والوثيقة بنجاح!');
   };
 
   const isFreeMode = !isProUser;
 
-  const activeStyleDef = getStyleById(designStyle);
-
-  let designStyles = STYLES_REGISTRY.map(s => ({
-    id: s.id,
-    label: s.nameAr,
-    icon: Sparkles,
-    color: s.tokens.primary,
-    twColor: 'text-indigo-600',
-    twBg: 'bg-indigo-100',
-    twBorder: 'border-indigo-200',
-    isPro: s.isPro
-  }));
+  let designStyles = [
+    { id: 'style1', label: 'كلاسيكي', icon: BookOpen, color: '#1e40af', twColor: 'text-blue-600', twBg: 'bg-blue-100', twBorder: 'border-blue-200' },
+    { id: 'style5', label: 'داكن', icon: Printer, color: '#334155', twColor: 'text-slate-700', twBg: 'bg-slate-200', twBorder: 'border-slate-300' },
+    { id: 'style2', label: 'إبداعي', icon: Palette, color: '#9333ea', twColor: 'text-purple-600', twBg: 'bg-purple-100', twBorder: 'border-purple-200', isPro: true },
+    { id: 'style3', label: 'عصري', icon: Sparkles, color: '#059669', twColor: 'text-emerald-600', twBg: 'bg-emerald-100', twBorder: 'border-emerald-200', isPro: true },
+    { id: 'style6', label: 'هندسي', icon: Hexagon, color: '#0891b2', twColor: 'text-cyan-600', twBg: 'bg-cyan-100', twBorder: 'border-cyan-200', isPro: true },
+    { id: 'style7', label: 'مرح', icon: Smile, color: '#db2777', twColor: 'text-pink-600', twBg: 'bg-pink-100', twBorder: 'border-pink-200', isPro: true },
+    { id: 'style8', label: 'أكاديمي', icon: GraduationCap, color: '#4f46e5', twColor: 'text-indigo-600', twBg: 'bg-indigo-100', twBorder: 'border-indigo-200', isPro: true },
+    { id: 'style9', label: 'ناعم', icon: Heart, color: '#e11d48', twColor: 'text-rose-600', twBg: 'bg-rose-100', twBorder: 'border-rose-200', isPro: true },
+    { id: 'style10', label: 'بني', icon: Coffee, color: '#92400e', twColor: 'text-orange-800', twBg: 'bg-orange-100', twBorder: 'border-orange-200', isPro: true },
+    { id: 'style13', label: 'خارق للعادة', icon: Layers, color: '#0369a1', twColor: 'text-sky-700', twBg: 'bg-sky-100', twBorder: 'border-sky-200', isPro: true },
+    { id: 'style14', label: 'طبيعي', icon: Leaf, color: '#65a30d', twColor: 'text-lime-600', twBg: 'bg-lime-100', twBorder: 'border-lime-200', isPro: true },
+    { id: 'style15', label: 'ذهبي', icon: Star, color: '#ca8a04', twColor: 'text-yellow-600', twBg: 'bg-yellow-100', twBorder: 'border-yellow-200', isPro: true }
+  ];
 
   if (generationType === 'visual') {
     designStyles = [
-      { id: 'visual_nature', label: 'تفاعلي - طبيعة (أخضر)', icon: Leaf, color: '#65a30d', twColor: 'text-lime-600', twBg: 'bg-lime-100', twBorder: 'border-lime-200', isPro: false },
-      { id: 'visual_elegant', label: 'تفاعلي - أناقة (بنفسجي)', icon: Palette, color: '#9333ea', twColor: 'text-purple-600', twBg: 'bg-purple-100', twBorder: 'border-purple-200', isPro: true },
-      { id: 'visual_geometric', label: 'تفاعلي - هندسي (برتقالي)', icon: Hexagon, color: '#f97316', twColor: 'text-orange-600', twBg: 'bg-orange-100', twBorder: 'border-orange-200', isPro: true }
+      { id: 'visual_nature', label: 'تفاعلي - طبيعة (أخضر)', icon: Leaf, color: '#65a30d', twColor: 'text-lime-600', twBg: 'bg-lime-100', twBorder: 'border-lime-200' },
+      { id: 'visual_elegant', label: 'تفاعلي - أناقة (بنفسجي)', icon: Palette, color: '#9333ea', twColor: 'text-purple-600', twBg: 'bg-purple-100', twBorder: 'border-purple-200' },
+      { id: 'visual_geometric', label: 'تفاعلي - هندسي (برتقالي)', icon: Hexagon, color: '#f97316', twColor: 'text-orange-600', twBg: 'bg-orange-100', twBorder: 'border-orange-200' }
     ];
   }
 
@@ -972,69 +340,21 @@ export default function GeneratorPage() {
   ];
 
   const pageFrames = [
-    { id: 'none', label: 'إطار النمط المختار (افتراضي)' },
+    { id: 'none', label: 'بدون إطار' },
     { id: 'simple', label: 'إطار بسيط' },
     { id: 'double', label: 'إطار مزدوج', isPro: true },
     { id: 'ornate', label: 'إطار مزخرف مميز', isPro: true },
     { id: '3d', label: 'إطار 3D', isPro: true }
   ];
 
-  const handleColorChange = (newColor: string) => {
-    const oldColor = docColor;
-    setDocColor(newColor);
-    saveCurrentPreferences({ docColor: newColor });
-
-    if (generatedHtml) {
-      let updated = generatedHtml;
-      // 1. Replace var(--doc-color, ...)
-      updated = updated.replace(/var\(--doc-color,\s*[^)]+\)/gi, `var(--doc-color, ${newColor})`);
-      
-      // 2. Replace explicit hex color if present
-      if (oldColor && oldColor.toLowerCase() !== newColor.toLowerCase()) {
-        const escOld = oldColor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        updated = updated.replace(new RegExp(escOld, 'gi'), newColor);
-      }
-      
-      // 3. Catch common fallback hex colors if replacing from default
-      const commonColors = ['#1e40af', '#1d4ed8', '#2563eb', '#3b82f6', '#0284c7', '#0f766e', '#15803d', '#be123c', '#7c3aed', '#9333ea', '#f97316', '#65a30d'];
-      if (oldColor) {
-        commonColors.forEach(c => {
-          if (c.toLowerCase() === oldColor.toLowerCase()) {
-            const escC = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            updated = updated.replace(new RegExp(escC, 'gi'), newColor);
-          }
-        });
-      }
-
-      updateGeneratedHtml(updated);
-    }
-  };
-
   const handleDesignStyleChange = (styleId: string) => {
     if (soundEnabled) soundManager.playTabClick();
     setDesignStyle(styleId);
-    const styleDef = getStyleById(styleId);
-    const newColor = styleDef.tokens.primary;
-    setDocColor(newColor);
-    saveCurrentPreferences({ designStyle: styleId, docColor: newColor });
-
-    if (generatedHtml) {
-      const meta = {
-        school: teacherInfo.school,
-        subject: teacherInfo.subject,
-        teacher: `${teacherInfo.firstName} ${teacherInfo.lastName}`.trim(),
-        level: teacherInfo.level,
-        domain: memoDomain,
-        topic: memoContent || memoSection,
-        duration: teacherInfo.phase,
-        typeLabel: generationType === 'memo' ? 'مذكرة تربوية' : 'مستند تربوي'
-      };
-      // Prefer the clean raw generated HTML if available to preserve perfect fidelity,
-      // otherwise transform the current generatedHtml with unwrap logic
-      const sourceContent = rawGeneratedHtml || generatedHtml;
-      const styled = transformDocumentToStyle(sourceContent, styleId, meta);
-      updateGeneratedHtml(styled);
+    const selected = designStyles.find(s => s.id === styleId);
+    if (selected) {
+      setDocColor(selected.color);
     }
+    saveCurrentPreferences({ designStyle: styleId, docColor: selected?.color });
   };
 
   const profileInputRef = useRef<HTMLInputElement>(null);
@@ -1105,8 +425,8 @@ export default function GeneratorPage() {
       return;
     }
 
-    if (!isAdmin && userData.role !== 'admin' && (userData.generationsRemaining === undefined || userData.generationsRemaining <= 0)) {
-      setShowOutQuotaModal(true);
+    if (userData.role !== 'admin' && userData.generationsRemaining <= 0) {
+      alert('عذراً، لقد استنفدت عدد التوليدات المتاحة لك. الرجاء التواصل مع الإدارة لتجديد الاشتراك.');
       return;
     }
 
@@ -1118,44 +438,19 @@ export default function GeneratorPage() {
 
     if (soundEnabled) soundManager.playGenerateStart();
     setIsGenerating(true);
-    updateGeneratedHtml('');
+    setGeneratedHtml('');
     
     let subjectInfo: SubjectInfo = {};
     if (generationType === 'memo' || generationType === 'summary' || generationType === 'visual' || generationType.startsWith('cutout')) {
-      subjectInfo = { 
-        section: memoSection, 
-        domain: memoDomain, 
-        content: memoContent,
-        memoWarmup: memoWarmup ? memoWarmup.trim() : undefined,
-        memoLearningSituation: memoLearningSituation ? memoLearningSituation.trim() : undefined,
-        memoSummary: memoSummary ? memoSummary.trim() : undefined,
-        memoReinvestment: memoReinvestment ? memoReinvestment.trim() : undefined
-      };
+      subjectInfo = { section: memoSection, domain: memoDomain, content: memoContent };
     } else {
-      const targetCount = numExercisesOption === 'auto' 
-        ? (exercises.some(e => e.section) ? exercises.length : undefined) 
-        : parseInt(numExercisesOption, 10);
-
       subjectInfo = { 
         exercises, 
-        numExercisesOption,
-        targetExercisesCount: targetCount,
         hasIntegrationSituation: hasIntegration,
-        integrationSections: hasIntegration ? integrationSections : '',
-        integrationCompetencies: hasIntegration ? integrationCompetencies : '',
-        integrationPrompt: hasIntegration ? integrationPrompt : '',
-        includeSolution,
         ...(generationType === 'test' ? {
           examType,
           term: examTerm,
-          duration: examDuration,
-          numExercisesOption,
-          targetExercisesCount: targetCount,
-          hasIntegrationSituation: hasIntegration,
-          integrationSections: hasIntegration ? integrationSections : '',
-          integrationCompetencies: hasIntegration ? integrationCompetencies : '',
-          integrationPrompt: hasIntegration ? integrationPrompt : '',
-          includeSolution
+          duration: examDuration
         } : {})
       };
     }
@@ -1173,12 +468,10 @@ export default function GeneratorPage() {
           generationType,
           teacherInfo,
           subjectInfo,
-          includeSolution,
           documentLanguage,
           includeWatermark,
           contentStyle: selectedContentLabel,
-          designStyle: designStyle,
-          designStyleLabel: selectedDesignLabel,
+          designStyle: selectedDesignLabel,
           pageFrame: selectedFrameLabel,
           aiPrompt
         })
@@ -1211,22 +504,10 @@ export default function GeneratorPage() {
         }
       }
       
-      // Transform with active pedagogical design system & smart component detector
-      const docMeta = {
-        school: teacherInfo.school,
-        subject: teacherInfo.subject,
-        teacher: `${teacherInfo.firstName} ${teacherInfo.lastName}`.trim(),
-        level: teacherInfo.level,
-        domain: memoDomain || (subjectInfo as any).domain,
-        topic: memoContent || memoSection || (subjectInfo as any).section,
-        duration: (subjectInfo as any).duration || teacherInfo.phase,
-        typeLabel: generationType === 'memo' ? 'مذكرة تربوية' : 'مستند تربوي'
-      };
-      const styledContent = transformDocumentToStyle(safeHtml, designStyle, docMeta);
-      updateGeneratedHtml(styledContent, safeHtml);
+      setGeneratedHtml(safeHtml);
       
       // Update generation quota in Firestore
-      if (!isAdmin && userData.role !== 'admin') {
+      if (userData.role !== 'admin') {
         try {
           const { doc, updateDoc, increment } = await import('firebase/firestore');
           const { db } = await import('../lib/firebase');
@@ -1238,18 +519,6 @@ export default function GeneratorPage() {
           refreshUserData();
         } catch (err) {
           console.error('Error updating quota:', err);
-        }
-      } else if (userData) {
-        try {
-          const { doc, updateDoc, increment } = await import('firebase/firestore');
-          const { db } = await import('../lib/firebase');
-          const userRef = doc(db, 'users', userData.uid);
-          await updateDoc(userRef, {
-            totalGenerations: increment(1)
-          });
-          refreshUserData();
-        } catch (err) {
-          console.error('Error updating total generations:', err);
         }
       }
 
@@ -1267,61 +536,28 @@ export default function GeneratorPage() {
   };
 
   const getFrameStyle = (frameId: string, color: string): React.CSSProperties => {
-    const activeDef = getStyleById(designStyle);
-    if (frameId === 'none') {
-      switch (activeDef.frameType) {
-        case 'double_gold':
-          return { border: `4px double ${activeDef.tokens.accent}`, outline: `1px solid ${activeDef.tokens.primary}`, outlineOffset: '-5px', margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '4px' };
-        case 'tech_hud':
-          return { border: `2px solid ${activeDef.tokens.primary}`, borderTop: `6px solid ${activeDef.tokens.secondary}`, borderBottom: `6px solid ${activeDef.tokens.accent}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '6px' };
-        case 'side_rail':
-          return { border: `1px solid ${activeDef.tokens.border}`, borderRight: `8px solid ${activeDef.tokens.primary}`, borderLeft: `2px solid ${activeDef.tokens.secondary}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box' };
-        case 'emerald_ornate':
-          return { border: `3px double ${activeDef.tokens.primary}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '12px' };
-        case 'power_banner':
-          return { border: `2px solid ${activeDef.tokens.border}`, borderTop: `8px solid ${activeDef.tokens.primary}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box' };
-        case 'purple_digital':
-          return { border: `2px solid ${activeDef.tokens.secondary}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '14px' };
-        case 'orange_dynamic':
-          return { border: `2px solid ${activeDef.tokens.border}`, borderRight: `7px solid ${activeDef.tokens.primary}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '8px' };
-        case 'math_grid':
-          return { border: `2px solid ${activeDef.tokens.primary}`, outline: `1px dashed ${activeDef.tokens.border}`, outlineOffset: '-4px', margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '4px' };
-        case 'cards_modular':
-          return { border: `1px solid ${activeDef.tokens.border}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '16px' };
-        case 'dz_geometric':
-          return { border: `3px solid ${activeDef.tokens.primary}`, borderTop: `6px solid ${activeDef.tokens.primary}`, borderBottom: `4px solid ${activeDef.tokens.accent}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '6px' };
-        case 'editorial_rules':
-          return { borderTop: `4px solid ${activeDef.tokens.primary}`, borderBottom: `2px solid ${activeDef.tokens.accent}`, margin: '5mm', padding: '8mm 6mm', minHeight: 'calc(297mm - 10mm)', boxSizing: 'border-box' };
-        case 'kids_playful':
-          return { border: `4px solid ${activeDef.tokens.primary}`, margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '20px' };
-        default:
-          return { margin: '4mm', padding: '6mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box' };
-      }
-    }
     switch (frameId) {
-      case 'simple': return { border: `2px solid ${color}`, margin: '4mm', padding: '5mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '4px' };
-      case 'double': return { border: `4px double ${color}`, margin: '4mm', padding: '5mm', minHeight: 'calc(297mm - 8mm)', boxSizing: 'border-box', borderRadius: '4px' };
+      case 'simple': return { border: `2px solid ${color}`, margin: '0', padding: '4mm', minHeight: '297mm', boxSizing: 'border-box' };
+      case 'double': return { border: `4px double ${color}`, margin: '0', padding: '4mm', minHeight: '297mm', boxSizing: 'border-box' };
       case 'ornate': return { 
           border: `2px dashed ${color}`, 
           outline: `2px solid ${color}`, 
-          outlineOffset: '-5px',
-          margin: '5mm',
+          outlineOffset: '-4px',
+          margin: '0',
           padding: '6mm',
-          minHeight: 'calc(297mm - 10mm)',
+          minHeight: '297mm',
           boxSizing: 'border-box',
           backgroundColor: '#fff',
-          borderRadius: '4px'
       };
       case '3d': return { 
           borderTop: `3px solid ${color}`, 
           borderLeft: `3px solid ${color}`, 
-          borderBottom: `6px solid ${color}`, 
-          borderRight: `6px solid ${color}`, 
-          margin: '4mm',
-          padding: '5mm',
-          minHeight: 'calc(297mm - 8mm)',
-          boxSizing: 'border-box',
-          borderRadius: '4px'
+          borderBottom: `5px solid ${color}80`, 
+          borderRight: `5px solid ${color}80`, 
+          margin: '0',
+          padding: '4mm',
+          minHeight: '297mm',
+          boxSizing: 'border-box'
       };
       default: return { padding: '6mm', minHeight: '297mm', boxSizing: 'border-box' };
     }
@@ -1337,201 +573,61 @@ export default function GeneratorPage() {
   };
 
   const exportToPDF = async () => {
-    // 1. Deselect any active shape to hide selection border, handles & floating toolbars
-    setSelectedShapeId(null);
     
-    // 2. If there are active shapes or direct text edits in the preview, save & bake them first
-    if (editableDivRef.current) {
-      if (canvasShapes.length > 0 || editableDivRef.current.innerHTML !== generatedHtml) {
-        savePreviewChanges();
-        await new Promise(resolve => setTimeout(resolve, 80));
-      }
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 60));
-
     const originalElement = document.querySelector('.a4-page') as HTMLElement;
     if (!originalElement) return;
 
-    // Clone the element to render off-screen without altering the UI
+    // Clone the element to avoid breaking the UI during generation
     const clone = originalElement.cloneNode(true) as HTMLElement;
     
-    // Create a temporary container off-screen forced strictly in light mode
+    // Create a temporary container off-screen
     const tempContainer = document.createElement('div');
-    tempContainer.className = 'light';
     tempContainer.style.position = 'absolute';
     tempContainer.style.left = '-9999px';
     tempContainer.style.top = '0';
     tempContainer.style.width = '794px';
-    tempContainer.style.color = '#000000';
-    tempContainer.style.backgroundColor = '#ffffff';
     tempContainer.appendChild(clone);
     document.body.appendChild(tempContainer);
-
-    // Remove any leftover shape controls or interactive buttons from clone
-    const selectorsToRemove = ['.z-40', 'button', 'input[type="color"]'];
-    selectorsToRemove.forEach(sel => {
-      clone.querySelectorAll(sel).forEach(el => el.remove());
-    });
-
-    // Strip dark mode classes from clone and all descendants
-    clone.classList.remove('dark');
-    clone.querySelectorAll('.dark').forEach(el => el.classList.remove('dark'));
-
-    // Substitute var(--doc-color, ...) CSS variables with concrete hex values for html2canvas reliability
-    let htmlContent = clone.innerHTML;
-    const docColorValue = docColor || activeStyleDef.tokens.primary;
-    htmlContent = htmlContent.replace(/var\(--doc-color,\s*[^)]+\)/g, docColorValue);
-    htmlContent = htmlContent.replace(/var\(--doc-color\)/g, docColorValue);
-    htmlContent = htmlContent.replace(/var\(--style-primary\)/g, activeStyleDef.tokens.primary);
-    htmlContent = htmlContent.replace(/var\(--style-secondary\)/g, activeStyleDef.tokens.secondary);
-    htmlContent = htmlContent.replace(/var\(--style-accent\)/g, activeStyleDef.tokens.accent);
-
-    // Replace unreadable washed-out yellow text with high-contrast text for print
-    htmlContent = htmlContent.replace(/color:\s*(#fde047|#facc15|#fef08a|yellow)\b/gi, 'color: #0f172a');
-
-    // Preserve inline page-break-inside rules on individual elements
-    clone.innerHTML = htmlContent;
-
-    // Apply active design system classes and typography directly to clone
-    clone.className = `a4-page print-area bg-white text-black outline-none absolute top-0 left-0 overflow-visible style-${activeStyleDef.id.replace(/_/g, '-')} frame-${activeStyleDef.frameType}`;
-    clone.style.fontFamily = activeStyleDef.fontFamily;
-    clone.style.setProperty('--doc-color', docColorValue);
-    clone.style.setProperty('--style-primary', activeStyleDef.tokens.primary);
-    clone.style.setProperty('--style-secondary', activeStyleDef.tokens.secondary);
-    clone.style.setProperty('--style-accent', activeStyleDef.tokens.accent);
-    clone.style.setProperty('--style-surface', activeStyleDef.tokens.surface);
-    clone.style.setProperty('--style-border', activeStyleDef.tokens.border);
-
-    // Inject strict print stylesheet into clone to guarantee clear typography and flawless content-aware breaks
-    const printOverrideStyle = document.createElement('style');
-    printOverrideStyle.textContent = `
-      * {
-        color-scheme: light !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-      body, .a4-page {
-        color: #0f172a;
-        background-color: #ffffff !important;
-      }
-      /* Ensure base reading text has high-contrast readability without breaking designed accent badges */
-      p:not([class*="text-"]):not([style*="color"]), 
-      li:not([class*="text-"]):not([style*="color"]), 
-      td:not([class*="text-"]):not([style*="color"]) {
-        color: #1e293b;
-      }
-      /* Outer structural document wrappers flow naturally across pages */
-      table, .section-container, .memo-section, .document-body, .document-wrapper {
-        page-break-inside: auto !important;
-        break-inside: auto !important;
-      }
-      /* Prevent clipping on all pedagogical cards, situations, formulas, tables, and questions */
-      tr, th, td, img, svg, figure, .avoid-break, .situation-card, .pedagogical-step, .memo-header, .memo-footer, .formula-card, .rule-card, .example-card, .callout-box, .callout, .standalone-example, .exercise-card, .card, .pedagogical-card, .framed-card, .solution-card, .summary-box, .question-block, .illustration, .diagram, blockquote {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        -webkit-column-break-inside: avoid !important;
-      }
-      h1, h2, h3, h4, h5, h6, .section-header, .section-title, .card-title {
-        page-break-after: avoid !important;
-        break-after: avoid !important;
-        -webkit-column-break-after: avoid !important;
-      }
-    `;
-    clone.insertBefore(printOverrideStyle, clone.firstChild);
 
     // Apply PDF-specific styles to the clone
     clone.style.transform = 'none';
     clone.style.position = 'relative';
     clone.style.overflow = 'visible';
-    clone.style.width = '794px';
-    clone.style.minHeight = '297mm';
-    clone.style.height = 'auto';
+    clone.style.width = '100%';
     clone.style.margin = '0';
     clone.style.boxShadow = 'none';
-    clone.style.backgroundColor = '#ffffff';
 
     const opt = {
-      margin:       [0, 0] as [number, number], // 0 margin maps 1:1 to A4 dimensions (210mm x 297mm)
+      margin:       [5, 0] as [number, number],
       filename:     'document.pdf',
       image:        { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas:  { 
-        scale: 2, 
-        useCORS: true, 
-        allowTaint: true,
-        letterRendering: true, 
-        windowWidth: 794,
-        logging: false,
-        scrollX: 0,
-        scrollY: 0
-      },
+      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, windowWidth: 794 },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-      pagebreak:    { 
-        mode: ['avoid-all', 'css', 'legacy'], 
-        avoid: [
-          '.avoid-break', '.situation-card', '.pedagogical-step', '.memo-header', '.memo-footer',
-          '.exercise-card', '.example-card', '.rule-card', 
-          '.formula-card', '.callout-box', '.callout', '.card', '.pedagogical-card', 
-          '.framed-card', '.standalone-example', '.solution-card', '.summary-box', 
-          '.question-block', '.illustration', '.diagram', 'tr', 'img', 'svg', 'figure', 'p', 'blockquote'
-        ] 
-      }
+      pagebreak:    { mode: ['css', 'legacy'] }
     };
 
     try {
       const pdfBlob = await html2pdf().from(clone).set(opt).output('blob');
       
       let title = 'مستند';
-      if (generationType === 'memo') title = 'مذكرة_درس';
-      else if (generationType === 'test') title = 'اختبار';
-      else if (generationType === 'series') title = 'سلسلة_تمارين';
+      if (generationType === 'memo') title = 'مذكرة درس';
+      else if (generationType === 'test') title = 'تقويم';
+      else if (generationType === 'series') title = 'سلسلة تمارين';
       else if (generationType === 'summary') title = 'ملخص';
-      else if (generationType === 'visual') title = 'وثيقة_تفاعلية';
+      else if (generationType === 'visual') title = 'وثيقة تفاعلية';
       else if (generationType.startsWith('cutout')) title = 'قصاصات';
       
       const fileName = `${title}_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.pdf`;
       
-      // 1. Instant direct browser download for immediate access
-      try {
-        const url = URL.createObjectURL(pdfBlob);
-        const downloadLink = document.createElement('a');
-        downloadLink.href = url;
-        downloadLink.download = fileName;
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-        setTimeout(() => URL.revokeObjectURL(url), 1500);
-      } catch (dlErr) {
-        console.warn("Direct download link error:", dlErr);
-      }
-
-      // 2. Register file in downloads context & modal
       await addFile(fileName, 'pdf', pdfBlob);
       if (soundEnabled) soundManager.playGenerateComplete();
       setIsDownloadsModalOpen(true);
     } catch (error) {
       console.error("PDF generation failed:", error);
     } finally {
+      // Remove the temporary clone from DOM
       document.body.removeChild(tempContainer);
     }
-  };
-
-  const insertManualPageBreak = () => {
-    if (!editableDivRef.current) return;
-    const breakDiv = document.createElement('div');
-    breakDiv.className = 'page-break avoid-break';
-    breakDiv.setAttribute('style', 'page-break-before: always; break-before: always; height: 16px; margin: 24px 0; border-top: 2px dashed #e11d48; text-align: center; position: relative;');
-    breakDiv.innerHTML = '<span style="background: #e11d48; color: #fff; font-size: 11px; padding: 2px 10px; border-radius: 9999px; font-weight: bold; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); pointer-events: none;">✂️ فاصل صفحات يدوي</span>';
-
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0 && editableDivRef.current.contains(selection.anchorNode)) {
-      const range = selection.getRangeAt(0);
-      range.insertNode(breakDiv);
-    } else {
-      editableDivRef.current.appendChild(breakDiv);
-    }
-    savePreviewChanges();
-    if (soundEnabled) soundManager.playTabClick();
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1544,7 +640,7 @@ export default function GeneratorPage() {
     reader.onload = (event) => {
       const base64Url = event.target?.result as string;
       const imgHtml = `<div style="text-align: center; margin: 15px 0;"><img src="${base64Url}" style="max-width: 80%; border-radius: 8px; border: 2px solid var(--doc-color); display: inline-block;" alt="مرفق" /></div>`;
-      updateGeneratedHtml(generatedHtml + imgHtml);
+      setGeneratedHtml((prev) => prev + imgHtml);
     };
     reader.readAsDataURL(file);
     
@@ -1565,21 +661,6 @@ export default function GeneratorPage() {
 
     // Convert CSS gradients to solid background colors so MS Word renders backgrounds properly
     htmlForWord = htmlForWord.replace(/background:\s*linear-gradient\([^;)]+\)/gi, `background-color: ${currentColor}`);
-
-    let wordFrameStyle = '';
-    if (pageFrame === 'simple') {
-      wordFrameStyle = `border: 2px solid ${currentColor}; padding: 12px; border-radius: 4px; box-sizing: border-box;`;
-    } else if (pageFrame === 'double') {
-      wordFrameStyle = `border: 4px double ${currentColor}; padding: 12px; border-radius: 4px; box-sizing: border-box;`;
-    } else if (pageFrame === 'ornate') {
-      wordFrameStyle = `border: 2px dashed ${currentColor}; outline: 2px solid ${currentColor}; outline-offset: -4px; padding: 16px; border-radius: 4px; background-color: #ffffff; box-sizing: border-box;`;
-    } else if (pageFrame === '3d') {
-      wordFrameStyle = `border-top: 3px solid ${currentColor}; border-left: 3px solid ${currentColor}; border-bottom: 5px solid ${currentColor}; border-right: 5px solid ${currentColor}; padding: 12px; border-radius: 4px; box-sizing: border-box;`;
-    }
-
-    const framedContent = wordFrameStyle
-      ? `<div style="${wordFrameStyle}">${htmlForWord}</div>`
-      : htmlForWord;
 
     const wordHtml = `<!DOCTYPE html>
 <html xmlns:v="urn:schemas-microsoft-com:vml"
@@ -1634,7 +715,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
 </head>
 <body lang="AR-DZ" dir="rtl" style="text-align: right;">
 <div class="WordSection1" dir="rtl" style="direction: rtl; text-align: right; font-family: 'Arial', sans-serif;">
-${framedContent}
+${htmlForWord}
 </div>
 </body>
 </html>`;
@@ -1660,75 +741,14 @@ ${framedContent}
     }
   };
 
-  const handleExamTypeChange = (typeVal: string) => {
-    setExamType(typeVal);
-    let termVal = examTerm;
-    let durVal = examDuration;
-
-    if (typeVal.includes('1') || typeVal.includes('الأول')) {
-      termVal = 'الفصل الأول';
-    } else if (typeVal.includes('2') || typeVal.includes('الثاني')) {
-      termVal = 'الفصل الثاني';
-    } else if (typeVal.includes('3') || typeVal.includes('الثالث')) {
-      termVal = 'الفصل الثالث';
-    }
-
-    if (typeVal.includes('اختبار')) {
-      durVal = 'ساعة ونصف';
-    } else if (typeVal.includes('فرض')) {
-      durVal = 'ساعة واحدة';
-    }
-
-    setExamTerm(termVal);
-    setExamDuration(durVal);
-    saveCurrentPreferences({ examType: typeVal, examTerm: termVal, examDuration: durVal });
-  };
-
-  const handleNumExercisesOptionChange = (val: string) => {
-    setNumExercisesOption(val);
-    saveCurrentPreferences({ numExercisesOption: val });
-    if (val !== 'auto') {
-      const count = parseInt(val, 10);
-      if (!isNaN(count) && count >= 1 && count <= 8) {
-        if (isFreeMode && count > 2) {
-          alert('في النسخة المجانية يقتصر التوليد على تمرينين فقط. يمكنك ترقية الحساب للاستفادة من عدد غير محدود من التمارين!');
-        }
-        setExercises(prev => {
-          const targetCount = isFreeMode ? Math.min(count, 2) : count;
-          if (prev.length < targetCount) {
-            const added: Exercise[] = Array.from({ length: targetCount - prev.length }, () => ({
-              id: generateId(),
-              section: '',
-              competencies: ['']
-            }));
-            return [...prev, ...added];
-          } else if (prev.length > targetCount) {
-            return prev.slice(0, targetCount);
-          }
-          return prev;
-        });
-      }
-    }
-  };
-
   const addExercise = () => {
     if (isFreeMode && exercises.length >= 2) {
       alert('في النسخة المجانية يمكنك إضافة تمرينين فقط. يرجى تفعيل الوضع الاحترافي!');
       return;
     }
-    const newList = [...exercises, { id: generateId(), section: '', competencies: [''] }];
-    setExercises(newList);
-    setNumExercisesOption(newList.length.toString());
-    saveCurrentPreferences({ numExercisesOption: newList.length.toString() });
+    setExercises([...exercises, { id: generateId(), section: '', competencies: [''] }]);
   };
-
-  const removeExercise = (id: string) => {
-    const newList = exercises.filter(ex => ex.id !== id);
-    setExercises(newList);
-    const newOpt = newList.length > 0 ? newList.length.toString() : 'auto';
-    setNumExercisesOption(newOpt);
-    saveCurrentPreferences({ numExercisesOption: newOpt });
-  };
+  const removeExercise = (id: string) => setExercises(exercises.filter(ex => ex.id !== id));
   
   const updateExerciseSection = (id: string, section: string) => {
     setExercises(exercises.map(ex => ex.id === id ? { ...ex, section } : ex));
@@ -1843,7 +863,8 @@ ${framedContent}
             <div className="absolute inset-0 animate-shine-sweep mix-blend-overlay opacity-80 z-20"></div>
             <div className="relative w-10 h-10 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-amber-300 via-amber-500 to-yellow-700 p-0.5 shadow-lg shadow-amber-500/20 shrink-0 overflow-hidden group">
               <div className="w-full h-full bg-[#0a0a0a] rounded-[10px] flex items-center justify-center overflow-hidden border border-amber-500/30">
-                 <img src="/icon.svg" alt="Logo" className="w-full h-full object-cover rounded-[10px]" />
+                 <img src="/icon.png" alt="Logo" className="w-full h-full object-cover rounded-[10px] hidden group-hover:block" onError={(e) => e.currentTarget.style.display = 'none'} />
+                 <span className="text-xl md:text-2xl font-bold bg-gradient-to-br from-amber-200 to-amber-600 bg-clip-text text-transparent group-hover:hidden">AI</span>
               </div>
             </div>
             <div className="flex flex-col shrink-0 truncate justify-center">
@@ -2105,13 +1126,10 @@ ${framedContent}
                 <div className="space-y-1 mb-3">
                   <div className="flex justify-between text-[10px] font-bold text-emerald-300">
                     <span>حالة الرصيد والتفعيل</span>
-                    <span>وضع مفعّل ⚡</span>
+                    <span>100% غير محدود ⚡</span>
                   </div>
                   <div className="w-full bg-emerald-950 rounded-full h-2.5 border border-emerald-500/40 overflow-hidden">
-                    <div 
-                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-400 shadow-[0_0_12px_rgba(16,185,129,0.8)] transition-all duration-500" 
-                      style={{ width: `${isAdmin ? 100 : Math.min(100, Math.max(0, ((userData?.generationsRemaining ?? 300) / 300) * 100))}%` }}
-                    ></div>
+                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-400 shadow-[0_0_12px_rgba(16,185,129,0.8)] animate-pulse" style={{ width: '100%' }}></div>
                   </div>
                 </div>
 
@@ -2137,11 +1155,11 @@ ${framedContent}
                 </div>
               </div>
             ) : (
-              <div className="mb-5 bg-gradient-to-br from-slate-900 via-amber-950 to-slate-950 p-4 rounded-xl border border-amber-500/40 text-white shadow-md">
+              <div className="mb-5 bg-gradient-to-br from-slate-900 to-red-950 p-4 rounded-xl border border-red-500/40 text-white shadow-md">
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-xs font-black text-amber-300 flex items-center gap-1.5">
-                    <Zap size={14} className="text-amber-400 fill-amber-400" />
-                    الوضع المجاني
+                  <h3 className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <Lock size={14} className="text-amber-400" />
+                    حساب عادي - لترقية حسابك اتصل بالمطور
                   </h3>
                   <button
                     type="button"
@@ -2153,48 +1171,36 @@ ${framedContent}
                   </button>
                 </div>
 
-                <p className="text-[11px] text-amber-200/90 mb-3 leading-relaxed font-medium">
-                  يمكنك الانتقال للوضع الاحترافي عبر تفعيل الحساب للحصول على ميزات جديدة غير محدودة.
+                <p className="text-[11px] text-slate-300 mb-3 leading-relaxed">
+                  احصل على الوضع الاحترافي لتوليد غير محدود لجميع المواضيع والمذكرات وتصميم خلفيات خاصة.
                 </p>
 
-                {/* Activation Price & Contact Info */}
-                <div className="bg-amber-950/70 border border-amber-500/30 p-2.5 rounded-lg mb-3 text-right">
-                  <div className="text-xs font-black text-amber-300 mb-2 flex items-center justify-between">
-                    <span>💵 سعر التفعيل: <span className="text-emerald-400 font-extrabold">1000 دج</span></span>
-                    <span className="text-[10px] text-slate-300 font-semibold">اتصل بالمسؤول للتفعيل</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <a
-                      href="https://wa.me/213673831994"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs transition-all shadow-md"
-                    >
-                      <Phone size={13} />
-                      <span>واتساب (0673831994)</span>
-                    </a>
-                    <a
-                      href="tel:0771167330"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs transition-all shadow-md"
-                    >
-                      <Phone size={13} />
-                      <span>اتصل بـ (0771167330)</span>
-                    </a>
-                  </div>
+                {/* Direct Contact Buttons */}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <a
+                    href="https://wa.me/213673831994"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs transition-all shadow-md"
+                  >
+                    <Phone size={13} />
+                    <span>واتساب (0673831994)</span>
+                  </a>
+                  <a
+                    href="https://facebook.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs transition-all shadow-md"
+                  >
+                    <span>فايسبوك Facebook</span>
+                  </a>
                 </div>
 
-                {/* Decreasing Progress Bar without exposing raw number */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[10px] font-bold text-amber-300">
-                    <span>شريط الرصيد المجاني</span>
-                    <span>الوضع المجاني ⚪</span>
-                  </div>
-                  <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-slate-700">
-                    <div 
-                      className="h-full rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 transition-all duration-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"
-                      style={{ width: `${Math.min(100, Math.max(0, ((userData?.generationsRemaining ?? 0) / 20) * 100))}%` }}
-                    ></div>
-                  </div>
+                <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+                  <div 
+                    className="h-2 rounded-full bg-amber-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, ((userData?.generationsRemaining || 0) / Math.max(1, (userData?.generationsRemaining || 0) + (userData?.totalGenerations || 0))) * 100)}%` }}
+                  ></div>
                 </div>
               </div>
             )}
@@ -2354,14 +1360,14 @@ ${framedContent}
                   <span className="text-xs font-bold text-indigo-800 dark:text-indigo-200 flex items-center gap-1.5">
                     <Bookmark size={16} className="text-indigo-600 dark:text-indigo-400" /> عناصر الدرس (الجيل الثاني)
                   </span>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex gap-2">
                     <button 
                       type="button" 
                       onClick={handleSaveLessonElements}
                       className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition transform active:scale-95"
                       title="حفظ المقطع والميدان والمورد لاستخدامهم لاحقاً"
                     >
-                      <Save size={13} /> حفظ المعطيات
+                      <Save size={13} /> تذكر المقطع والميدان والمورد
                     </button>
                     <button 
                       type="button" 
@@ -2370,14 +1376,6 @@ ${framedContent}
                       title="استرجاع عناصر الدرس المحفوظة سابقاً"
                     >
                       <RotateCcw size={13} /> استرجاع
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={handleResetInputs}
-                      className="text-xs bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-200 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
-                      title="تفريغ الحقول وإعادة التعيين للكتابة مجدداً"
-                    >
-                      <RotateCcw size={13} className="rotate-180" /> إعادة تعيين
                     </button>
                   </div>
                 </div>
@@ -2400,328 +1398,43 @@ ${framedContent}
                   <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">المورد / المحتوى المعرفي</label>
                   <input type="text" placeholder="مثال: الهضم" value={memoContent} onChange={e => { setMemoContent(e.target.value); saveCurrentPreferences({ memoContent: e.target.value }); }} className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow" />
                 </div>
-
-                {generationType === 'memo' && (
-                  <div className="space-y-3 pt-1">
-                    {/* Visual 4-Stages Roadmap Banner */}
-                    <div className="bg-gradient-to-r from-sky-50 via-amber-50/50 via-purple-50/50 to-emerald-50 dark:from-sky-950/40 dark:via-amber-950/20 dark:via-purple-950/20 dark:to-emerald-950/40 p-3.5 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 shadow-xs space-y-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                          <Sparkles size={15} className="text-indigo-600 dark:text-indigo-400" />
-                          <span>التدرج البيداغوجي المعتمد للمذكرة (4 مراحل متسلسلة):</span>
-                        </span>
-                        <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full">
-                          المنهاج الرسمي
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                        <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-sky-200/80 dark:border-sky-800/40 shadow-xs flex flex-col items-center justify-center">
-                          <span className="text-lg mb-0.5">✨</span>
-                          <span className="font-extrabold text-sky-800 dark:text-sky-300 text-[11.5px]">1. التهيئة</span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400">تنشيط المكتسبات</span>
-                        </div>
-                        <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-amber-200/80 dark:border-amber-800/40 shadow-xs flex flex-col items-center justify-center">
-                          <span className="text-lg mb-0.5">🧭</span>
-                          <span className="font-extrabold text-amber-800 dark:text-amber-300 text-[11.5px]">2. وضعية تعلمية</span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400">لاستخلاص الدرس</span>
-                        </div>
-                        <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-purple-200/80 dark:border-purple-800/40 shadow-xs flex flex-col items-center justify-center">
-                          <span className="text-lg mb-0.5">💡</span>
-                          <span className="font-extrabold text-purple-800 dark:text-purple-300 text-[11.5px]">3. حوصلة وما يتبعها</span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400">القواعد والأمثلة</span>
-                        </div>
-                        <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800/40 shadow-xs flex flex-col items-center justify-center">
-                          <span className="text-lg mb-0.5">🎯</span>
-                          <span className="font-extrabold text-emerald-800 dark:text-emerald-300 text-[11.5px]">4. إعادة الاستثمار</span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400">تطبيقات وتمارين</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Expandable Custom Stages Section */}
-                    <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/60 dark:bg-slate-900/40 transition-all">
-                      <button
-                        type="button"
-                        onClick={() => setShowMemoCustomStages(!showMemoCustomStages)}
-                        className="w-full p-3 flex items-center justify-between text-right text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/40 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Sliders size={14} className="text-indigo-600 dark:text-indigo-400" />
-                          <span>تخصيص مدخلات المحطات الأربعة (اختياري - يحددها الذكاء الاصطناعي تلقائياً إن تركت فارغة)</span>
-                        </div>
-                        <ChevronDown size={15} className={`transform transition-transform duration-200 ${showMemoCustomStages ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {showMemoCustomStages && (
-                        <div className="p-3.5 space-y-3.5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 animate-in fade-in duration-200">
-                          <div>
-                            <label className="block text-[11px] font-bold text-sky-800 dark:text-sky-300 mb-1 flex items-center gap-1.5">
-                              <span>✨</span>
-                              <span>1. التهيئة (المكتسبات القبلية المستهدفة أو تمرين التقويم التشخيصي):</span>
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="مثال: مراجعة جمع وطرح كسرين لهما نفس المقام / تذكير بمفهوم الزوايا والقواسم"
-                              value={memoWarmup}
-                              onChange={e => { setMemoWarmup(e.target.value); saveCurrentPreferences({ memoWarmup: e.target.value }); }}
-                              className="w-full p-2.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 outline-none"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] font-bold text-amber-800 dark:text-amber-300 mb-1 flex items-center gap-1.5">
-                              <span>🧭</span>
-                              <span>2. وضعية تعلمية لاستخلاص الدرس (سياق المشكلة أو فكرة النشاط الاستكشافي):</span>
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="مثال: وضعية حول تقسيم مساحة قطعة أرض / نشاط تجريبي بالعدسة المجمعة / نص حول التعاون"
-                              value={memoLearningSituation}
-                              onChange={e => { setMemoLearningSituation(e.target.value); saveCurrentPreferences({ memoLearningSituation: e.target.value }); }}
-                              className="w-full p-2.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] font-bold text-purple-800 dark:text-purple-300 mb-1 flex items-center gap-1.5">
-                              <span>💡</span>
-                              <span>3. حوصلة وما يتبعها (القواعد والنتائج والأمثلة والتنبيهات المنهجية):</span>
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="مثال: التركيز على قاعدة توحيد المقامات مع إبراز حالة المضاعف المشترك وملاحظة الأخطاء الشائعة"
-                              value={memoSummary}
-                              onChange={e => { setMemoSummary(e.target.value); saveCurrentPreferences({ memoSummary: e.target.value }); }}
-                              className="w-full p-2.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] font-bold text-emerald-800 dark:text-emerald-300 mb-1 flex items-center gap-1.5">
-                              <span>🎯</span>
-                              <span>4. إعادة الاستثمار (تمارين التطبيق والتثبيت أو أرقام تمارين الكتاب):</span>
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="مثال: حل التمرين 14 و 15 صفحة 28 من الكتاب المدرسي / مسألة حساب تكلفة بناء سياج"
-                              value={memoReinvestment}
-                              onChange={e => { setMemoReinvestment(e.target.value); saveCurrentPreferences({ memoReinvestment: e.target.value }); }}
-                              className="w-full p-2.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
                 
               </div>
             ) : (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex flex-wrap items-center justify-between gap-2 bg-indigo-50/80 dark:bg-indigo-950/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800/40 shadow-sm">
-                  <span className="text-xs font-bold text-indigo-800 dark:text-indigo-200 flex items-center gap-1.5">
-                    <Bookmark size={16} className="text-indigo-600 dark:text-indigo-400" /> خيارات ومعلومات موضوع التقويم
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    <button 
-                      type="button" 
-                      onClick={handleSaveLessonElements}
-                      className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition transform active:scale-95"
-                      title="حفظ معلومات وتقويمات الفرض لاستخدامهم لاحقاً"
-                    >
-                      <Save size={13} /> حفظ المعطيات
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={handleLoadLessonElements}
-                      className="text-xs bg-indigo-100 dark:bg-indigo-900/60 hover:bg-indigo-200 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-200 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
-                      title="استرجاع معلومات الفرض المحفوظة سابقاً"
-                    >
-                      <RotateCcw size={13} /> استرجاع
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={handleResetInputs}
-                      className="text-xs bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-200 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
-                      title="تفريغ الحقول وإعادة التعيين للكتابة مجدداً"
-                    >
-                      <RotateCcw size={13} className="rotate-180" /> إعادة تعيين
-                    </button>
-                  </div>
-                </div>
-
-                {lessonSaveMessage && (
-                  <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 text-xs font-bold rounded-lg border border-emerald-200 dark:border-emerald-800 animate-in fade-in flex items-center gap-1.5">
-                    <Check size={14} className="text-emerald-600" /> {lessonSaveMessage}
-                  </div>
-                )}
-
                 {generationType === 'test' && (
                   <div className="space-y-4">
-                    {/* Informative Note for Teachers */}
-                    <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 rounded-xl border border-amber-200 dark:border-amber-800/50 shadow-xs flex items-start gap-3">
-                      <div className="p-2 bg-amber-500 text-white rounded-lg shrink-0 mt-0.5 shadow-xs">
-                        <Sparkles size={16} />
-                      </div>
-                      <div className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
-                        <span className="font-bold text-amber-950 dark:text-amber-100 block mb-0.5">💡 التوليد المباشر والتكيف مع المنهاج الوزاري:</span>
-                        بمجرد تحديد <strong className="underline decoration-amber-400 font-extrabold">نوع التقويم</strong> و<strong className="underline decoration-amber-400 font-extrabold">الفصل الدراسي</strong> و<strong className="underline decoration-amber-400 font-extrabold">عدد التمارين</strong>، يتولى الذكاء الاصطناعي اختيار تمارين متدرجة ومتنوعة تلقائياً طبقاً لبرنامج هذا الفصل والمستوى والمادة! (ويمكنك أيضاً إضافة تمارين ومقاطع خاصة أدناه حسب رغبتك).
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">نوع التقويم</label>
-                        <select 
-                          value={examType} 
-                          onChange={e => handleExamTypeChange(e.target.value)} 
-                          className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
-                        >
-                          <option value="فرض 1">الفرض الأول (فرض 1)</option>
-                          <option value="فرض 2">الفرض الثاني (فرض 2)</option>
+                        <select value={examType} onChange={e => setExamType(e.target.value)} className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                          <option value="فرض 1">الفرض الأول</option>
+                          <option value="فرض 2">الفرض الثاني</option>
                           <option value="اختبار 1">اختبار الفصل الأول</option>
                           <option value="اختبار 2">اختبار الفصل الثاني</option>
                           <option value="اختبار 3">اختبار الفصل الثالث</option>
-                          <option value="تقويم تشخيصي / فرض محروس">تقويم تشخيصي / فرض محروس</option>
-                          <option value="امتحان تجريبي">امتحان تجريبي / شهادة</option>
                         </select>
                       </div>
-
                       <div>
-                        <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">الفصل الدراسي</label>
-                        <select 
-                          value={examTerm} 
-                          onChange={e => {
-                            setExamTerm(e.target.value);
-                            saveCurrentPreferences({ examTerm: e.target.value });
-                          }} 
-                          className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
-                        >
+                        <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">الفصل</label>
+                        <select value={examTerm} onChange={e => setExamTerm(e.target.value)} className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                           <option value="الفصل الأول">الفصل الأول</option>
                           <option value="الفصل الثاني">الفصل الثاني</option>
                           <option value="الفصل الثالث">الفصل الثالث</option>
-                          <option value="المنهاج السنوي">البرنامج السنوي الشامل</option>
                         </select>
                       </div>
-
                       <div>
-                        <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">التوقيت والمدة</label>
-                        <select 
-                          value={examDuration} 
-                          onChange={e => {
-                            setExamDuration(e.target.value);
-                            saveCurrentPreferences({ examDuration: e.target.value });
-                          }} 
-                          className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
-                        >
-                          <option value="45 دقيقة">45 دقيقة</option>
+                        <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">التوقيت</label>
+                        <select value={examDuration} onChange={e => setExamDuration(e.target.value)} className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                           <option value="ساعة واحدة">ساعة واحدة (1 سا)</option>
                           <option value="ساعة ونصف">ساعة ونصف (1.5 سا)</option>
                           <option value="ساعتان">ساعتان (2 سا)</option>
-                          <option value="3 ساعات">3 ساعات (3 سا)</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">عدد التمارين</label>
-                        <select 
-                          value={numExercisesOption} 
-                          onChange={e => handleNumExercisesOptionChange(e.target.value)} 
-                          className="w-full p-2.5 border border-indigo-200 dark:border-indigo-800 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-950 dark:text-indigo-100 text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-extrabold"
-                        >
-                          <option value="auto">تلقائي (ذكاء اصطناعي 🤖)</option>
-                          <option value="2">تمرينين (2 تمارين)</option>
-                          <option value="3">3 تمارين</option>
-                          <option value="4">4 تمارين</option>
-                          <option value="5">5 تمارين</option>
-                          <option value="6">6 تمارين (موضوع شامل)</option>
                         </select>
                       </div>
                     </div>
-                    <div className="space-y-3">
-                      <label className="flex items-center gap-3 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-800/30 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40">
-                        <input type="checkbox" checked={hasIntegration} onChange={e => { setHasIntegration(e.target.checked); saveCurrentPreferences({ hasIntegration: e.target.checked }); }} className="rounded text-indigo-600 focus:ring-indigo-500 w-5 h-5 accent-indigo-600" />
-                        تضمين وضعية إدماجية
-                      </label>
-
-                      {hasIntegration && (
-                        <div className="p-4 bg-indigo-50/80 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800/60 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
-                          <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200 font-bold text-xs border-b border-indigo-200/60 dark:border-indigo-800/60 pb-2">
-                            <Sparkles size={15} className="text-indigo-600 dark:text-indigo-400" />
-                            تخصيص وتوجيهات الوضعية الإدماجية المركبة
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                المقاطع المراد إدماجها في الوضعية
-                              </label>
-                              <input
-                                type="text"
-                                value={integrationSections}
-                                onChange={e => {
-                                  setIntegrationSections(e.target.value);
-                                  saveCurrentPreferences({ integrationSections: e.target.value });
-                                }}
-                                placeholder="مثال: المقطع 1 (الحساب الحرفي) + المقطع 2 (الخاصيات الهندسية)..."
-                                className="w-full p-2.5 text-xs rounded-lg border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                الكفاءات والقدرات المستهدفة بالوضعية
-                              </label>
-                              <input
-                                type="text"
-                                value={integrationCompetencies}
-                                onChange={e => {
-                                  setIntegrationCompetencies(e.target.value);
-                                  saveCurrentPreferences({ integrationCompetencies: e.target.value });
-                                }}
-                                placeholder="مثال: التريض، التفسير، استخدام العبارات الجبرية في حل مشكلة..."
-                                className="w-full p-2.5 text-xs rounded-lg border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                              توجيه الذكاء الاصطناعي عن موضوع وسياق الوضعية الإدماجية
-                            </label>
-                            <textarea
-                              rows={2}
-                              value={integrationPrompt}
-                              onChange={e => {
-                                setIntegrationPrompt(e.target.value);
-                                saveCurrentPreferences({ integrationPrompt: e.target.value });
-                              }}
-                              placeholder="مثال: اكتب الوضعية حول تصميم وتسيير حديقة عامة أو تقسيم قطعة أرض للعائلة، مع إرفاق سندات ومسألة من جزءين..."
-                              className="w-full p-2.5 text-xs rounded-lg border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 custom-scrollbar"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <label className="flex items-start gap-3 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold bg-amber-50 dark:bg-amber-950/30 p-3.5 rounded-xl border border-amber-200 dark:border-amber-800/40 transition-colors hover:bg-amber-100 dark:hover:bg-amber-900/40">
-                      <input 
-                        type="checkbox" 
-                        checked={includeSolution} 
-                        onChange={e => { 
-                          setIncludeSolution(e.target.checked); 
-                          saveCurrentPreferences({ includeSolution: e.target.checked }); 
-                        }} 
-                        className="rounded text-amber-600 focus:ring-amber-500 w-5 h-5 accent-amber-600 mt-0.5" 
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-amber-900 dark:text-amber-200 font-bold flex items-center gap-1.5">
-                          <Sparkles size={15} className="text-amber-600" /> تضمين الحل النموذجي والتصحيح
-                        </span>
-                        <span className="text-xs text-amber-700 dark:text-amber-400 font-normal mt-0.5">
-                          عند عدم التفعيل (افتراضي): يتم توليد موضوع الفرض/الاختبار فقط بدون إجابات. وعند التفعيل: يتم توليد الفرض أولاً ثم إلحاق الحل النموذجي وشبكة التنقيط في صفحة جديدة بأسفل الفرض.
-                        </span>
-                      </div>
+                    <label className="flex items-center gap-3 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/30 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40">
+                      <input type="checkbox" checked={hasIntegration} onChange={e => setHasIntegration(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500 w-5 h-5 accent-indigo-600" />
+                      تضمين وضعية إدماجية
                     </label>
                   </div>
                 )}
@@ -2826,14 +1539,54 @@ ${framedContent}
                 </div>
               </div>
 
-              {/* 12-Style Pedagogical Design System Selector */}
-              <div className="w-full">
-                <StyleSelector
-                  selectedStyleId={designStyle}
-                  onSelectStyle={handleDesignStyleChange}
-                  isFreeMode={isFreeMode}
-                  soundEnabled={soundEnabled}
-                />
+              {/* Design Style */}
+              <div>
+                <label className="block text-xs font-bold mb-3 text-slate-800 dark:text-slate-200 uppercase tracking-wider">ستايل التصميم والألوان</label>
+                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                  {designStyles.map(style => {
+                    const isLocked = isFreeMode && style.isPro;
+                    return (
+                      <button
+                        key={style.id}
+                        onClick={() => {
+                          if (isLocked) {
+                            alert('هذا التصميم متاح للمشتركين فقط. يرجى الترقية لفتحه!');
+                            return;
+                          }
+                          handleDesignStyleChange(style.id);
+                        }}
+                        className={`relative flex flex-col items-center justify-center gap-2 transition-all group ${
+                          designStyle === style.id ? 'transform scale-110' : 'hover:transform hover:scale-105 hover:-translate-y-1 opacity-80 hover:opacity-100'
+                        } ${isLocked ? 'grayscale opacity-60 hover:grayscale-0' : ''}`}
+                        style={{ width: '70px' }}
+                      >
+                        {isLocked && (
+                          <div className="absolute top-0 right-0 z-20 bg-slate-900/80 rounded-full p-1 shadow-sm border border-slate-700/50">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                          </div>
+                        )}
+                        {/* Magic Ball Element */}
+                        <div 
+                          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden transition-all duration-300 ${designStyle === style.id ? 'ring-2 ring-offset-2 dark:ring-offset-slate-900' : ''}`}
+                          style={{
+                            background: designStyle === style.id 
+                              ? `radial-gradient(circle at 30% 30%, ${style.color}cc 0%, ${style.color} 60%, #000000 150%)` 
+                              : 'radial-gradient(circle at 30% 30%, #f1f5f9 0%, #cbd5e1 60%, #94a3b8 150%)',
+                            color: designStyle === style.id ? 'white' : '#64748b',
+                            boxShadow: designStyle === style.id ? `0 10px 15px -3px ${style.color}60` : '0 4px 6px -1px rgba(0,0,0,0.1)'
+                          }}
+                        >
+                          {/* Specular reflection for magic ball effect */}
+                          <div className="absolute top-1 left-2 w-5 h-3 bg-white opacity-40 rounded-full blur-[1px] -rotate-45 group-hover:opacity-60 transition-opacity" />
+                          <style.icon size={22} className="relative z-10 drop-shadow-md" />
+                        </div>
+                        <span className={`text-[11px] text-center font-bold transition-colors ${designStyle === style.id ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
+                          {style.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Page Frame */}
@@ -2854,10 +1607,10 @@ ${framedContent}
                           setPageFrame(frame.id);
                           saveCurrentPreferences({ pageFrame: frame.id });
                         }}
-                        className={`flex-1 min-w-[85px] py-2.5 px-2 rounded-xl border-2 text-xs font-bold transition-all relative group flex flex-col items-center gap-1.5 overflow-hidden ${
+                        className={`flex-1 min-w-[80px] py-3 px-2 rounded-xl border-2 text-xs font-bold transition-all relative group overflow-hidden ${
                           pageFrame === frame.id 
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-[0_6px_18px_-4px_rgba(15,23,42,0.4)] scale-105 dark:bg-slate-100 dark:text-slate-900 dark:border-white' 
-                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-400 dark:hover:border-indigo-500 hover:-translate-y-0.5 hover:shadow-md'
+                            ? 'bg-slate-800 text-white border-slate-900 shadow-[0_4px_0_0_#0f172a] hover:translate-y-1 hover:shadow-[0_0px_0_0_#0f172a] dark:bg-slate-200 dark:text-slate-900 dark:border-white dark:shadow-[0_4px_0_0_#94a3b8]' 
+                            : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 hover:-translate-y-1 hover:shadow-[0_4px_0_0_#94a3b8] dark:hover:shadow-[0_4px_0_0_#334155]'
                         } ${isLocked ? 'opacity-60' : ''}`}
                       >
                         {isLocked && (
@@ -2865,31 +1618,8 @@ ${framedContent}
                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                           </div>
                         )}
-                        
-                        {/* Miniature 3D Frame Visual Preview */}
-                        <div className="w-10 h-7 rounded flex items-center justify-center relative overflow-hidden bg-slate-50 dark:bg-slate-900/50">
-                          {frame.id === 'none' && (
-                            <div className="w-7 h-5 bg-white border border-slate-200 dark:border-slate-700 rounded-[1px] shadow-2xs" />
-                          )}
-                          {frame.id === 'simple' && (
-                            <div className="w-7 h-5 bg-white border-2 border-indigo-500 rounded-[1px] shadow-2xs" />
-                          )}
-                          {frame.id === 'double' && (
-                            <div className="w-7 h-5 bg-white border-[3px] border-double border-indigo-600 rounded-[1px] shadow-2xs" />
-                          )}
-                          {frame.id === 'ornate' && (
-                            <div className="w-7 h-5 bg-white border border-dashed border-amber-600 rounded-[1px] outline outline-1 outline-amber-600 -outline-offset-2 shadow-2xs flex items-center justify-center">
-                              <div className="w-1 h-1 bg-amber-500 rounded-full" />
-                            </div>
-                          )}
-                          {frame.id === '3d' && (
-                            <div className="w-7 h-5 bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-slate-800 dark:to-indigo-950 border-t-2 border-l-2 border-r-4 border-b-4 border-indigo-600 rounded-[2px] shadow-[2px_3px_6px_rgba(0,0,0,0.2)] flex items-center justify-center transform -rotate-1 group-hover:rotate-0 transition-transform">
-                              <span className="text-[8px] font-black tracking-tighter text-indigo-700 dark:text-indigo-300 drop-shadow-2xs">3D</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <span className="text-[11px] font-extrabold">{frame.label}</span>
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {frame.label}
                       </button>
                     );
                   })}
@@ -2953,7 +1683,7 @@ ${framedContent}
                       abortControllerRef.current.abort();
                     }
                     if (soundEnabled) soundManager.playTabClick();
-                    updateGeneratedHtml('');
+                    setGeneratedHtml('');
                     setIsGenerating(false);
                   }} 
                   className="w-full bg-red-500 hover:bg-red-600 text-white p-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-red-500/30 border border-red-400"
@@ -2969,151 +1699,49 @@ ${framedContent}
         {/* Preview Area (A4) */}
         <div className="flex-1 flex flex-col items-center">
           
-          <div className="sticky top-2 z-40 w-full flex flex-col gap-3 mb-4 no-print bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-3.5 sm:p-4 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-800">
-            {/* Upper Row: Title, Scale & Style Display Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 p-1.5 rounded-lg shadow-xs">
-                  <FileText size={18} />
+          <div className="w-full flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-4 no-print bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-4 rounded-xl shadow-sm border border-slate-100/50 dark:border-slate-800/50">
+            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 shrink-0">
+              <span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 p-1.5 rounded-lg">
+                <FileText size={20} />
+              </span>
+              ورقة المعاينة
+            </h3>
+            
+            <div className="flex flex-wrap gap-3 items-center justify-end">
+              {/* Zoom Controls */}
+              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                <button onClick={() => setManualScale(Math.max(0.5, manualScale - 0.1))} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition text-slate-600 dark:text-slate-400" title="تصغير الورقة">
+                  <ZoomOut size={16} />
+                </button>
+                <span className="text-xs font-bold font-mono w-10 text-center text-slate-700 dark:text-slate-300">
+                  {Math.round(manualScale * 100)}%
                 </span>
-                <h3 className="font-black text-slate-800 dark:text-white text-sm sm:text-base">
-                  ورقة المعاينة
-                </h3>
-                {visualBreakPositions.length > 0 && (
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-800/50">
-                    {visualBreakPositions.length + 1} صفحات
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex flex-wrap items-center gap-2 justify-end">
-                {/* Zoom Controls */}
-                <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                  <button onClick={() => setManualScale(Math.max(0.5, manualScale - 0.1))} className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded transition text-slate-600 dark:text-slate-400" title="تصغير الورقة">
-                    <ZoomOut size={15} />
-                  </button>
-                  <span className="text-xs font-bold font-mono w-9 text-center text-slate-700 dark:text-slate-300">
-                    {Math.round(manualScale * 100)}%
-                  </span>
-                  <button onClick={() => setManualScale(Math.min(2, manualScale + 0.1))} className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded transition text-slate-600 dark:text-slate-400" title="تكبير الورقة">
-                    <ZoomIn size={15} />
-                  </button>
-                  <div className="w-px h-3.5 bg-slate-300 dark:bg-slate-600 mx-0.5"></div>
-                  <button onClick={() => setManualScale(1)} className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded transition text-slate-600 dark:text-slate-400" title="استعادة 100%">
-                    <Maximize size={15} />
-                  </button>
-                </div>
-
-                {/* Color & Font Size */}
-                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                  <input 
-                    type="color" 
-                    value={docColor} 
-                    onChange={e => handleColorChange(e.target.value)}
-                    className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent"
-                    title="تغيير لون العناوين والزخارف (يتغير مباشرة في المستند)"
-                  />
-                  <div className="w-px h-3.5 bg-slate-300 dark:bg-slate-600"></div>
-                  <button onClick={() => setPreviewFontSize(Math.max(10, previewFontSize - 1))} className="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded transition font-bold" title="تصغير الخط">-</button>
-                  <span className="text-xs font-mono w-5 text-center text-slate-700 dark:text-slate-300 font-bold">{previewFontSize}</span>
-                  <button onClick={() => setPreviewFontSize(Math.min(30, previewFontSize + 1))} className="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded transition font-bold" title="تكبير الخط">+</button>
-                </div>
-
-                {/* Page Frame Selector */}
-                <select 
-                  value={pageFrame} 
-                  onChange={e => {
-                    if (soundEnabled) soundManager.playTabClick();
-                    setPageFrame(e.target.value);
-                    saveCurrentPreferences({ pageFrame: e.target.value });
-                  }}
-                  className="text-xs font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 transition"
-                  title="تغيير شكل إطار الصفحة"
-                >
-                  {pageFrames.map(f => (
-                    <option key={f.id} value={f.id}>{f.label}</option>
-                  ))}
-                </select>
-
-                {/* Style Switcher Dropdown */}
-                <select 
-                  value={designStyle} 
-                  onChange={e => handleDesignStyleChange(e.target.value)}
-                  className="text-xs font-bold bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900 dark:to-slate-800 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 rounded-lg px-2 py-1.5 outline-none cursor-pointer hover:border-amber-500 transition font-bold"
-                  title="تغيير ستايل وهوية المستند مباشرة وبحرية تامة"
-                >
-                  {STYLES_REGISTRY.map(st => (
-                    <option key={st.id} value={st.id}>
-                      ✨ {st.nameAr} {st.isPro && isFreeMode ? '(PRO)' : ''}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (soundEnabled) soundManager.playTabClick();
-                    setShowStyleSwitcherModal(true);
-                  }}
-                  className="flex items-center gap-1 text-xs font-black bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white px-2.5 py-1.5 rounded-lg shadow-sm hover:shadow transition active:scale-95"
-                  title="فتح معرض الستايلات المجسمة لاختيار ستايل جديد للمستند"
-                >
-                  <Palette size={13} />
-                  <span>معرض الستايلات</span>
+                <button onClick={() => setManualScale(Math.min(2, manualScale + 0.1))} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition text-slate-600 dark:text-slate-400" title="تكبير الورقة">
+                  <ZoomIn size={16} />
                 </button>
-              </div>
-            </div>
-
-            {/* Lower Row: Primary Action Center (Always in Field of View) */}
-            <div className="flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex flex-wrap items-center gap-2">
-                {/* PDF Export Button - High Visibility & Priority */}
-                <button 
-                  onClick={exportToPDF} 
-                  disabled={!generatedHtml}
-                  className="relative group overflow-hidden flex items-center gap-2 bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black px-4 py-2 rounded-xl text-xs sm:text-sm transition-all disabled:opacity-40 shadow-md shadow-rose-600/30 hover:scale-[1.02] active:scale-95"
-                  title="تحميل وتصدير مستند PDF جاهز للطباعة"
-                >
-                  <Download size={16} /> 
-                  <span>تصدير PDF</span>
-                </button>
-
-                {/* Print Button */}
-                <button 
-                  onClick={() => window.print()} 
-                  disabled={!generatedHtml}
-                  className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition disabled:opacity-40 shadow-sm border border-slate-700 hover:scale-[1.02] active:scale-95"
-                  title="طباعة الورقة مباشرة"
-                >
-                  <Printer size={16} />
-                  <span>طباعة</span>
-                </button>
-
-                {/* Word Export Button */}
-                <button 
-                  onClick={exportToWord} 
-                  disabled={!generatedHtml}
-                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition disabled:opacity-40 shadow-sm hover:scale-[1.02] active:scale-95"
-                  title="تصدير المستند إلى ملف Microsoft Word (.docx)"
-                >
-                  <Download size={16} />
-                  <span>Word</span>
-                </button>
-
-                {/* Insert Page Break Button */}
-                <button 
-                  onClick={insertManualPageBreak} 
-                  disabled={!generatedHtml}
-                  className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-2 rounded-xl text-xs sm:text-sm transition disabled:opacity-40 shadow-sm hover:scale-[1.02] active:scale-95"
-                  title="إدراج فاصل صفحات يدوي في موضع المؤشر لضبط تقسيم الورقة"
-                >
-                  <Scissors size={15} />
-                  <span>فاصل صفحات ✂️</span>
+                <div className="w-px h-4 bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                <button onClick={() => setManualScale(1)} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition text-slate-600 dark:text-slate-400" title="استعادة الحجم الأصلي">
+                  <Maximize size={16} />
                 </button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Insert Image Button */}
+              {/* Color & Font Size */}
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                <input 
+                  type="color" 
+                  value={docColor} 
+                  onChange={e => setDocColor(e.target.value)}
+                  className="w-7 h-7 rounded cursor-pointer border-0 p-0 bg-transparent"
+                  title="تغيير لون العناوين والزخارف"
+                />
+                <div className="w-px h-4 bg-slate-300 dark:bg-slate-600"></div>
+                <button onClick={() => setPreviewFontSize(Math.max(10, previewFontSize - 1))} className="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition font-bold">-</button>
+                <span className="text-xs font-mono w-6 text-center text-slate-700 dark:text-slate-300 font-bold">{previewFontSize}</span>
+                <button onClick={() => setPreviewFontSize(Math.min(30, previewFontSize + 1))} className="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition font-bold">+</button>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 flex-wrap">
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -3124,217 +1752,62 @@ ${framedContent}
                 <button 
                   onClick={() => fileInputRef.current?.click()} 
                   disabled={!generatedHtml}
-                  className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-xl text-xs sm:text-sm transition disabled:opacity-40 shadow-sm hover:scale-[1.02] active:scale-95"
-                  title="إدراج صورة أو شكل في المعاينة"
+                  className="relative group overflow-hidden flex items-center gap-2 bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-[0_4px_0_0_#059669] hover:translate-y-1 hover:shadow-[0_0px_0_0_#059669] active:scale-95"
                 >
-                  <ImagePlus size={15} />
-                  <span>صورة/شكل</span>
+                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ImagePlus size={16} /> صورة/شكل
                 </button>
-
-                {/* Save Changes Button */}
                 <button 
-                  onClick={savePreviewChanges} 
+                  onClick={() => window.print()} 
                   disabled={!generatedHtml}
-                  className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-2 rounded-xl text-xs sm:text-sm transition disabled:opacity-40 shadow-md shadow-amber-500/20 hover:scale-[1.02] active:scale-95"
-                  title="حفظ كافة التعديلات المباشرة والأشكال والصور المضافة نهائياً في المستند"
+                  className="relative group overflow-hidden flex items-center gap-2 bg-gradient-to-b from-slate-600 to-slate-800 hover:from-slate-700 hover:to-slate-900 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-[0_4px_0_0_#334155] hover:translate-y-1 hover:shadow-[0_0px_0_0_#334155] active:scale-95"
                 >
-                  <Save size={16} />
-                  <span>حفظ التعديلات 💾</span>
+                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Printer size={16} /> طباعة
+                </button>
+                <button 
+                  onClick={exportToPDF} 
+                  disabled={!generatedHtml}
+                  className="relative group overflow-hidden flex items-center gap-2 bg-gradient-to-b from-rose-500 to-rose-700 hover:from-rose-600 hover:to-rose-800 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-[0_4px_0_0_#be123c] hover:translate-y-1 hover:shadow-[0_0px_0_0_#be123c] active:scale-95"
+                >
+                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Download size={16} /> PDF
+                </button>
+                <button 
+                  onClick={exportToWord} 
+                  disabled={!generatedHtml}
+                  className="relative group overflow-hidden flex items-center gap-2 bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-[0_4px_0_0_#1d4ed8] hover:translate-y-1 hover:shadow-[0_0px_0_0_#1d4ed8] active:scale-95"
+                >
+                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Download size={16} /> Word
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Shapes & Graphics Toolbar */}
-          {generatedHtml && (
-            <div className="flex flex-col gap-2 bg-slate-900/95 text-white p-2.5 rounded-xl border border-slate-700 shadow-lg w-full mb-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
-                <span className="text-xs font-bold text-amber-300 flex items-center gap-1 shrink-0 px-1">
-                  <Shapes size={16} /> إضافة أشكال ورسومات للمعاينة:
-                </span>
-                <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                  <button onClick={() => addCanvasShape('rectangle')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="مستطيل / مربع">
-                    <span className="w-3.5 h-3.5 border-2 border-indigo-400 rounded-xs inline-block"></span> مستطيل
-                  </button>
-                  <button onClick={() => addCanvasShape('circle')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="دائرة / بيضوي">
-                    <span className="w-3.5 h-3.5 border-2 border-emerald-400 rounded-full inline-block"></span> دائرة
-                  </button>
-                  <button onClick={() => addCanvasShape('triangle')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="مثلث">
-                    <span className="text-amber-400 font-bold">▲</span> مثلث
-                  </button>
-
-                  <button onClick={() => addCanvasShape('arrow')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="سهم موجه">
-                    <span className="text-cyan-400 font-bold">➔</span> سهم
-                  </button>
-                  <button onClick={() => addCanvasShape('line')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1 font-semibold transition" title="خط مستقيم">
-                    <span className="text-rose-400 font-bold">━</span> خط
-                  </button>
-                  <button onClick={() => addCanvasShape('grid')} className="px-2.5 py-1 bg-indigo-600/80 hover:bg-indigo-600 border border-indigo-400 rounded-lg flex items-center gap-1 font-semibold transition text-white shadow-xs" title="معلم متعامد ومتجانس (محاور)">
-                    <span className="font-bold">📈</span> معلم متعامد
-                  </button>
-                  <button onClick={() => addCanvasShape('drawing_box')} className="px-2.5 py-1 bg-teal-600/80 hover:bg-teal-600 border border-teal-400 rounded-lg flex items-center gap-1 font-semibold transition text-white shadow-xs" title="مساحة مخصصة للرسم">
-                    <span className="font-bold">🎨</span> مساحة رسم
-                  </button>
-
-                  {/* Custom Image insertion */}
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
-                    ref={shapeImageInputRef} 
-                    onChange={handleInsertShapeImage} 
-                  />
-                  <button 
-                    onClick={() => shapeImageInputRef.current?.click()}
-                    className="px-2.5 py-1 bg-amber-600/80 hover:bg-amber-600 border border-amber-400 rounded-lg flex items-center gap-1 font-semibold transition text-white shadow-xs"
-                    title="إدراج صورة تفاعلية للتحكم بحدودها ومكانها"
-                  >
-                    <ImageIcon size={14} /> صورة متحرّكة
-                  </button>
-
-                  <button 
-                    onClick={savePreviewChanges} 
-                    className="px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-lg flex items-center gap-1.5 text-xs shadow-md transition transform hover:scale-105 active:scale-95"
-                    title="تثبيت وحفظ جميع الأشكال والرسومات المضافة داخل الورقة نهائياً"
-                  >
-                    <Save size={14} /> تثبيت وحفظ الأشكال 💾
-                  </button>
-                </div>
-              </div>
-
-              {/* Scrollable Symbol & Emoji Ribbon Bar */}
-              <SymbolBar 
-                onSelectSymbol={(sym) => addCanvasShape('stamp', sym)} 
-                soundEnabled={soundEnabled} 
-              />
-            </div>
-          )}
-
           {/* Scaled A4 Container */}
           <div ref={containerRef} className="a4-container rounded-xl shadow-inner relative flex-1 min-h-[600px] w-full overflow-auto bg-slate-100 dark:bg-slate-800/50" style={{ display: 'flex', justifyContent: 'center' }}>
             {generatedHtml ? (
-              <div style={{ width: 794 * effectiveScale, height: a4PageHeightInPx * effectiveScale, position: 'relative' }}>
+              <div style={{ width: 794 * effectiveScale, height: 1122 * effectiveScale, position: 'relative' }}>
                 <div 
-                  ref={a4PageRef}
-                  className={`a4-page print-area text-black outline-none transition-transform duration-200 ease-out absolute top-0 left-0 overflow-visible style-${activeStyleDef.id.replace(/_/g, '-')} frame-${activeStyleDef.frameType}`}
+                  className="a4-page print-area bg-white text-black outline-none transition-transform duration-200 ease-out absolute top-0 left-0 overflow-hidden"
                   style={{
-                    fontFamily: activeStyleDef.fontFamily,
+                    fontFamily: 'Arial, sans-serif',
                     fontSize: `${previewFontSize}px`,
-                    '--page-bg': activeStyleDef.bgCss || activeStyleDef.tokens.background || '#ffffff',
-                    '--doc-color': docColor || activeStyleDef.tokens.primary,
-                    '--style-primary': activeStyleDef.tokens.primary,
-                    '--style-secondary': activeStyleDef.tokens.secondary,
-                    '--style-accent': activeStyleDef.tokens.accent,
-                    '--style-surface': activeStyleDef.tokens.surface,
-                    '--style-border': activeStyleDef.tokens.border,
+                    '--doc-color': docColor,
                     transform: `scale(${effectiveScale})`,
                     transformOrigin: 'top left',
                     width: '210mm',
                     minHeight: '297mm',
                     boxSizing: 'border-box',
                   } as React.CSSProperties}
-                  onClick={() => setSelectedShapeId(null)}
                 >
                   <div
-                    ref={editableDivRef}
                     contentEditable
                     dangerouslySetInnerHTML={{ __html: generatedHtml }}
                     style={getFrameStyle(pageFrame, docColor)}
-                    className="w-full h-full min-h-[297mm] outline-none"
+                    className="w-full h-full min-h-[297mm]"
                   />
-
-                  {/* Visual Page Break Indicators for multi-page documents */}
-                  {visualBreakPositions.map((breakTop, idx) => (
-                    <div 
-                      key={idx} 
-                      className="absolute left-0 right-0 border-b-2 border-dashed border-rose-500/90 pointer-events-none z-30 flex justify-between items-center px-4"
-                      style={{ top: `${breakTop}px` }}
-                    >
-                      <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded font-bold shadow-md">
-                        بداية الصفحة {idx + 2}
-                      </span>
-                      <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded font-bold shadow-md">
-                        نهاية الصفحة {idx + 1}
-                      </span>
-                    </div>
-                  ))}
-
-                  {/* Floating Interactive Canvas Shapes Overlay */}
-                  {canvasShapes.map(shape => {
-                    const isSelected = selectedShapeId === shape.id;
-                    return (
-                      <div
-                        key={shape.id}
-                        onMouseDown={e => startInteraction(e, shape.id, 'move')}
-                        onTouchStart={e => startInteraction(e, shape.id, 'move')}
-                        onClick={e => { e.stopPropagation(); setSelectedShapeId(shape.id); }}
-                        className={`absolute group select-none transition-shadow ${
-                          isSelected ? 'ring-2 ring-indigo-500 ring-offset-1 z-30 shadow-lg' : 'hover:ring-1 hover:ring-indigo-300 z-20'
-                        }`}
-                        style={{
-                          left: `${shape.x}px`,
-                          top: `${shape.y}px`,
-                          width: `${shape.width}px`,
-                          height: `${shape.height}px`,
-                          transform: `rotate(${shape.rotation}deg)`,
-                          transformOrigin: 'center center',
-                          cursor: 'grab'
-                        }}
-                      >
-                        {renderShapeContent(shape)}
-
-                        {/* Selected Controls */}
-                        {isSelected && (
-                          <>
-                            {/* Top Controls Toolbar */}
-                            <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white rounded-md px-2 py-1 flex items-center gap-2 z-40 text-[10px] shadow-md border border-slate-700 pointer-events-auto shrink-0">
-                              <input 
-                                type="color" 
-                                value={shape.color} 
-                                onChange={e => updateShape(shape.id, { color: e.target.value })}
-                                className="w-4 h-4 rounded cursor-pointer border-0 p-0 bg-transparent"
-                                title="تغيير لون الشكل"
-                              />
-                              <button 
-                                onClick={e => { e.stopPropagation(); duplicateShape(shape.id); }}
-                                className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded font-bold text-amber-300 transition"
-                                title="نسخ الشكل"
-                              >
-                                تكرار
-                              </button>
-                              <button 
-                                onClick={e => { e.stopPropagation(); deleteShape(shape.id); }}
-                                className="px-1.5 py-0.5 bg-rose-900/80 hover:bg-rose-700 rounded font-bold text-rose-200 transition"
-                                title="حذف الشكل"
-                              >
-                                حذف
-                              </button>
-                            </div>
-
-                            {/* Resize Handle (Bottom-Right) */}
-                            <div
-                              onMouseDown={e => startInteraction(e, shape.id, 'resize')}
-                              onTouchStart={e => startInteraction(e, shape.id, 'resize')}
-                              className="absolute -bottom-2.5 -left-2.5 w-6 h-6 bg-indigo-600 border-2 border-white rounded-full shadow-md cursor-nwse-resize z-40 flex items-center justify-center text-[10px] text-white font-bold"
-                              title="سحب للتكبير أو التصغير (أو ضغط بأصبعين في الهاتف)"
-                            >
-                              ⤡
-                            </div>
-
-                            {/* Rotate Handle (Top-Center) */}
-                            <div
-                              onMouseDown={e => startInteraction(e, shape.id, 'rotate')}
-                              onTouchStart={e => startInteraction(e, shape.id, 'rotate')}
-                              className="absolute -top-3.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-amber-500 border-2 border-white rounded-full shadow-md cursor-grab z-40 flex items-center justify-center text-[11px] text-white font-bold"
-                              title="تدوير الشكل"
-                            >
-                              ↻
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
             ) : (
@@ -3362,182 +1835,10 @@ ${framedContent}
         </div>
       </main>
 
-      {/* Save Success Toast Notification */}
-      {saveSuccessMsg && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white font-black px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-2.5 animate-bounce border-2 border-white/80 text-sm">
-          <CheckCircle2 size={22} className="text-amber-300" />
-          <span>تم حفظ كافة التعديلات والأشكال المضافة في مستند المعاينة بنجاح! 💾</span>
-        </div>
-      )}
-
       <DownloadsModal 
         isOpen={isDownloadsModalOpen} 
         onClose={() => setIsDownloadsModalOpen(false)} 
       />
-
-      {/* Out of Quota Modal */}
-      {showOutQuotaModal && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn" dir="rtl">
-          <div className="bg-slate-900 border-2 border-amber-500/60 rounded-2xl max-w-md w-full p-6 text-white shadow-[0_0_40px_rgba(245,158,11,0.3)] relative overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl"></div>
-            
-            <button 
-              type="button" 
-              onClick={() => setShowOutQuotaModal(false)}
-              className="absolute top-4 left-4 p-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-            >
-              <X size={18} />
-            </button>
-
-            <div className="text-center mb-5">
-              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-amber-500/20 border-2 border-amber-500/60 flex items-center justify-center text-amber-400 animate-pulse">
-                <Zap size={32} />
-              </div>
-              <h2 className="text-xl font-black text-amber-300 mb-2">انتهى الرصيد المجاني!</h2>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                عذراً يا أستاذ، لقد استنفدت رصيد التوليد في الوضع المجاني. يمكنك الآن الانتقال إلى <span className="text-emerald-400 font-bold">الوضع الاحترافي (PRO)</span> لتفعيل الحساب والحصول على مميزات غير محدودة وتوليد كافة الدروس والاختبارات والمذكرات بجميع الأنماط.
-              </p>
-            </div>
-
-            <div className="bg-amber-950/80 border border-amber-500/40 p-4 rounded-xl mb-5 text-center">
-              <div className="text-lg font-black text-emerald-400 mb-1">💰 سعر التفعيل: 1000 دج فقط</div>
-              <div className="text-xs text-amber-200">اتصل بالمسؤول للتفعيل وتنشيط حسابك فوراً</div>
-            </div>
-
-            <div className="space-y-2.5 mb-4">
-              <a
-                href="https://wa.me/213673831994"
-                target="_blank"
-                rel="noreferrer"
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all shadow-lg shadow-emerald-600/30"
-              >
-                <Phone size={18} />
-                <span>تواصل مع المسؤول عبر واتساب (0673831994)</span>
-              </a>
-              <a
-                href="tel:0771167330"
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm transition-all shadow-lg shadow-indigo-600/30"
-              >
-                <Phone size={18} />
-                <span>اتصل بالمسؤول هاتفياً (0771167330)</span>
-              </a>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowOutQuotaModal(false)}
-              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
-            >
-              إغلاق
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Floating Quick Actions Dock - Always in Field of View while Scrolling */}
-      {generatedHtml && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2 bg-slate-900/95 dark:bg-slate-950/95 text-white rounded-2xl shadow-2xl border border-slate-700/80 backdrop-blur-xl ring-4 ring-indigo-500/20 no-print">
-          <button 
-            onClick={exportToPDF}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black px-3.5 py-1.5 rounded-xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition cursor-pointer"
-            title="تحميل وتصدير مستند PDF جاهز للطباعة فوراً"
-          >
-            <Download size={15} /> 
-            <span>تحميل PDF</span>
-          </button>
-          <button 
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm border border-slate-700 shadow-sm hover:scale-105 active:scale-95 transition cursor-pointer"
-            title="طباعة مباشرة"
-          >
-            <Printer size={15} /> 
-            <span>طباعة</span>
-          </button>
-          <button 
-            onClick={exportToWord}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition cursor-pointer"
-            title="تصدير إلى Microsoft Word"
-          >
-            <Download size={15} /> 
-            <span>Word</span>
-          </button>
-          <button 
-            onClick={savePreviewChanges}
-            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition cursor-pointer"
-            title="حفظ كافة التعديلات المدخلة"
-          >
-            <Save size={15} /> 
-            <span>حفظ 💾</span>
-          </button>
-          <button 
-            onClick={insertManualPageBreak}
-            className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold px-2.5 py-1.5 rounded-xl text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition cursor-pointer"
-            title="إدراج فاصل صفحات في موضع المؤشر"
-          >
-            <Scissors size={14} /> 
-            <span>فاصل صفحات</span>
-          </button>
-        </div>
-      )}
-
-      {/* Post-Generation Style Switcher Modal */}
-      {showStyleSwitcherModal && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in"
-          onClick={() => setShowStyleSwitcherModal(false)}
-        >
-          <div 
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4"
-            onClick={e => e.stopPropagation()}
-            dir="rtl"
-          >
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center text-white shadow-lg">
-                  <Palette size={20} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                    تغيير ستايل المستند بحرية تامة
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    اختر أي ستايل تريده وسيتم تحويل وتحديث المستند فوراً بألوان قوية وأيقونات مجسمة ثلاثية الأبعاد دون المساس بمحتوى الدرس
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowStyleSwitcherModal(false)}
-                className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="py-2">
-              <StyleSelector
-                selectedStyleId={designStyle}
-                onSelectStyle={(id) => {
-                  handleDesignStyleChange(id);
-                  setShowStyleSwitcherModal(false);
-                }}
-                isFreeMode={isFreeMode}
-                soundEnabled={soundEnabled}
-              />
-            </div>
-
-            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setShowStyleSwitcherModal(false)}
-                className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-sm transition"
-              >
-                إغلاق
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

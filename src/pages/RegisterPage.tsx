@@ -33,16 +33,6 @@ export default function RegisterPage() {
 
     try {
       const formattedEmail = email.includes('@') ? email : `${email}@phone.pro-gen.com`;
-      const cleanEmail = email.toLowerCase().trim();
-
-      // Check if email or phone is banned
-      const bannedDoc = await getDoc(doc(db, 'banned_emails', cleanEmail));
-      if (bannedDoc.exists()) {
-        setError('هذا البريد الإلكتروني أو الحساب محظور تماماً بقرار من الإدارة.');
-        setLoading(false);
-        return;
-      }
-
       const userCredential = await createUserWithEmailAndPassword(auth, formattedEmail, password);
       const user = userCredential.user;
 
@@ -58,10 +48,9 @@ export default function RegisterPage() {
         email,
         phone: '', // Can be added later
         role: isAdmin ? 'admin' : 'user',
-        isPro: isAdmin ? true : false,
-        generationsRemaining: isAdmin ? 9999 : 20, // 20 free generations
+        generationsRemaining: isAdmin ? 9999 : 30, // 30 free generations
         totalGenerations: 0,
-        isActive: isAdmin ? true : false, // Requires admin activation if regular user
+        isActive: true,
         createdAt: Date.now()
       });
     } catch (err: any) {
@@ -85,21 +74,10 @@ export default function RegisterPage() {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
-      const userEmail = (user.email || '').toLowerCase().trim();
-      if (userEmail) {
-        const bannedDoc = await getDoc(doc(db, 'banned_emails', userEmail));
-        if (bannedDoc.exists()) {
-          setError('هذا البريد الإلكتروني أو الحساب محظور تماماً بقرار من الإدارة.');
-          setLoading(false);
-          return;
-        }
-      }
-
       // Check if user document exists
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       
       if (!userDoc.exists()) {
-        const isAdmin = userEmail === 'dalinadjib1990@gmail.com' || userEmail.includes('0771167330');
         // Create new user document
         await setDoc(doc(db, 'users', user.uid), {
           uid: user.uid,
@@ -110,12 +88,12 @@ export default function RegisterPage() {
           phase: '',
           subject: '',
           phone: '',
-          role: isAdmin ? 'admin' : 'user',
-          isPro: isAdmin ? true : false,
-          generationsRemaining: isAdmin ? 9999 : 20, // 20 free generation
+          role: 'user',
+          isPro: false,
+          generationsRemaining: 30, // 30 free generation
           totalGenerations: 0,
           profilePic: user.photoURL || '',
-          isActive: isAdmin ? true : false,
+          isActive: true,
           createdAt: Date.now()
         });
       }

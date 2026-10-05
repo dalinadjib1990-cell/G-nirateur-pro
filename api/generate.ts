@@ -2,7 +2,6 @@ import { GoogleGenAI } from "@google/genai";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, query, where } from 'firebase/firestore';
-import { recordKeyUsage, recordKeyError } from '../src/lib/apiKeyHelper.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAkqsGPlm3rbVXzhbqas7qxDDk060Y3cc4",
@@ -37,15 +36,9 @@ const getApiKeys = async () => {
   const keys: string[] = [];
   if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
   
-  if (process.env.GEMINI_API_KEYS) {
-    const splitKeys = process.env.GEMINI_API_KEYS.split(/[\n,;\s]+/).map(k => k.trim()).filter(k => k.length > 10);
-    keys.push(...splitKeys);
-  }
-
   Object.keys(process.env).forEach(key => {
-    if ((key.startsWith('GEMINI_API_KEY_') || key.startsWith('GEMINI_KEY_')) && process.env[key]) {
-      const val = process.env[key] as string;
-      if (val && val.length > 10) keys.push(val);
+    if (key.startsWith('GEMINI_API_KEY_') && process.env[key]) {
+      keys.push(process.env[key] as string);
     }
   });
 
@@ -178,18 +171,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     **تفاصيل المحتوى:**
     ${generationType === 'test' ? `
     - نوع التقويم: ${subjectInfo?.examType || ''}
-    - الفصل الدراسي: ${subjectInfo?.term || ''}
-    - التوقيت والمدة: ${subjectInfo?.duration || ''} (هام جداً: ضع رمز/أيقونة ساعة SVG تعبر عن التوقيت تتناسب مع ستايل التصميم المختار)
-    - عدد التمارين المطلوبة صراحة: ${subjectInfo?.targetExercisesCount ? `${subjectInfo.targetExercisesCount} تمارين` : 'تلقائي وفقاً للمعايير والمدة'}
-
-    🚨 **أمر بيداغوجي صارم للتوليد المباشر وفق المنهاج الوزاري المعتمد**:
-    1️⃣ **التكيف التلقائي الذكي مع الفصل والمستوى والمادة**:
-       - المستوى: ${teacherInfo?.level || ''} | المادة: ${teacherInfo?.subject || ''} | الطور: ${teacherInfo?.phase || ''} | الفصل: ${subjectInfo?.term || ''} | نوع التقويم: ${subjectInfo?.examType || ''}.
-       - يمتلك الذكاء الاصطناعي **الحرية البيداغوجية الشاملة والذكية** لاختيار وصياغة تمارين واختبارات متدرجة ومتوازنة تتوافق **تماماً وحصرياً** مع المنهاج الرسمي المعتمد لدروس **${subjectInfo?.term || 'الفصل المختار'}** لهذا المستوى والمادة (مثال: إذا كان الفصل الأول تجلب دروس الفصل الأول فقط، وإذا كان الفصل الثاني تجلب دروس الفصل الثاني...).
-       - إذا ترك المعلم مدخلات المقاطع فارغة، يقوم الذكاء الاصطناعي تلقائياً باختيار أهم المحاور والدروس المبرمجة في هذا الفصل الدراسي وصياغة أسئلة متنوعة ومتطابقة مع توقيت ${subjectInfo?.duration || 'التقويم'}.
-
-    2️⃣ **عدد التمارين الإجباري**:
-       ${subjectInfo?.targetExercisesCount ? `يجب صياغة بالضبط **${subjectInfo.targetExercisesCount} تمارين** مؤطرة ومستقلة (التمرين الأول، التمرين الثاني، ... إلخ) قبل الوضعية الإدماجية إن فُعّلت.` : 'صغ عدداً متوازناً ومناسباً من التمارين (عادة تمرينين إلى 3 تمارين) يناسب توقيت التقويم.'}
+    - الفصل: ${subjectInfo?.term || ''}
+    - التوقيت: ${subjectInfo?.duration || ''} (هام جداً: ضع رمز/أيقونة ساعة SVG تعبر عن التوقيت تتناسب مع ستايل التصميم المختار)
     ` : ''}
     ${subjectInfo ? JSON.stringify(subjectInfo, null, 2) : ''}
     
@@ -203,11 +186,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     - اجعل الإطارات والبطاقات تحتوي على زوايا دائرية، ظلال ناعمة، وألوان مبهجة حسب الستايل المختار.
     - استخدم تصميمات مبتكرة بدلاً من الجداول التقليدية (مثل بطاقات حوارية "قال ريان..." "قالت سلمى...").
     ` : ''}
-    هام جداً لتقليل عدد الأوراق عند الطباعة وتصدير PDF محاذي للمعاينة بشكل تام:
-    - قلل الفراغات العمودية (margin, padding) بين العناصر والفقرات والجداول (اجعل padding 8px-10px في بطاقات التمارين و margin-bottom 10px).
-    - بالنسبة للامتحانات والتقويمات، استغل كامل مساحة الصفحة الأولى لأقصى حد، واجعل الترويسة مضغوطة ومنسقة (padding: 6px 8px; margin-bottom: 10px) لتتسطح الصفحة الأولى وتتسع لأكبر عدد ممكن من التمارين (التمارين الأول والثاني والوضعية) قبل الانتقال للصفحة الثانية.
-    - ضع كل تمرين أو وضعية أو قسم كامل داخل بطاقة تحتوي إجبارياً على class="avoid-break" و style="page-break-inside: avoid; break-inside: avoid; border: 1.5px solid var(--doc-color, #1e40af); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; background-color: #ffffff;" لتجنب قطعه بين الصفحات بشكل عشوائي.
-    - استغل المساحة الأفقية جيداً (يمكن استخدام شبكة grid أو flex لترتيب الأسئلة أو البطاقات جنباً إلى جنب).
+    هام جداً لتقليل عدد الأوراق عند الطباعة:
+    - قلل الفراغات العمودية (margin, padding) بين العناصر والفقرات والجداول.
+    - استغل المساحة الأفقية جيداً (يمكن استخدام شبكة grid أو flex لترتيب البطاقات جنباً إلى جنب).
+    - تجنب إنشاء صفحات شبه فارغة. اجعل المحتوى متراصاً ومنسقاً بذكاء.
     - تجنب ترك أي هوامش سفلية (margin-bottom) مبالغ فيها، ولا تستخدم وسوم <br> فارغة.
     - إذا كان هناك الكثير من العناصر (مثل القصاصات أو التمارين القصيرة)، رتبها في عمودين أو ثلاثة لتقليل طول الصفحة.
     `;
@@ -241,9 +223,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             temperature: 0.7,
           },
         });
-
-        // Record key usage stats asynchronously
-        recordKeyUsage(apiKey).catch(() => {});
         break; 
       } catch (error: any) {
         lastError = error;
@@ -256,9 +235,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const isRateLimit = error?.status === 429 || error?.code === 429 || errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('RESOURCE_EXHAUSTED');
         const isAuthError = error?.status === 400 || error?.status === 403 || errMsg.includes('API_KEY_INVALID');
 
-        badKeysMap.set(apiKey, Date.now());
-        recordKeyError(apiKey, errMsg.substring(0, 100), isRateLimit).catch(() => {});
-        markKeyError(apiKey, errMsg.substring(0, 100)).catch(() => {});
+        if (isRateLimit || isAuthError) {
+          badKeysMap.set(apiKey, Date.now());
+          // Mark key error asynchronously in background without delaying response
+          markKeyError(apiKey, errMsg.substring(0, 100)).catch(() => {});
+        }
 
         if (isRateLimit || isAuthError) {
           continue; // Try next key immediately
