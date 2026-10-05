@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone, CheckCircle2, Lock, Shapes, Sliders, ChevronDown } from 'lucide-react';
+import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone, CheckCircle2, Lock, Shapes, Sliders, ChevronDown, Scissors } from 'lucide-react';
 import { TeacherInfo, GenerationType, SubjectInfo, Exercise } from '../types';
 import { soundManager } from '../audio';
 import html2pdf from 'html2pdf.js';
@@ -622,9 +622,19 @@ export default function GeneratorPage() {
       }
 
       const containerRect = container.getBoundingClientRect();
+      const scale = effectiveScale || 1;
+
+      // Check for explicit manual page breaks in the document
+      const explicitBreakEls = Array.from(
+        container.querySelectorAll('.page-break, [style*="page-break-before: always"], [style*="break-before: always"]')
+      ) as HTMLElement[];
+      const explicitPositions = explicitBreakEls.map(el => {
+        const rect = el.getBoundingClientRect();
+        return Math.round((rect.top - containerRect.top) / scale);
+      }).filter(y => y > 50).sort((a, b) => a - b);
 
       const breaks: number[] = [];
-      let lastBreakY = 0; // Top of current page in container coordinates
+      let lastBreakY = 0; // Top of current page in unscaled container coordinates
       let guard = 0;
 
       while (lastBreakY + PAGE_HEIGHT_PX < scrollH - 30 && guard < 20) {
@@ -632,49 +642,56 @@ export default function GeneratorPage() {
         const targetBoundary = lastBreakY + PAGE_HEIGHT_PX;
         let bestBreakY = targetBoundary;
 
-        // Query all candidate elements that shouldn't be split awkwardly across a page cut
-        const allCandidates: HTMLElement[] = Array.from(container.querySelectorAll(
-          '.card, .exercise-card, .pedagogical-card, .framed-card, .formula-card, .rule-card, .example-card, .callout-box, .callout, .solution-card, .summary-box, .question-block, .avoid-break, table, tr, p, div, ul, ol, li, blockquote, figure, .illustration, .diagram, h1, h2, h3, h4, h5, h6'
-        )) as HTMLElement[];
-
-        // Find the deepest / closest element that straddles targetBoundary
-        let chosenCandidate: HTMLElement | null = null;
-        let chosenTop = -1;
-
-        for (const el of allCandidates) {
-          const rect = el.getBoundingClientRect();
-          const elTop = Math.round(rect.top - containerRect.top);
-          const elBottom = Math.round(rect.bottom - containerRect.top);
-
-          // Does el straddle the target boundary?
-          if (elTop < targetBoundary - 4 && elBottom > targetBoundary + 4) {
-            // Ensure this element starts well below the start of the current page
-            if (elTop > lastBreakY + 80) {
-              // We prefer the element whose top is closest to targetBoundary (highest elTop)
-              // to avoid creating large empty white areas while guaranteeing no line cuts
-              if (elTop > chosenTop) {
-                chosenTop = elTop;
-                chosenCandidate = el;
-              }
-            }
-          }
-        }
-
-        if (chosenCandidate && chosenTop > lastBreakY + 80) {
-          // If the element is a table row <tr> or inside a row, align to the top of the table row
-          if (chosenCandidate.tagName === 'TR' || chosenCandidate.closest('tr')) {
-            const tr = (chosenCandidate.tagName === 'TR' ? chosenCandidate : chosenCandidate.closest('tr')) as HTMLElement;
-            if (tr) {
-              const trRect = tr.getBoundingClientRect();
-              const trTop = Math.round(trRect.top - containerRect.top);
-              if (trTop > lastBreakY + 80) {
-                chosenTop = trTop;
-              }
-            }
-          }
-          bestBreakY = chosenTop - 4; // Clean gap above the element
+        // Check if an explicit manual page break falls in this range
+        const manualBreak = explicitPositions.find(p => p > lastBreakY + 80 && p <= targetBoundary + 150);
+        if (manualBreak) {
+          bestBreakY = manualBreak;
         } else {
-          bestBreakY = targetBoundary;
+          // Query all candidate elements that shouldn't be split awkwardly across a page cut
+          const allCandidates: HTMLElement[] = Array.from(container.querySelectorAll(
+            '.card, .exercise-card, .pedagogical-card, .framed-card, .formula-card, .rule-card, .example-card, .callout-box, .callout, .solution-card, .summary-box, .question-block, .situation-card, .pedagogical-step, .memo-header, .avoid-break, table, tr, p, div.border, div.rounded-xl, div.rounded-lg, ul, ol, figure, .illustration, .diagram, h1, h2, h3, h4, h5, h6'
+          )) as HTMLElement[];
+
+          // Find the deepest / closest element that straddles targetBoundary
+          let chosenCandidate: HTMLElement | null = null;
+          let chosenTop = -1;
+
+          for (const el of allCandidates) {
+            const rect = el.getBoundingClientRect();
+            // Crucial: divide by scale to map back to unscaled A4 page coordinates
+            const elTop = Math.round((rect.top - containerRect.top) / scale);
+            const elBottom = Math.round((rect.bottom - containerRect.top) / scale);
+
+            // Does el straddle the target boundary?
+            if (elTop < targetBoundary - 6 && elBottom > targetBoundary + 6) {
+              // Ensure this element starts well below the start of the current page
+              if (elTop > lastBreakY + 80) {
+                // We prefer the element whose top is closest to targetBoundary (highest elTop)
+                // to avoid creating large empty white areas while guaranteeing no line cuts
+                if (elTop > chosenTop) {
+                  chosenTop = elTop;
+                  chosenCandidate = el;
+                }
+              }
+            }
+          }
+
+          if (chosenCandidate && chosenTop > lastBreakY + 80) {
+            // If the element is a table row <tr> or inside a row, align cleanly to the top of the table row
+            if (chosenCandidate.tagName === 'TR' || chosenCandidate.closest('tr')) {
+              const tr = (chosenCandidate.tagName === 'TR' ? chosenCandidate : chosenCandidate.closest('tr')) as HTMLElement;
+              if (tr) {
+                const trRect = tr.getBoundingClientRect();
+                const trTop = Math.round((trRect.top - containerRect.top) / scale);
+                if (trTop > lastBreakY + 80) {
+                  chosenTop = trTop;
+                }
+              }
+            }
+            bestBreakY = chosenTop - 6; // Clean gap above the element
+          } else {
+            bestBreakY = targetBoundary;
+          }
         }
 
         breaks.push(bestBreakY);
@@ -690,7 +707,7 @@ export default function GeneratorPage() {
     const observer = new ResizeObserver(updateSmartBreaksAndHeight);
     observer.observe(editableDivRef.current);
     return () => observer.disconnect();
-  }, [generatedHtml, pageFrame, previewFontSize, canvasShapes]);
+  }, [generatedHtml, pageFrame, previewFontSize, canvasShapes, effectiveScale]);
 
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add('dark');
@@ -1474,6 +1491,21 @@ export default function GeneratorPage() {
       
       const fileName = `${title}_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.pdf`;
       
+      // 1. Instant direct browser download for immediate access
+      try {
+        const url = URL.createObjectURL(pdfBlob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = fileName;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      } catch (dlErr) {
+        console.warn("Direct download link error:", dlErr);
+      }
+
+      // 2. Register file in downloads context & modal
       await addFile(fileName, 'pdf', pdfBlob);
       if (soundEnabled) soundManager.playGenerateComplete();
       setIsDownloadsModalOpen(true);
@@ -1482,6 +1514,24 @@ export default function GeneratorPage() {
     } finally {
       document.body.removeChild(tempContainer);
     }
+  };
+
+  const insertManualPageBreak = () => {
+    if (!editableDivRef.current) return;
+    const breakDiv = document.createElement('div');
+    breakDiv.className = 'page-break avoid-break';
+    breakDiv.setAttribute('style', 'page-break-before: always; break-before: always; height: 16px; margin: 24px 0; border-top: 2px dashed #e11d48; text-align: center; position: relative;');
+    breakDiv.innerHTML = '<span style="background: #e11d48; color: #fff; font-size: 11px; padding: 2px 10px; border-radius: 9999px; font-weight: bold; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); pointer-events: none;">✂️ فاصل صفحات يدوي</span>';
+
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0 && editableDivRef.current.contains(selection.anchorNode)) {
+      const range = selection.getRangeAt(0);
+      range.insertNode(breakDiv);
+    } else {
+      editableDivRef.current.appendChild(breakDiv);
+    }
+    savePreviewChanges();
+    if (soundEnabled) soundManager.playTabClick();
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -2919,46 +2969,57 @@ ${framedContent}
         {/* Preview Area (A4) */}
         <div className="flex-1 flex flex-col items-center">
           
-          <div className="w-full flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-4 no-print bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-4 rounded-xl shadow-sm border border-slate-100/50 dark:border-slate-800/50">
-            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 shrink-0">
-              <span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 p-1.5 rounded-lg">
-                <FileText size={20} />
-              </span>
-              ورقة المعاينة
-            </h3>
-            
-            <div className="flex flex-wrap gap-3 items-center justify-end">
-              {/* Zoom Controls */}
-              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                <button onClick={() => setManualScale(Math.max(0.5, manualScale - 0.1))} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition text-slate-600 dark:text-slate-400" title="تصغير الورقة">
-                  <ZoomOut size={16} />
-                </button>
-                <span className="text-xs font-bold font-mono w-10 text-center text-slate-700 dark:text-slate-300">
-                  {Math.round(manualScale * 100)}%
+          <div className="sticky top-2 z-40 w-full flex flex-col gap-3 mb-4 no-print bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-3.5 sm:p-4 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-800">
+            {/* Upper Row: Title, Scale & Style Display Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 p-1.5 rounded-lg shadow-xs">
+                  <FileText size={18} />
                 </span>
-                <button onClick={() => setManualScale(Math.min(2, manualScale + 0.1))} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition text-slate-600 dark:text-slate-400" title="تكبير الورقة">
-                  <ZoomIn size={16} />
-                </button>
-                <div className="w-px h-4 bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                <button onClick={() => setManualScale(1)} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition text-slate-600 dark:text-slate-400" title="استعادة الحجم الأصلي">
-                  <Maximize size={16} />
-                </button>
+                <h3 className="font-black text-slate-800 dark:text-white text-sm sm:text-base">
+                  ورقة المعاينة
+                </h3>
+                {visualBreakPositions.length > 0 && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-800/50">
+                    {visualBreakPositions.length + 1} صفحات
+                  </span>
+                )}
               </div>
+              
+              <div className="flex flex-wrap items-center gap-2 justify-end">
+                {/* Zoom Controls */}
+                <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <button onClick={() => setManualScale(Math.max(0.5, manualScale - 0.1))} className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded transition text-slate-600 dark:text-slate-400" title="تصغير الورقة">
+                    <ZoomOut size={15} />
+                  </button>
+                  <span className="text-xs font-bold font-mono w-9 text-center text-slate-700 dark:text-slate-300">
+                    {Math.round(manualScale * 100)}%
+                  </span>
+                  <button onClick={() => setManualScale(Math.min(2, manualScale + 0.1))} className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded transition text-slate-600 dark:text-slate-400" title="تكبير الورقة">
+                    <ZoomIn size={15} />
+                  </button>
+                  <div className="w-px h-3.5 bg-slate-300 dark:bg-slate-600 mx-0.5"></div>
+                  <button onClick={() => setManualScale(1)} className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded transition text-slate-600 dark:text-slate-400" title="استعادة 100%">
+                    <Maximize size={15} />
+                  </button>
+                </div>
 
-              {/* Color, Font Size & Frame Selector */}
-              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                <input 
-                  type="color" 
-                  value={docColor} 
-                  onChange={e => handleColorChange(e.target.value)}
-                  className="w-7 h-7 rounded cursor-pointer border-0 p-0 bg-transparent"
-                  title="تغيير لون العناوين والزخارف (يتغير مباشرة في المستند)"
-                />
-                <div className="w-px h-4 bg-slate-300 dark:bg-slate-600"></div>
-                <button onClick={() => setPreviewFontSize(Math.max(10, previewFontSize - 1))} className="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition font-bold" title="تصغير الخط">-</button>
-                <span className="text-xs font-mono w-6 text-center text-slate-700 dark:text-slate-300 font-bold">{previewFontSize}</span>
-                <button onClick={() => setPreviewFontSize(Math.min(30, previewFontSize + 1))} className="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition font-bold" title="تكبير الخط">+</button>
-                <div className="w-px h-4 bg-slate-300 dark:bg-slate-600"></div>
+                {/* Color & Font Size */}
+                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <input 
+                    type="color" 
+                    value={docColor} 
+                    onChange={e => handleColorChange(e.target.value)}
+                    className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent"
+                    title="تغيير لون العناوين والزخارف (يتغير مباشرة في المستند)"
+                  />
+                  <div className="w-px h-3.5 bg-slate-300 dark:bg-slate-600"></div>
+                  <button onClick={() => setPreviewFontSize(Math.max(10, previewFontSize - 1))} className="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded transition font-bold" title="تصغير الخط">-</button>
+                  <span className="text-xs font-mono w-5 text-center text-slate-700 dark:text-slate-300 font-bold">{previewFontSize}</span>
+                  <button onClick={() => setPreviewFontSize(Math.min(30, previewFontSize + 1))} className="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded transition font-bold" title="تكبير الخط">+</button>
+                </div>
+
+                {/* Page Frame Selector */}
                 <select 
                   value={pageFrame} 
                   onChange={e => {
@@ -2966,19 +3027,19 @@ ${framedContent}
                     setPageFrame(e.target.value);
                     saveCurrentPreferences({ pageFrame: e.target.value });
                   }}
-                  className="text-xs font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 transition"
+                  className="text-xs font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 transition"
                   title="تغيير شكل إطار الصفحة"
                 >
                   {pageFrames.map(f => (
                     <option key={f.id} value={f.id}>{f.label}</option>
                   ))}
                 </select>
-                <div className="w-px h-4 bg-slate-300 dark:bg-slate-600"></div>
-                {/* Quick Post-Generation Style Switcher Dropdown */}
+
+                {/* Style Switcher Dropdown */}
                 <select 
                   value={designStyle} 
                   onChange={e => handleDesignStyleChange(e.target.value)}
-                  className="text-xs font-bold bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900 dark:to-slate-800 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 rounded px-2 py-1 outline-none cursor-pointer hover:border-amber-500 transition font-bold"
+                  className="text-xs font-bold bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900 dark:to-slate-800 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 rounded-lg px-2 py-1.5 outline-none cursor-pointer hover:border-amber-500 transition font-bold"
                   title="تغيير ستايل وهوية المستند مباشرة وبحرية تامة"
                 >
                   {STYLES_REGISTRY.map(st => (
@@ -2987,31 +3048,72 @@ ${framedContent}
                     </option>
                   ))}
                 </select>
+
                 <button
                   type="button"
                   onClick={() => {
                     if (soundEnabled) soundManager.playTabClick();
                     setShowStyleSwitcherModal(true);
                   }}
-                  className="flex items-center gap-1 text-xs font-black bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white px-2.5 py-1 rounded shadow-sm hover:shadow transition active:scale-95"
+                  className="flex items-center gap-1 text-xs font-black bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white px-2.5 py-1.5 rounded-lg shadow-sm hover:shadow transition active:scale-95"
                   title="فتح معرض الستايلات المجسمة لاختيار ستايل جديد للمستند"
                 >
                   <Palette size={13} />
                   <span>معرض الستايلات</span>
                 </button>
               </div>
+            </div>
 
-              {/* Actions */}
-              <div className="flex gap-2 flex-wrap">
+            {/* Lower Row: Primary Action Center (Always in Field of View) */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* PDF Export Button - High Visibility & Priority */}
                 <button 
-                  onClick={savePreviewChanges} 
+                  onClick={exportToPDF} 
                   disabled={!generatedHtml}
-                  className="relative group overflow-hidden flex items-center gap-2 bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black px-4 py-2 rounded-xl text-sm transition-all disabled:opacity-50 shadow-[0_4px_0_0_#b45309] hover:translate-y-1 hover:shadow-[0_0px_0_0_#b45309] active:scale-95"
-                  title="حفظ كافة التعديلات المباشرة والأشكال والصور المضافة نهائياً في المستند"
+                  className="relative group overflow-hidden flex items-center gap-2 bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black px-4 py-2 rounded-xl text-xs sm:text-sm transition-all disabled:opacity-40 shadow-md shadow-rose-600/30 hover:scale-[1.02] active:scale-95"
+                  title="تحميل وتصدير مستند PDF جاهز للطباعة"
                 >
-                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Save size={16} /> حفظ التعديلات 💾
+                  <Download size={16} /> 
+                  <span>تصدير PDF</span>
                 </button>
+
+                {/* Print Button */}
+                <button 
+                  onClick={() => window.print()} 
+                  disabled={!generatedHtml}
+                  className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition disabled:opacity-40 shadow-sm border border-slate-700 hover:scale-[1.02] active:scale-95"
+                  title="طباعة الورقة مباشرة"
+                >
+                  <Printer size={16} />
+                  <span>طباعة</span>
+                </button>
+
+                {/* Word Export Button */}
+                <button 
+                  onClick={exportToWord} 
+                  disabled={!generatedHtml}
+                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition disabled:opacity-40 shadow-sm hover:scale-[1.02] active:scale-95"
+                  title="تصدير المستند إلى ملف Microsoft Word (.docx)"
+                >
+                  <Download size={16} />
+                  <span>Word</span>
+                </button>
+
+                {/* Insert Page Break Button */}
+                <button 
+                  onClick={insertManualPageBreak} 
+                  disabled={!generatedHtml}
+                  className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-2 rounded-xl text-xs sm:text-sm transition disabled:opacity-40 shadow-sm hover:scale-[1.02] active:scale-95"
+                  title="إدراج فاصل صفحات يدوي في موضع المؤشر لضبط تقسيم الورقة"
+                >
+                  <Scissors size={15} />
+                  <span>فاصل صفحات ✂️</span>
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Insert Image Button */}
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -3022,34 +3124,22 @@ ${framedContent}
                 <button 
                   onClick={() => fileInputRef.current?.click()} 
                   disabled={!generatedHtml}
-                  className="relative group overflow-hidden flex items-center gap-2 bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-[0_4px_0_0_#059669] hover:translate-y-1 hover:shadow-[0_0px_0_0_#059669] active:scale-95"
+                  className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-xl text-xs sm:text-sm transition disabled:opacity-40 shadow-sm hover:scale-[1.02] active:scale-95"
+                  title="إدراج صورة أو شكل في المعاينة"
                 >
-                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <ImagePlus size={16} /> صورة/شكل
+                  <ImagePlus size={15} />
+                  <span>صورة/شكل</span>
                 </button>
+
+                {/* Save Changes Button */}
                 <button 
-                  onClick={() => window.print()} 
+                  onClick={savePreviewChanges} 
                   disabled={!generatedHtml}
-                  className="relative group overflow-hidden flex items-center gap-2 bg-gradient-to-b from-slate-600 to-slate-800 hover:from-slate-700 hover:to-slate-900 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-[0_4px_0_0_#334155] hover:translate-y-1 hover:shadow-[0_0px_0_0_#334155] active:scale-95"
+                  className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-2 rounded-xl text-xs sm:text-sm transition disabled:opacity-40 shadow-md shadow-amber-500/20 hover:scale-[1.02] active:scale-95"
+                  title="حفظ كافة التعديلات المباشرة والأشكال والصور المضافة نهائياً في المستند"
                 >
-                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Printer size={16} /> طباعة
-                </button>
-                <button 
-                  onClick={exportToPDF} 
-                  disabled={!generatedHtml}
-                  className="relative group overflow-hidden flex items-center gap-2 bg-gradient-to-b from-rose-500 to-rose-700 hover:from-rose-600 hover:to-rose-800 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-[0_4px_0_0_#be123c] hover:translate-y-1 hover:shadow-[0_0px_0_0_#be123c] active:scale-95"
-                >
-                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Download size={16} /> PDF
-                </button>
-                <button 
-                  onClick={exportToWord} 
-                  disabled={!generatedHtml}
-                  className="relative group overflow-hidden flex items-center gap-2 bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-[0_4px_0_0_#1d4ed8] hover:translate-y-1 hover:shadow-[0_0px_0_0_#1d4ed8] active:scale-95"
-                >
-                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Download size={16} /> Word
+                  <Save size={16} />
+                  <span>حفظ التعديلات 💾</span>
                 </button>
               </div>
             </div>
@@ -3341,6 +3431,52 @@ ${framedContent}
               إغلاق
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Floating Quick Actions Dock - Always in Field of View while Scrolling */}
+      {generatedHtml && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2 bg-slate-900/95 dark:bg-slate-950/95 text-white rounded-2xl shadow-2xl border border-slate-700/80 backdrop-blur-xl ring-4 ring-indigo-500/20 no-print">
+          <button 
+            onClick={exportToPDF}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black px-3.5 py-1.5 rounded-xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition cursor-pointer"
+            title="تحميل وتصدير مستند PDF جاهز للطباعة فوراً"
+          >
+            <Download size={15} /> 
+            <span>تحميل PDF</span>
+          </button>
+          <button 
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm border border-slate-700 shadow-sm hover:scale-105 active:scale-95 transition cursor-pointer"
+            title="طباعة مباشرة"
+          >
+            <Printer size={15} /> 
+            <span>طباعة</span>
+          </button>
+          <button 
+            onClick={exportToWord}
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition cursor-pointer"
+            title="تصدير إلى Microsoft Word"
+          >
+            <Download size={15} /> 
+            <span>Word</span>
+          </button>
+          <button 
+            onClick={savePreviewChanges}
+            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition cursor-pointer"
+            title="حفظ كافة التعديلات المدخلة"
+          >
+            <Save size={15} /> 
+            <span>حفظ 💾</span>
+          </button>
+          <button 
+            onClick={insertManualPageBreak}
+            className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold px-2.5 py-1.5 rounded-xl text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition cursor-pointer"
+            title="إدراج فاصل صفحات في موضع المؤشر"
+          >
+            <Scissors size={14} /> 
+            <span>فاصل صفحات</span>
+          </button>
         </div>
       )}
 
