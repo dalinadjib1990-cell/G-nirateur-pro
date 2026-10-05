@@ -642,6 +642,21 @@ export function transformDocumentToStyle(
   const doc = parser.parseFromString(rawHtml, 'text/html');
   const body = doc.body;
 
+  // 0. Clean any previous styled artifacts if re-transforming an already styled document
+  // Clean injected diagrams from previous style
+  body.querySelectorAll('.signed-numbers-diagram, .fraction-diagram, .decimal-jump-diagram, .geometry-diagram').forEach(d => d.remove());
+  
+  // Clean elements marked as data-styled so they can be re-skinned
+  body.querySelectorAll('[data-styled="true"]').forEach(el => {
+    el.removeAttribute('data-styled');
+    const container = el as HTMLElement;
+    // If the component has an inner content slot with original text, restore it cleanly
+    const contentSlot = container.querySelector('[data-card-content="true"]');
+    if (contentSlot) {
+      container.innerHTML = contentSlot.innerHTML;
+    }
+  });
+
   // 1. Transform Header Table if found
   const tables = Array.from(body.querySelectorAll('table'));
   tables.forEach((table, tableIdx) => {
@@ -1008,43 +1023,45 @@ function applyPedagogicalTableStyle(table: HTMLTableElement, style: StyleDefinit
             <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
               <span style="font-size: 20px;">✨</span>
               <span style="font-family: ${style.headingFont}; color: ${t.primary}; font-weight: 800; font-size: 13px;">
-                التمهيد والتهيئة
+                التهيئة
               </span>
+              <span style="font-size: 10.5px; color: #0369a1; font-weight: bold;">(تنشيط المكتسبات)</span>
               <span style="background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; margin-top: 4px;">
                 ⏱ 05 - 10 د
               </span>
             </div>
           `;
-        } else if (cellText.includes('بناء التعلمات') || cellText.includes('الوضعية') || cellText.includes('المرحلة 2')) {
+        } else if (cellText.includes('استخلاص') || cellText.includes('بناء التعلمات') || cellText.includes('الوضعية') || cellText.includes('المرحلة 2')) {
           elTd.style.backgroundColor = style.artDirection === 'gamified' ? '#fff7ed' : '#fefce8';
           elTd.style.borderRight = `4px solid ${style.artDirection === 'gamified' ? '#f97316' : '#eab308'}`;
           elTd.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
               <span style="font-size: 22px;">🧭</span>
               <span style="font-family: ${style.headingFont}; color: #b45309; font-weight: 800; font-size: 13px;">
-                بناء التعلمات
+                وضعية تعلمية
               </span>
-              <span style="font-size: 10.5px; color: #854d0e; font-weight: bold;">(الوضعية المشكلة)</span>
+              <span style="font-size: 10.5px; color: #854d0e; font-weight: bold;">(لاستخلاص الدرس)</span>
               <span style="background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; margin-top: 4px;">
                 ⏱ 20 - 25 د
               </span>
             </div>
           `;
-        } else if (cellText.includes('المعارف') || cellText.includes('الحوصلة') || cellText.includes('المرحلة 3')) {
+        } else if (cellText.includes('حوصلة') || cellText.includes('الحوصلة') || cellText.includes('ما يتبعها') || cellText.includes('المعارف') || cellText.includes('المرحلة 3')) {
           elTd.style.backgroundColor = '#faf5ff';
           elTd.style.borderRight = `4px solid #a855f7`;
           elTd.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
               <span style="font-size: 20px;">💡</span>
               <span style="font-family: ${style.headingFont}; color: #7e22ce; font-weight: 800; font-size: 13px;">
-                المعارف والحوصلة
+                حوصلة وما يتبعها
               </span>
+              <span style="font-size: 10.5px; color: #6b21a8; font-weight: bold;">(القواعد والأمثلة)</span>
               <span style="background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; margin-top: 4px;">
                 ⏱ 10 - 15 د
               </span>
             </div>
           `;
-        } else if (cellText.includes('إعادة الاستثمار') || cellText.includes('التقويم') || cellText.includes('المرحلة 4')) {
+        } else if (cellText.includes('إعادة الاستثمار') || cellText.includes('استثمار') || cellText.includes('التقويم') || cellText.includes('المرحلة 4')) {
           elTd.style.backgroundColor = '#f0fdf4';
           elTd.style.borderRight = `4px solid #22c55e`;
           elTd.innerHTML = `
@@ -1053,6 +1070,7 @@ function applyPedagogicalTableStyle(table: HTMLTableElement, style: StyleDefinit
               <span style="font-family: ${style.headingFont}; color: #15803d; font-weight: 800; font-size: 13px;">
                 إعادة الاستثمار
               </span>
+              <span style="font-size: 10.5px; color: #166534; font-weight: bold;">(تطبيقات وتمارين)</span>
               <span style="background: #dcfce7; color: #166534; border: 1px solid #86efac; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; margin-top: 4px;">
                 ⏱ 10 - 15 د
               </span>
@@ -1086,28 +1104,28 @@ function applyPedagogicalTableStyle(table: HTMLTableElement, style: StyleDefinit
             elH.style.fontFamily = style.headingFont;
             elH.style.fontSize = '13.5px';
             elH.style.marginBottom = '6px';
-            elH.innerHTML = `✨ ${hText}`;
-          } else if (hText.includes('الوضعية التعلمية') || hText.includes('وضعية مشكلة')) {
+            if (!hText.includes('✨')) elH.innerHTML = `✨ ${hText}`;
+          } else if (hText.includes('وضعية تعلمية') || hText.includes('استخلاص الدرس') || hText.includes('وضعية مشكلة')) {
             elH.style.display = 'inline-block';
             elH.style.color = '#b45309';
             elH.style.fontFamily = style.headingFont;
             elH.style.fontSize = '14px';
             elH.style.marginBottom = '6px';
-            elH.innerHTML = `🧭 ${hText}`;
-          } else if (hText.includes('الحوصلة') || hText.includes('قاعدة') || hText.includes('مبرهنة')) {
+            if (!hText.includes('🧭')) elH.innerHTML = `🧭 ${hText}`;
+          } else if (hText.includes('حوصلة') || hText.includes('الحوصلة') || hText.includes('ما يتبعها') || hText.includes('قاعدة') || hText.includes('مبرهنة')) {
             elH.style.display = 'inline-block';
             elH.style.color = '#7e22ce';
             elH.style.fontFamily = style.headingFont;
             elH.style.fontSize = '13.5px';
             elH.style.marginBottom = '6px';
-            elH.innerHTML = `💡 ${hText}`;
-          } else if (hText.includes('إعادة استثمار') || hText.includes('تطبيق')) {
+            if (!hText.includes('💡')) elH.innerHTML = `💡 ${hText}`;
+          } else if (hText.includes('إعادة الاستثمار') || hText.includes('إعادة استثمار') || hText.includes('تطبيق')) {
             elH.style.display = 'inline-block';
             elH.style.color = '#15803d';
             elH.style.fontFamily = style.headingFont;
             elH.style.fontSize = '13.5px';
             elH.style.marginBottom = '6px';
-            elH.innerHTML = `🎯 ${hText}`;
+            if (!hText.includes('🎯')) elH.innerHTML = `🎯 ${hText}`;
           }
         });
       }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone, CheckCircle2, Lock, Shapes } from 'lucide-react';
+import { Moon, Sun, Save, FileText, FileSpreadsheet, ListTodo, Download, Printer, User, School, BookOpen, Layers, Palette, Sparkles, Table, Hexagon, Smile, GraduationCap, Heart, Coffee, Zap, ZoomIn, ZoomOut, Maximize, Languages, Droplet, ImagePlus, Leaf, Star, Volume2, VolumeX, LogOut, Shield, Bot, Settings, Image as ImageIcon, X, Bookmark, RotateCcw, Check, Phone, CheckCircle2, Lock, Shapes, Sliders, ChevronDown } from 'lucide-react';
 import { TeacherInfo, GenerationType, SubjectInfo, Exercise } from '../types';
 import { soundManager } from '../audio';
 import html2pdf from 'html2pdf.js';
@@ -97,6 +97,11 @@ export default function GeneratorPage() {
   const [memoSection, setMemoSection] = useState('');
   const [memoDomain, setMemoDomain] = useState('');
   const [memoContent, setMemoContent] = useState('');
+  const [memoWarmup, setMemoWarmup] = useState('');
+  const [memoLearningSituation, setMemoLearningSituation] = useState('');
+  const [memoSummary, setMemoSummary] = useState('');
+  const [memoReinvestment, setMemoReinvestment] = useState('');
+  const [showMemoCustomStages, setShowMemoCustomStages] = useState(false);
   const [contentStyle, setContentStyle] = useState('standard');
   const [designStyle, setDesignStyle] = useState('style1');
   const [pageFrame, setPageFrame] = useState('none');
@@ -232,13 +237,31 @@ export default function GeneratorPage() {
     }
   });
 
-  const updateGeneratedHtml = (html: string) => {
+  const [rawGeneratedHtml, setRawGeneratedHtml] = useState(() => {
+    try {
+      return sessionStorage.getItem('rawGeneratedHtml') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+
+  const [showStyleSwitcherModal, setShowStyleSwitcherModal] = useState(false);
+
+  const updateGeneratedHtml = (html: string, raw?: string) => {
     setGeneratedHtml(html);
     try {
       if (html) {
         sessionStorage.setItem('currentGeneratedHtml', html);
       } else {
         sessionStorage.removeItem('currentGeneratedHtml');
+      }
+      if (raw !== undefined) {
+        setRawGeneratedHtml(raw);
+        if (raw) {
+          sessionStorage.setItem('rawGeneratedHtml', raw);
+        } else {
+          sessionStorage.removeItem('rawGeneratedHtml');
+        }
       }
     } catch (e) {
       console.error(e);
@@ -727,6 +750,10 @@ export default function GeneratorPage() {
     setMemoSection(parsed.memoSection || '');
     setMemoDomain(parsed.memoDomain || '');
     setMemoContent(parsed.memoContent || '');
+    setMemoWarmup(parsed.memoWarmup || '');
+    setMemoLearningSituation(parsed.memoLearningSituation || '');
+    setMemoSummary(parsed.memoSummary || '');
+    setMemoReinvestment(parsed.memoReinvestment || '');
 
     if (parsed.documentLanguage) setDocumentLanguage(parsed.documentLanguage);
     if (parsed.includeWatermark !== undefined) setIncludeWatermark(parsed.includeWatermark);
@@ -756,6 +783,10 @@ export default function GeneratorPage() {
         memoSection,
         memoDomain,
         memoContent,
+        memoWarmup,
+        memoLearningSituation,
+        memoSummary,
+        memoReinvestment,
         documentLanguage,
         includeWatermark,
         hasIntegration,
@@ -779,8 +810,8 @@ export default function GeneratorPage() {
   };
 
   const handleSaveLessonElements = () => {
-    if (!memoSection && !memoDomain && !memoContent && !aiPrompt && exercises.every(e => !e.section) && !integrationSections && !integrationCompetencies && !integrationPrompt) {
-      alert('يرجى كتابة المقطع أو الميدان أو المورد المعرفي أو التوجيهات أو معطيات الوضعية الإدماجية قبل الحفظ.');
+    if (!memoSection && !memoDomain && !memoContent && !memoWarmup && !memoLearningSituation && !memoSummary && !memoReinvestment && !aiPrompt && exercises.every(e => !e.section) && !integrationSections && !integrationCompetencies && !integrationPrompt) {
+      alert('يرجى كتابة المقطع أو الميدان أو المورد المعرفي أو مراحل المذكرة أو التوجيهات أو معطيات الوضعية الإدماجية قبل الحفظ.');
       return;
     }
     const uid = user?.uid || 'guest';
@@ -790,6 +821,10 @@ export default function GeneratorPage() {
       memoSection,
       memoDomain,
       memoContent,
+      memoWarmup,
+      memoLearningSituation,
+      memoSummary,
+      memoReinvestment,
       aiPrompt,
       exercises,
       integrationSections,
@@ -803,7 +838,7 @@ export default function GeneratorPage() {
     saveCurrentPreferences();
 
     if (soundEnabled) soundManager.playGenerateComplete();
-    setLessonSaveMessage('تم حفظ معلومات المقطع والكفاءات والتوجيهات والوضعية الإدماجية بنجاح!');
+    setLessonSaveMessage('تم حفظ معلومات المقطع والكفاءات ومراحل المذكرة والوضعية بنجاح!');
     setTimeout(() => setLessonSaveMessage(null), 3500);
   };
 
@@ -818,12 +853,16 @@ export default function GeneratorPage() {
         if (parsed.memoSection !== undefined) setMemoSection(parsed.memoSection);
         if (parsed.memoDomain !== undefined) setMemoDomain(parsed.memoDomain);
         if (parsed.memoContent !== undefined) setMemoContent(parsed.memoContent);
+        if (parsed.memoWarmup !== undefined) setMemoWarmup(parsed.memoWarmup);
+        if (parsed.memoLearningSituation !== undefined) setMemoLearningSituation(parsed.memoLearningSituation);
+        if (parsed.memoSummary !== undefined) setMemoSummary(parsed.memoSummary);
+        if (parsed.memoReinvestment !== undefined) setMemoReinvestment(parsed.memoReinvestment);
         if (parsed.aiPrompt !== undefined) setAiPrompt(parsed.aiPrompt);
         if (parsed.exercises && Array.isArray(parsed.exercises)) setExercises(parsed.exercises);
         if (parsed.integrationSections !== undefined) setIntegrationSections(parsed.integrationSections);
         if (parsed.integrationCompetencies !== undefined) setIntegrationCompetencies(parsed.integrationCompetencies);
         if (parsed.integrationPrompt !== undefined) setIntegrationPrompt(parsed.integrationPrompt);
-        setLessonSaveMessage('تم استرجاع معلومات دروسك وكفاءاتك والوضعية الإدماجية بنجاح!');
+        setLessonSaveMessage('تم استرجاع معلومات دروسك ومراحل مذكرتك والوضعية الإدماجية بنجاح!');
         setTimeout(() => setLessonSaveMessage(null), 3500);
       } catch (e) {
         console.error(e);
@@ -838,6 +877,10 @@ export default function GeneratorPage() {
       setMemoSection('');
       setMemoDomain('');
       setMemoContent('');
+      setMemoWarmup('');
+      setMemoLearningSituation('');
+      setMemoSummary('');
+      setMemoReinvestment('');
       setAiPrompt('');
       setIntegrationSections('');
       setIntegrationCompetencies('');
@@ -847,6 +890,10 @@ export default function GeneratorPage() {
         memoSection: '',
         memoDomain: '',
         memoContent: '',
+        memoWarmup: '',
+        memoLearningSituation: '',
+        memoSummary: '',
+        memoReinvestment: '',
         aiPrompt: '',
         integrationSections: '',
         integrationCompetencies: '',
@@ -965,7 +1012,10 @@ export default function GeneratorPage() {
         duration: teacherInfo.phase,
         typeLabel: generationType === 'memo' ? 'مذكرة تربوية' : 'مستند تربوي'
       };
-      const styled = transformDocumentToStyle(generatedHtml, styleId, meta);
+      // Prefer the clean raw generated HTML if available to preserve perfect fidelity,
+      // otherwise transform the current generatedHtml with unwrap logic
+      const sourceContent = rawGeneratedHtml || generatedHtml;
+      const styled = transformDocumentToStyle(sourceContent, styleId, meta);
       updateGeneratedHtml(styled);
     }
   };
@@ -1055,7 +1105,15 @@ export default function GeneratorPage() {
     
     let subjectInfo: SubjectInfo = {};
     if (generationType === 'memo' || generationType === 'summary' || generationType === 'visual' || generationType.startsWith('cutout')) {
-      subjectInfo = { section: memoSection, domain: memoDomain, content: memoContent };
+      subjectInfo = { 
+        section: memoSection, 
+        domain: memoDomain, 
+        content: memoContent,
+        memoWarmup: memoWarmup ? memoWarmup.trim() : undefined,
+        memoLearningSituation: memoLearningSituation ? memoLearningSituation.trim() : undefined,
+        memoSummary: memoSummary ? memoSummary.trim() : undefined,
+        memoReinvestment: memoReinvestment ? memoReinvestment.trim() : undefined
+      };
     } else {
       const targetCount = numExercisesOption === 'auto' 
         ? (exercises.some(e => e.section) ? exercises.length : undefined) 
@@ -1148,7 +1206,7 @@ export default function GeneratorPage() {
         typeLabel: generationType === 'memo' ? 'مذكرة تربوية' : 'مستند تربوي'
       };
       const styledContent = transformDocumentToStyle(safeHtml, designStyle, docMeta);
-      updateGeneratedHtml(styledContent);
+      updateGeneratedHtml(styledContent, safeHtml);
       
       // Update generation quota in Firestore
       if (!isAdmin && userData.role !== 'admin') {
@@ -2292,6 +2350,120 @@ ${framedContent}
                   <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400 uppercase tracking-wider">المورد / المحتوى المعرفي</label>
                   <input type="text" placeholder="مثال: الهضم" value={memoContent} onChange={e => { setMemoContent(e.target.value); saveCurrentPreferences({ memoContent: e.target.value }); }} className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow" />
                 </div>
+
+                {generationType === 'memo' && (
+                  <div className="space-y-3 pt-1">
+                    {/* Visual 4-Stages Roadmap Banner */}
+                    <div className="bg-gradient-to-r from-sky-50 via-amber-50/50 via-purple-50/50 to-emerald-50 dark:from-sky-950/40 dark:via-amber-950/20 dark:via-purple-950/20 dark:to-emerald-950/40 p-3.5 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 shadow-xs space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          <Sparkles size={15} className="text-indigo-600 dark:text-indigo-400" />
+                          <span>التدرج البيداغوجي المعتمد للمذكرة (4 مراحل متسلسلة):</span>
+                        </span>
+                        <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full">
+                          المنهاج الرسمي
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                        <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-sky-200/80 dark:border-sky-800/40 shadow-xs flex flex-col items-center justify-center">
+                          <span className="text-lg mb-0.5">✨</span>
+                          <span className="font-extrabold text-sky-800 dark:text-sky-300 text-[11.5px]">1. التهيئة</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">تنشيط المكتسبات</span>
+                        </div>
+                        <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-amber-200/80 dark:border-amber-800/40 shadow-xs flex flex-col items-center justify-center">
+                          <span className="text-lg mb-0.5">🧭</span>
+                          <span className="font-extrabold text-amber-800 dark:text-amber-300 text-[11.5px]">2. وضعية تعلمية</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">لاستخلاص الدرس</span>
+                        </div>
+                        <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-purple-200/80 dark:border-purple-800/40 shadow-xs flex flex-col items-center justify-center">
+                          <span className="text-lg mb-0.5">💡</span>
+                          <span className="font-extrabold text-purple-800 dark:text-purple-300 text-[11.5px]">3. حوصلة وما يتبعها</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">القواعد والأمثلة</span>
+                        </div>
+                        <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800/40 shadow-xs flex flex-col items-center justify-center">
+                          <span className="text-lg mb-0.5">🎯</span>
+                          <span className="font-extrabold text-emerald-800 dark:text-emerald-300 text-[11.5px]">4. إعادة الاستثمار</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">تطبيقات وتمارين</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expandable Custom Stages Section */}
+                    <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/60 dark:bg-slate-900/40 transition-all">
+                      <button
+                        type="button"
+                        onClick={() => setShowMemoCustomStages(!showMemoCustomStages)}
+                        className="w-full p-3 flex items-center justify-between text-right text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Sliders size={14} className="text-indigo-600 dark:text-indigo-400" />
+                          <span>تخصيص مدخلات المحطات الأربعة (اختياري - يحددها الذكاء الاصطناعي تلقائياً إن تركت فارغة)</span>
+                        </div>
+                        <ChevronDown size={15} className={`transform transition-transform duration-200 ${showMemoCustomStages ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {showMemoCustomStages && (
+                        <div className="p-3.5 space-y-3.5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 animate-in fade-in duration-200">
+                          <div>
+                            <label className="block text-[11px] font-bold text-sky-800 dark:text-sky-300 mb-1 flex items-center gap-1.5">
+                              <span>✨</span>
+                              <span>1. التهيئة (المكتسبات القبلية المستهدفة أو تمرين التقويم التشخيصي):</span>
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="مثال: مراجعة جمع وطرح كسرين لهما نفس المقام / تذكير بمفهوم الزوايا والقواسم"
+                              value={memoWarmup}
+                              onChange={e => { setMemoWarmup(e.target.value); saveCurrentPreferences({ memoWarmup: e.target.value }); }}
+                              className="w-full p-2.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-amber-800 dark:text-amber-300 mb-1 flex items-center gap-1.5">
+                              <span>🧭</span>
+                              <span>2. وضعية تعلمية لاستخلاص الدرس (سياق المشكلة أو فكرة النشاط الاستكشافي):</span>
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="مثال: وضعية حول تقسيم مساحة قطعة أرض / نشاط تجريبي بالعدسة المجمعة / نص حول التعاون"
+                              value={memoLearningSituation}
+                              onChange={e => { setMemoLearningSituation(e.target.value); saveCurrentPreferences({ memoLearningSituation: e.target.value }); }}
+                              className="w-full p-2.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-purple-800 dark:text-purple-300 mb-1 flex items-center gap-1.5">
+                              <span>💡</span>
+                              <span>3. حوصلة وما يتبعها (القواعد والنتائج والأمثلة والتنبيهات المنهجية):</span>
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="مثال: التركيز على قاعدة توحيد المقامات مع إبراز حالة المضاعف المشترك وملاحظة الأخطاء الشائعة"
+                              value={memoSummary}
+                              onChange={e => { setMemoSummary(e.target.value); saveCurrentPreferences({ memoSummary: e.target.value }); }}
+                              className="w-full p-2.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-emerald-800 dark:text-emerald-300 mb-1 flex items-center gap-1.5">
+                              <span>🎯</span>
+                              <span>4. إعادة الاستثمار (تمارين التطبيق والتثبيت أو أرقام تمارين الكتاب):</span>
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="مثال: حل التمرين 14 و 15 صفحة 28 من الكتاب المدرسي / مسألة حساب تكلفة بناء سياج"
+                              value={memoReinvestment}
+                              onChange={e => { setMemoReinvestment(e.target.value); saveCurrentPreferences({ memoReinvestment: e.target.value }); }}
+                              className="w-full p-2.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 
               </div>
             ) : (
@@ -2801,6 +2973,32 @@ ${framedContent}
                     <option key={f.id} value={f.id}>{f.label}</option>
                   ))}
                 </select>
+                <div className="w-px h-4 bg-slate-300 dark:bg-slate-600"></div>
+                {/* Quick Post-Generation Style Switcher Dropdown */}
+                <select 
+                  value={designStyle} 
+                  onChange={e => handleDesignStyleChange(e.target.value)}
+                  className="text-xs font-bold bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900 dark:to-slate-800 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 rounded px-2 py-1 outline-none cursor-pointer hover:border-amber-500 transition font-bold"
+                  title="تغيير ستايل وهوية المستند مباشرة وبحرية تامة"
+                >
+                  {STYLES_REGISTRY.map(st => (
+                    <option key={st.id} value={st.id}>
+                      ✨ {st.nameAr} {st.isPro && isFreeMode ? '(PRO)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (soundEnabled) soundManager.playTabClick();
+                    setShowStyleSwitcherModal(true);
+                  }}
+                  className="flex items-center gap-1 text-xs font-black bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white px-2.5 py-1 rounded shadow-sm hover:shadow transition active:scale-95"
+                  title="فتح معرض الستايلات المجسمة لاختيار ستايل جديد للمستند"
+                >
+                  <Palette size={13} />
+                  <span>معرض الستايلات</span>
+                </button>
               </div>
 
               {/* Actions */}
@@ -3142,6 +3340,65 @@ ${framedContent}
             >
               إغلاق
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Post-Generation Style Switcher Modal */}
+      {showStyleSwitcherModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in"
+          onClick={() => setShowStyleSwitcherModal(false)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4"
+            onClick={e => e.stopPropagation()}
+            dir="rtl"
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center text-white shadow-lg">
+                  <Palette size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                    تغيير ستايل المستند بحرية تامة
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    اختر أي ستايل تريده وسيتم تحويل وتحديث المستند فوراً بألوان قوية وأيقونات مجسمة ثلاثية الأبعاد دون المساس بمحتوى الدرس
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowStyleSwitcherModal(false)}
+                className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="py-2">
+              <StyleSelector
+                selectedStyleId={designStyle}
+                onSelectStyle={(id) => {
+                  handleDesignStyleChange(id);
+                  setShowStyleSwitcherModal(false);
+                }}
+                isFreeMode={isFreeMode}
+                soundEnabled={soundEnabled}
+              />
+            </div>
+
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowStyleSwitcherModal(false)}
+                className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-sm transition"
+              >
+                إغلاق
+              </button>
+            </div>
           </div>
         </div>
       )}
