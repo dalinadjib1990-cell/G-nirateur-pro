@@ -207,6 +207,72 @@ input[type="text"]:focus, select:focus, textarea:focus {
   animation: movingShadow 2s infinite ease-in-out;
 }
 
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 8s linear infinite;
+}
+
+@keyframes spinReverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+.animate-spin-reverse {
+  animation: spinReverse 12s linear infinite;
+}
+
+@keyframes floatBubble {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-5px) scale(1.03); }
+}
+
+.animate-float-bubble {
+  animation: floatBubble 3.5s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.08); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
+}
+
+@keyframes orbitDot {
+  0% { transform: rotate(0deg) translateX(32px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(32px) rotate(-360deg); }
+}
+
+.animate-orbit {
+  animation: orbitDot 5s linear infinite;
+}
+
+@keyframes orbitDotFast {
+  0% { transform: rotate(180deg) translateX(32px) rotate(-180deg); }
+  100% { transform: rotate(540deg) translateX(32px) rotate(-540deg); }
+}
+
+.animate-orbit-fast {
+  animation: orbitDotFast 3.5s linear infinite;
+}
+
+@keyframes cardTiltSpin {
+  0% { transform: perspective(800px) rotateY(0deg) translateY(0); }
+  25% { transform: perspective(800px) rotateY(4deg) translateY(-2px); }
+  50% { transform: perspective(800px) rotateY(0deg) translateY(-4px); }
+  75% { transform: perspective(800px) rotateY(-4deg) translateY(-2px); }
+  100% { transform: perspective(800px) rotateY(0deg) translateY(0); }
+}
+
+.animate-card-float {
+  animation: cardTiltSpin 6s ease-in-out infinite;
+}
+
 @keyframes floatUpFade {
   0% { opacity: 0; transform: translate(-50%, 10px) scale(0.8); }
   20% { opacity: 1; transform: translate(-50%, -15px) scale(1.1); }

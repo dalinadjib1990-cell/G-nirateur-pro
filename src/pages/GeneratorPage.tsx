@@ -11,6 +11,10 @@ import { useDownloads } from '../contexts/DownloadsContext';
 import DownloadsModal from '../components/DownloadsModal';
 import { expertChatEmitter, profileModalEmitter } from '../App';
 import { uploadImage } from '../lib/cloudinary';
+import { DazzlingStyleSelector } from '../components/DazzlingStyleSelector';
+import { DazzlingFrameSelector } from '../components/DazzlingFrameSelector';
+import { FrameDecorations } from '../components/FrameDecorations';
+import { DESIGN_STYLE_PRESETS, VISUAL_STYLE_PRESETS, PAGE_FRAME_PRESETS } from '../lib/designPresets';
 
 // Simple unique ID generator
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -81,8 +85,8 @@ export default function GeneratorPage() {
   const [memoDomain, setMemoDomain] = useState('');
   const [memoContent, setMemoContent] = useState('');
   const [contentStyle, setContentStyle] = useState('standard');
-  const [designStyle, setDesignStyle] = useState('style1');
-  const [pageFrame, setPageFrame] = useState('none');
+  const [designStyle, setDesignStyle] = useState('pedagogical_official');
+  const [pageFrame, setPageFrame] = useState('pedagogical');
   const [aiPrompt, setAiPrompt] = useState('');
   
   // Test/Series specific state
@@ -117,12 +121,12 @@ export default function GeneratorPage() {
     if (generationType === 'visual' && !designStyle.startsWith('visual_')) {
       setDesignStyle('visual_nature');
     } else if (generationType !== 'visual' && designStyle.startsWith('visual_')) {
-      setDesignStyle('style1');
+      setDesignStyle('pedagogical_official');
     }
   }, [generationType, designStyle]);
 
   const [previewFontSize, setPreviewFontSize] = useState(16);
-  const [docColor, setDocColor] = useState('#1e40af');
+  const [docColor, setDocColor] = useState('#1d4ed8');
   const [documentLanguage, setDocumentLanguage] = useState('ar');
   const [includeWatermark, setIncludeWatermark] = useState(false);
 
@@ -310,28 +314,8 @@ export default function GeneratorPage() {
 
   const isFreeMode = !isProUser;
 
-  let designStyles = [
-    { id: 'style1', label: 'كلاسيكي', icon: BookOpen, color: '#1e40af', twColor: 'text-blue-600', twBg: 'bg-blue-100', twBorder: 'border-blue-200' },
-    { id: 'style5', label: 'داكن', icon: Printer, color: '#334155', twColor: 'text-slate-700', twBg: 'bg-slate-200', twBorder: 'border-slate-300' },
-    { id: 'style2', label: 'إبداعي', icon: Palette, color: '#9333ea', twColor: 'text-purple-600', twBg: 'bg-purple-100', twBorder: 'border-purple-200', isPro: true },
-    { id: 'style3', label: 'عصري', icon: Sparkles, color: '#059669', twColor: 'text-emerald-600', twBg: 'bg-emerald-100', twBorder: 'border-emerald-200', isPro: true },
-    { id: 'style6', label: 'هندسي', icon: Hexagon, color: '#0891b2', twColor: 'text-cyan-600', twBg: 'bg-cyan-100', twBorder: 'border-cyan-200', isPro: true },
-    { id: 'style7', label: 'مرح', icon: Smile, color: '#db2777', twColor: 'text-pink-600', twBg: 'bg-pink-100', twBorder: 'border-pink-200', isPro: true },
-    { id: 'style8', label: 'أكاديمي', icon: GraduationCap, color: '#4f46e5', twColor: 'text-indigo-600', twBg: 'bg-indigo-100', twBorder: 'border-indigo-200', isPro: true },
-    { id: 'style9', label: 'ناعم', icon: Heart, color: '#e11d48', twColor: 'text-rose-600', twBg: 'bg-rose-100', twBorder: 'border-rose-200', isPro: true },
-    { id: 'style10', label: 'بني', icon: Coffee, color: '#92400e', twColor: 'text-orange-800', twBg: 'bg-orange-100', twBorder: 'border-orange-200', isPro: true },
-    { id: 'style13', label: 'خارق للعادة', icon: Layers, color: '#0369a1', twColor: 'text-sky-700', twBg: 'bg-sky-100', twBorder: 'border-sky-200', isPro: true },
-    { id: 'style14', label: 'طبيعي', icon: Leaf, color: '#65a30d', twColor: 'text-lime-600', twBg: 'bg-lime-100', twBorder: 'border-lime-200', isPro: true },
-    { id: 'style15', label: 'ذهبي', icon: Star, color: '#ca8a04', twColor: 'text-yellow-600', twBg: 'bg-yellow-100', twBorder: 'border-yellow-200', isPro: true }
-  ];
-
-  if (generationType === 'visual') {
-    designStyles = [
-      { id: 'visual_nature', label: 'تفاعلي - طبيعة (أخضر)', icon: Leaf, color: '#65a30d', twColor: 'text-lime-600', twBg: 'bg-lime-100', twBorder: 'border-lime-200' },
-      { id: 'visual_elegant', label: 'تفاعلي - أناقة (بنفسجي)', icon: Palette, color: '#9333ea', twColor: 'text-purple-600', twBg: 'bg-purple-100', twBorder: 'border-purple-200' },
-      { id: 'visual_geometric', label: 'تفاعلي - هندسي (برتقالي)', icon: Hexagon, color: '#f97316', twColor: 'text-orange-600', twBg: 'bg-orange-100', twBorder: 'border-orange-200' }
-    ];
-  }
+  const designStyles = generationType === 'visual' ? VISUAL_STYLE_PRESETS : DESIGN_STYLE_PRESETS;
+  const pageFrames = PAGE_FRAME_PRESETS;
 
   const contentStyles = [
     { id: 'concise', label: 'مختصر هادف', icon: Zap },
@@ -339,22 +323,13 @@ export default function GeneratorPage() {
     { id: 'detailed', label: 'مفصل', icon: Table },
   ];
 
-  const pageFrames = [
-    { id: 'none', label: 'بدون إطار' },
-    { id: 'simple', label: 'إطار بسيط' },
-    { id: 'double', label: 'إطار مزدوج', isPro: true },
-    { id: 'ornate', label: 'إطار مزخرف مميز', isPro: true },
-    { id: '3d', label: 'إطار 3D', isPro: true }
-  ];
-
-  const handleDesignStyleChange = (styleId: string) => {
+  const handleDesignStyleChange = (styleId: string, customColor?: string) => {
     if (soundEnabled) soundManager.playTabClick();
     setDesignStyle(styleId);
     const selected = designStyles.find(s => s.id === styleId);
-    if (selected) {
-      setDocColor(selected.color);
-    }
-    saveCurrentPreferences({ designStyle: styleId, docColor: selected?.color });
+    const newColor = customColor || selected?.color || '#1d4ed8';
+    setDocColor(newColor);
+    saveCurrentPreferences({ designStyle: styleId, docColor: newColor });
   };
 
   const profileInputRef = useRef<HTMLInputElement>(null);
@@ -537,8 +512,67 @@ export default function GeneratorPage() {
 
   const getFrameStyle = (frameId: string, color: string): React.CSSProperties => {
     switch (frameId) {
-      case 'simple': return { border: `2px solid ${color}`, margin: '0', padding: '4mm', minHeight: '297mm', boxSizing: 'border-box' };
-      case 'double': return { border: `4px double ${color}`, margin: '0', padding: '4mm', minHeight: '297mm', boxSizing: 'border-box' };
+      case 'pedagogical': return { 
+          border: `3px solid ${color}`, 
+          outline: `1px solid ${color}80`, 
+          outlineOffset: '-5px', 
+          margin: '0', 
+          padding: '7mm', 
+          minHeight: '297mm', 
+          boxSizing: 'border-box',
+          position: 'relative',
+      };
+      case 'floral': return { 
+          border: `2px solid ${color}90`, 
+          outline: `1px dashed ${color}50`, 
+          outlineOffset: '-6px', 
+          margin: '0', 
+          padding: '8mm 7mm', 
+          minHeight: '297mm', 
+          boxSizing: 'border-box',
+          position: 'relative',
+      };
+      case 'royal_gold': return { 
+          border: `3px double #d97706`, 
+          outline: `2px solid #b45309`, 
+          outlineOffset: '-6px', 
+          margin: '0', 
+          padding: '8mm', 
+          minHeight: '297mm', 
+          boxSizing: 'border-box',
+          position: 'relative',
+      };
+      case 'islamic': return { 
+          border: `3px solid #047857`, 
+          outline: `1.5px solid #ca8a04`, 
+          outlineOffset: '-5px', 
+          margin: '0', 
+          padding: '7mm', 
+          minHeight: '297mm', 
+          boxSizing: 'border-box',
+          position: 'relative',
+      };
+      case 'neon_glow': return { 
+          border: `3px solid ${color}`, 
+          boxShadow: `inset 0 0 12px ${color}40, 0 0 10px ${color}30`, 
+          margin: '0', 
+          padding: '6mm', 
+          minHeight: '297mm', 
+          boxSizing: 'border-box',
+          position: 'relative',
+      };
+      case 'certificate': return { 
+          border: `5px double ${color}`, 
+          outline: `1px solid ${color}`, 
+          outlineOffset: '-8px', 
+          margin: '0', 
+          padding: '9mm 8mm', 
+          minHeight: '297mm', 
+          boxSizing: 'border-box',
+          position: 'relative',
+      };
+      case 'simple': return { border: `2px solid ${color}`, margin: '0', padding: '5mm', minHeight: '297mm', boxSizing: 'border-box', position: 'relative' };
+      case 'double': return { border: `4px double ${color}`, margin: '0', padding: '5mm', minHeight: '297mm', boxSizing: 'border-box', position: 'relative' };
       case 'ornate': return { 
           border: `2px dashed ${color}`, 
           outline: `2px solid ${color}`, 
@@ -547,6 +581,7 @@ export default function GeneratorPage() {
           padding: '6mm',
           minHeight: '297mm',
           boxSizing: 'border-box',
+          position: 'relative',
           backgroundColor: '#fff',
       };
       case '3d': return { 
@@ -555,11 +590,12 @@ export default function GeneratorPage() {
           borderBottom: `5px solid ${color}80`, 
           borderRight: `5px solid ${color}80`, 
           margin: '0',
-          padding: '4mm',
+          padding: '5mm',
           minHeight: '297mm',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          position: 'relative',
       };
-      default: return { padding: '6mm', minHeight: '297mm', boxSizing: 'border-box' };
+      default: return { padding: '6mm', minHeight: '297mm', boxSizing: 'border-box', position: 'relative' };
     }
   };
 
@@ -1539,92 +1575,26 @@ ${htmlForWord}
                 </div>
               </div>
 
-              {/* Design Style */}
-              <div>
-                <label className="block text-xs font-bold mb-3 text-slate-800 dark:text-slate-200 uppercase tracking-wider">ستايل التصميم والألوان</label>
-                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                  {designStyles.map(style => {
-                    const isLocked = isFreeMode && style.isPro;
-                    return (
-                      <button
-                        key={style.id}
-                        onClick={() => {
-                          if (isLocked) {
-                            alert('هذا التصميم متاح للمشتركين فقط. يرجى الترقية لفتحه!');
-                            return;
-                          }
-                          handleDesignStyleChange(style.id);
-                        }}
-                        className={`relative flex flex-col items-center justify-center gap-2 transition-all group ${
-                          designStyle === style.id ? 'transform scale-110' : 'hover:transform hover:scale-105 hover:-translate-y-1 opacity-80 hover:opacity-100'
-                        } ${isLocked ? 'grayscale opacity-60 hover:grayscale-0' : ''}`}
-                        style={{ width: '70px' }}
-                      >
-                        {isLocked && (
-                          <div className="absolute top-0 right-0 z-20 bg-slate-900/80 rounded-full p-1 shadow-sm border border-slate-700/50">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                          </div>
-                        )}
-                        {/* Magic Ball Element */}
-                        <div 
-                          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden transition-all duration-300 ${designStyle === style.id ? 'ring-2 ring-offset-2 dark:ring-offset-slate-900' : ''}`}
-                          style={{
-                            background: designStyle === style.id 
-                              ? `radial-gradient(circle at 30% 30%, ${style.color}cc 0%, ${style.color} 60%, #000000 150%)` 
-                              : 'radial-gradient(circle at 30% 30%, #f1f5f9 0%, #cbd5e1 60%, #94a3b8 150%)',
-                            color: designStyle === style.id ? 'white' : '#64748b',
-                            boxShadow: designStyle === style.id ? `0 10px 15px -3px ${style.color}60` : '0 4px 6px -1px rgba(0,0,0,0.1)'
-                          }}
-                        >
-                          {/* Specular reflection for magic ball effect */}
-                          <div className="absolute top-1 left-2 w-5 h-3 bg-white opacity-40 rounded-full blur-[1px] -rotate-45 group-hover:opacity-60 transition-opacity" />
-                          <style.icon size={22} className="relative z-10 drop-shadow-md" />
-                        </div>
-                        <span className={`text-[11px] text-center font-bold transition-colors ${designStyle === style.id ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
-                          {style.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* Dazzling Style Selector with 3D Rotating Bubbles and Rotating Cards */}
+              <DazzlingStyleSelector
+                currentStyleId={designStyle}
+                onSelectStyle={(id, color) => handleDesignStyleChange(id, color)}
+                isFreeMode={isFreeMode}
+                soundEnabled={soundEnabled}
+                isVisualMode={generationType === 'visual'}
+              />
 
-              {/* Page Frame */}
-              <div>
-                <label className="block text-xs font-bold mb-3 text-slate-800 dark:text-slate-200 uppercase tracking-wider">إطار الصفحة</label>
-                <div className="flex flex-wrap gap-3">
-                  {pageFrames.map(frame => {
-                    const isLocked = isFreeMode && frame.isPro;
-                    return (
-                      <button
-                        key={frame.id}
-                        onClick={() => {
-                          if (isLocked) {
-                            alert('هذا الإطار متاح للمشتركين فقط. يرجى الترقية لفتحه!');
-                            return;
-                          }
-                          if (soundEnabled) soundManager.playTabClick();
-                          setPageFrame(frame.id);
-                          saveCurrentPreferences({ pageFrame: frame.id });
-                        }}
-                        className={`flex-1 min-w-[80px] py-3 px-2 rounded-xl border-2 text-xs font-bold transition-all relative group overflow-hidden ${
-                          pageFrame === frame.id 
-                            ? 'bg-slate-800 text-white border-slate-900 shadow-[0_4px_0_0_#0f172a] hover:translate-y-1 hover:shadow-[0_0px_0_0_#0f172a] dark:bg-slate-200 dark:text-slate-900 dark:border-white dark:shadow-[0_4px_0_0_#94a3b8]' 
-                            : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 hover:-translate-y-1 hover:shadow-[0_4px_0_0_#94a3b8] dark:hover:shadow-[0_4px_0_0_#334155]'
-                        } ${isLocked ? 'opacity-60' : ''}`}
-                      >
-                        {isLocked && (
-                          <div className="absolute top-1 right-1 z-20 text-slate-400 dark:text-slate-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        {frame.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* Dazzling Frame Selector */}
+              <DazzlingFrameSelector
+                currentFrameId={pageFrame}
+                onSelectFrame={(frameId) => {
+                  setPageFrame(frameId);
+                  saveCurrentPreferences({ pageFrame: frameId });
+                }}
+                isFreeMode={isFreeMode}
+                soundEnabled={soundEnabled}
+                docColor={docColor}
+              />
             </div>
 
             {/* AI Instruction Prompt & Watermark */}
@@ -1790,7 +1760,7 @@ ${htmlForWord}
             {generatedHtml ? (
               <div style={{ width: 794 * effectiveScale, height: 1122 * effectiveScale, position: 'relative' }}>
                 <div 
-                  className="a4-page print-area bg-white text-black outline-none transition-transform duration-200 ease-out absolute top-0 left-0 overflow-hidden"
+                  className="a4-page print-area bg-white text-black outline-none transition-transform duration-200 ease-out absolute top-0 left-0 overflow-hidden relative shadow-md"
                   style={{
                     fontFamily: 'Arial, sans-serif',
                     fontSize: `${previewFontSize}px`,
@@ -1802,18 +1772,19 @@ ${htmlForWord}
                     boxSizing: 'border-box',
                   } as React.CSSProperties}
                 >
+                  <FrameDecorations frameId={pageFrame} color={docColor} />
                   <div
                     contentEditable
                     dangerouslySetInnerHTML={{ __html: generatedHtml }}
                     style={getFrameStyle(pageFrame, docColor)}
-                    className="w-full h-full min-h-[297mm]"
+                    className="w-full h-full min-h-[297mm] relative z-10"
                   />
                 </div>
               </div>
             ) : (
               <div style={{ width: 794 * effectiveScale, height: 1122 * effectiveScale, position: 'relative' }}>
                 <div 
-                  className="a4-page print-area bg-white text-slate-300 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 transition-transform duration-200 ease-out absolute top-0 left-0"
+                  className="a4-page print-area bg-white text-slate-300 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 transition-transform duration-200 ease-out absolute top-0 left-0 relative overflow-hidden shadow-sm"
                   style={{ 
                     transform: `scale(${effectiveScale})`,
                     transformOrigin: 'top left',
@@ -1821,12 +1792,22 @@ ${htmlForWord}
                     minHeight: '297mm',
                   }}
                 >
-                  <div className="bg-slate-50 p-8 rounded-full mb-6 relative">
-                    <div className="absolute inset-0 bg-indigo-100 rounded-full animate-ping opacity-20"></div>
-                    <FileText size={80} className="text-slate-300" />
+                  <FrameDecorations frameId={pageFrame} color={docColor} />
+                  <div 
+                    style={getFrameStyle(pageFrame, docColor)}
+                    className="w-full h-full min-h-[297mm] flex flex-col items-center justify-center p-6 relative z-10"
+                  >
+                    <div className="bg-slate-50 dark:bg-slate-800 p-8 rounded-full mb-6 relative">
+                      <div className="absolute inset-0 bg-indigo-100 dark:bg-indigo-900/30 rounded-full animate-ping opacity-25"></div>
+                      <FileText size={80} className="text-slate-300 dark:text-slate-600" />
+                    </div>
+                    <p className="text-2xl font-bold text-slate-400 dark:text-slate-500">ورقة A4 جاهزة للتوليد</p>
+                    <p className="text-sm mt-2 text-slate-400/80 dark:text-slate-500/80">املأ المعلومات واضغط على زر التوليد الحصري</p>
+                    <div className="mt-4 flex items-center gap-2 text-xs font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-full border border-indigo-200 dark:border-indigo-800/40">
+                      <span>إطار المعاينة الحالي:</span>
+                      <span className="underline">{pageFrames.find(f => f.id === pageFrame)?.label || 'افتراضي'}</span>
+                    </div>
                   </div>
-                  <p className="text-2xl font-bold text-slate-400">ورقة A4 جاهزة للتوليد</p>
-                  <p className="text-base mt-2 text-slate-400/80">املأ المعلومات واضغط على زر التوليد الحصري</p>
                 </div>
               </div>
             )}
